@@ -1,10 +1,61 @@
 import numpy as np
+import pandas as pd
+import os
+import logging
+from collections import namedtuple
+
+Table = namedtuple('Table', 'name fname dtype')
+
+DATA_DIR = 'dat'
+_ops_dtype = dict(order_id=np.int32, product_id=np.uint16,
+        add_to_cart_order=np.int16, reordered=np.int8)
+TABLES = [
+        Table('ops_train', 'order_products__train', _ops_dtype),
+        Table('ops_prior', 'order_products__prior', _ops_dtype),
+        Table('orders', 'orders', {}),
+        # Skip products for now too. Wynaut.
+        #Table('products', 'products', {}),
+        # Skip departments, aisles for now
+]
 
 class BasketDB(object):
 
-    def __init__(self, **tables):
+    def __init__(self, truncate=0, **tables):
         for (name, table) in tables.iteritems():
+            if name.startswith('ops'):
+                continue
             setattr(self, name, table)
+        # Do a unified table for ops
+        ops = pd.concat([ tables['ops_prior'], tables['ops_train'] ], 
+                ignore_index=1)
+        self.ops = ops
+        self.ops.set_index(['order_id', 'product_id'], inplace=True, drop=0)
+        if truncate:
+            logging.info('Truncating tables to {} rows'.format(truncate))
+            self.truncate(truncate)
+        logging.debug('Adding indices')
+        self.ops.sort_index(level=[0,1], inplace=True)
+        self.orders.set_index('order_id', inplace=True, drop=0)
+
+    @classmethod
+    def load(kls, truncate=0):
+        """If truncate is provided, take a subset with that many users"""
+        tables = {}
+        logging.debug('Loading csv files')
+        for table_meta in TABLES:
+            path = os.path.join(DATA_DIR, table_meta.fname + '.csv')
+            df = pd.read_csv(path, dtype=table_meta.dtype)
+            tables[table_meta.name] = df
+        return BasketDB(truncate, **tables)
+
+    def save(self):
+        pass # TODO
+
+    def truncate(self, n):
+        uids = self.orders['user_id'].unique()[:n]
+        self.orders = self.orders[self.orders['user_id'].isin(uids)]
+        oids = self.orders['order_id']
+        self.ops = self.ops[self.ops['order_id'].isin(oids)]
 
     def get_userids(self, n=None):
         users = self.orders['user_id'].unique()
