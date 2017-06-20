@@ -14,6 +14,7 @@ import rnnmodel
 import utils
 from rnnmodel import RNNModel
 from dataset import Dataset
+from basket_store import Store
 
 logger = logging.getLogger(__name__)
 _handler = logging.StreamHandler(sys.stderr)
@@ -103,7 +104,8 @@ def main():
   logger.info('Building model')
   model = RNNModel(hps)
   logger.info('Loading dataset')
-  data = Dataset.load(hps)
+  store = Store()
+  data = Dataset(store.train_df(), hps)
   sess = tf.InteractiveSession()
   sess.run(tf.global_variables_initializer())
   logger.info('Training')

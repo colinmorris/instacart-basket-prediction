@@ -5,7 +5,8 @@ import pandas as pd
 
 FEATURE_COLS = [
         'order_number', 'order_dow', 'order_hour_of_day', 'days_since_prior_order',
-        'prev_prods', 'prev_reorders'
+        # TODO: restore me!
+        #'prev_prods', 'prev_reorders'
 ]
 
 class Dataset(object):
@@ -17,16 +18,12 @@ class Dataset(object):
         self.batch_size = hps.batch_size
         self.nsteps = len(df)
         labels, vecs, seqlens, _ = self.convert_df(df, hps.max_seq_len)
+        self.nfeats = vecs.shape[-1]
         self.n = labels.shape[0]
         self.nbatches = self.n // self.batch_size
         self.labels = labels
         self.vectors = vecs
         self.seqlens = seqlens
-
-    @classmethod
-    def load(kls, hps, fname='vectors.pickle'):
-        df = pd.read_pickle(fname)
-        return Dataset(df, hps)
 
     @staticmethod
     def convert_df(df, maxlen):
