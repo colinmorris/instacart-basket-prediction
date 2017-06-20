@@ -11,6 +11,7 @@ import tensorflow as tf
 import pandas as pd
 
 import rnnmodel
+import utils
 from rnnmodel import RNNModel
 from dataset import Dataset
 
@@ -20,17 +21,21 @@ _handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(_handler)
 
 def get_next_run_num():
-  rundirs = map(int, os.listdir('logs'))
+  def tryint(x):
+    try:
+      return int(x)
+    except ValueError:
+      return 1
+  rundirs = map(tryint, os.listdir('logs'))
   if not rundirs:
     return 1
   return max(rundirs) + 1  
 
 
-def train(sess, model, data): # TODO: eval_model
+def train(sess, model, data, runlabel): # TODO: eval_model
   # Setup summary writer.
-  summary_writer = tf.summary.FileWriter('logs/{}'.format(
-      get_next_run_num()
-    ))
+  # TODO: allow explicitly passing in a run label
+  summary_writer = tf.summary.FileWriter('logs/{}'.format(runlabel))
 
   # Calculate trainable params.
   t_vars = tf.trainable_variables()
@@ -78,13 +83,23 @@ def train(sess, model, data): # TODO: eval_model
       summary_writer.add_summary(time_summ, step)
       summary_writer.flush()
       start = time.time()
-    # TODO: save_every stuff
+    if (step % hps.save_every == 0 and step > 0) or i == (hps.num_steps - 1):
+        utils.save_model(sess, runlabel, step)
+
 
 def main():
+  tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
+  # TODO: allow passing in hparams config json
+  parser.add_argument('-r', '--run-label', default=None)
+  parser.add_argument('-c', '--config', default=None, 
+    help='Path to json file with hyperparams config')
   args = parser.parse_args()
-  #hps = rnnmodel.get_default_hparams()
-  hps = rnnmodel.get_toy_hparams()
+  hps = rnnmodel.get_default_hparams()
+  if args.config:
+    with open(args.config) as f:
+      hps.parse_json(f.read())
+
   logger.info('Building model')
   model = RNNModel(hps)
   logger.info('Loading dataset')
@@ -92,7 +107,13 @@ def main():
   sess = tf.InteractiveSession()
   sess.run(tf.global_variables_initializer())
   logger.info('Training')
-  train(sess, model, data)
+  if args.run_label is None:
+    runlabel = get_next_run_num()
+  else:
+    runlabel = args.run_label
+  # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
+  # Could be annoying in some cases.
+  train(sess, model, data, runlabel)
 
 if __name__ == '__main__':
   logger.setLevel(logging.INFO)

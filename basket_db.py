@@ -20,36 +20,44 @@ TABLES = [
 
 class BasketDB(object):
 
-  def __init__(self, truncate=0, **tables):
-    for (name, table) in tables.iteritems():
-      if name.startswith('ops'):
-        continue
-      setattr(self, name, table)
-    # Do a unified table for ops
-    ops = pd.concat([ tables['ops_prior'], tables['ops_train'] ], 
-        ignore_index=1)
+  def __init__(self, ops, orders, truncate=0):
     self.ops = ops
-    self.ops.set_index(['order_id', 'product_id'], inplace=True, drop=0)
+    self.orders = orders
     if truncate:
       logging.info('Truncating tables to {} rows'.format(truncate))
       self.truncate(truncate)
-    logging.debug('Adding indices')
-    self.ops.sort_index(level=[0,1], inplace=True)
-    self.orders.set_index('order_id', inplace=True, drop=0)
 
   @classmethod
-  def load(kls, truncate=0):
+  def load(kls, truncate=0, usecache=True):
     """If truncate is provided, take a subset with that many users"""
+    if usecache:
+      try:
+        ops = pd.read_pickle('ops.pickle')
+        orders = pd.read_pickle('orders.pickle')
+        return BasketDB(ops, orders, truncate)
+      except IOError:
+        logging.warn('Found no cached db tables')
+        pass
+
     tables = {}
     logging.debug('Loading csv files')
     for table_meta in TABLES:
       path = os.path.join(DATA_DIR, table_meta.fname + '.csv')
       df = pd.read_csv(path, dtype=table_meta.dtype)
       tables[table_meta.name] = df
-    return BasketDB(truncate, **tables)
+
+    ops = pd.concat([ tables['ops_prior'], tables['ops_train'] ], 
+        ignore_index=1)
+    ops.set_index(['order_id', 'product_id'], inplace=True, drop=0)
+    logging.debug('Adding indices')
+    ops.sort_index(level=[0,1], inplace=True)
+    orders = tables['orders']
+    orders.set_index('order_id', inplace=True, drop=0)
+    return BasketDB(ops, orders, truncate)
 
   def save(self):
-    pass # TODO
+    self.ops.to_pickle('ops.pickle')
+    self.orders.to_pickle('orders.pickle')
 
   def truncate(self, n):
     uids = self.orders['user_id'].unique()[:n]

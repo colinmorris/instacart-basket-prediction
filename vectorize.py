@@ -1,7 +1,10 @@
-import tensorflow as tf
 import pandas as pd
 import numpy as np
 import logging
+import argparse
+import time
+
+#import cProfile
 
 from basket_db import BasketDB
 
@@ -10,9 +13,11 @@ class OrderSequenceVectorizer(object):
   def __init__(self, db):
     self.db = db
 
+  #@profile
   def ops_for_orders(self, orders):
     """returns ops df. input is a subset of orders df"""
-    return self.db.ops.loc[orders['order_id']]
+    oids = orders['order_id']
+    return self.db.ops.loc[oids]
 
   def order_features(self, orders):
     vecs = []
@@ -43,7 +48,6 @@ class OrderSequenceVectorizer(object):
 
   def get_vector_df(self, limit=None):
     vlists = self.vector_lists(limit)
-    logging.debug('Example vector list:\n{}'.format(vlists[0]))
     cols = (
         ['seqid', 'prodid', 'reordered',]
         + self.db.orders.columns.tolist()
@@ -53,14 +57,21 @@ class OrderSequenceVectorizer(object):
     return df
         
 
+  #@profile
   def vector_lists(self, limit=None):
     orders = self.db.orders
+    # TODO: maybe could just speed whole thing up by doing an initial join
+    # between orders and ops, and keeping most of the rest of the code the same
     orders_by_user = orders.groupby('user_id')
     # TODO: maybe should be an ndarray? 
     # but would need uniform type?
     # TODO: memory of this might be crazy. May need to build incrementally. Ugh.
     rows = []
     next_seqid = 0
+    log_every = 1000
+    nextlog = log_every
+    t0 = time.time()
+    users = 0
     for (uid, group) in orders_by_user:
       # I think this is redundant but whatever
       group = group.sort_values('order_number')
@@ -96,21 +107,45 @@ class OrderSequenceVectorizer(object):
           row += order_feats[focal_order_ix-1]
           row += ops_feats[focal_order_ix-1]
           rows.append(row)
-      if limit is not None and next_seqid >= limit:
+      users += 1
+      if limit is not None and users >= limit:
         logging.info('Stopping vectorization early due to limit reached')
         break
+      if next_seqid >= nextlog:
+        t1 = time.time()
+        logging.info('Finished vectorizing seq {}. Users processed={}. Elapsed={:.1f}s'.format(
+          next_seqid, users, t1-t0))
+        t0 = time.time()
+        nextlog += log_every
+
+
     return rows
 
 
 
 def main():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--truncate', type=int, default=None,
+      help='How much to truncate db on initial load (default: None)')
+  parser.add_argument('--lim', type=int, default=None,
+      help='Limit the number of users to vectorize. Default none.')
+  parser.add_argument('-o', '--output-path', default='vectors.pickle')
+  # XXX: not implemented
+  parser.add_argument('--user-offset', default=0, 
+    help='Skip this many user ids before vectorizing')
+  args = parser.parse_args()
   logging.info('Loading db')
-  db = BasketDB.load(truncate=1000)
+  db = BasketDB.load(truncate=args.truncate)
   vz = OrderSequenceVectorizer(db)
   logging.info('Vectorizing')
-  df = vz.get_vector_df(limit=None)
-  df.to_pickle('vectors.pickle')
+  t0 = time.time()
+  df = vz.get_vector_df(limit=args.lim)
+  t1 = time.time()
+  logging.info('Finished with {} vector rows'.format(len(df)))
+  logging.info('Vectorization took {:.1f}s'.format(t1-t0))
+  df.to_pickle(args.output_path)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)
   main()
+  #cProfile.run('main()', 'profile.txt', sort='tottime')

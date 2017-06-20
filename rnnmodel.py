@@ -19,7 +19,7 @@ def get_default_hparams():
       nfeats=len(FEATURE_COLS),
       learning_rate=0.001, # ???
       save_every=5000,
-      num_steps=10000,
+      num_steps=17000,
   )
 
 def get_toy_hparams():
@@ -84,10 +84,12 @@ class RNNModel(object):
     output = tf.reshape(output, [-1, hps.rnn_size])
     logits = tf.nn.xw_plus_b(output, output_w, output_b)
     logits = tf.reshape(logits, label_shape)
+    self.logits = logits
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels, logits=logits)
     # TODO: does the fact that the mean here includes a variable number of dummy
     # values (from padding to max seq len) change anything? Need to be a bit careful.
     self.cost = tf.reduce_mean(loss)
+
     if self.hps.is_training:
         self.lr = tf.Variable(self.hps.learning_rate, trainable=False)
         optimizer = tf.train.AdamOptimizer(self.lr)

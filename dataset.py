@@ -9,14 +9,16 @@ FEATURE_COLS = [
 ]
 
 class Dataset(object):
+    NFEATS = len(FEATURE_COLS)
+    TEST_PATH = 'testset.pickle'
 
     def __init__(self, df, hps):
-        self.seqids = df['seqid'].unique()
-        np.random.shuffle(self.seqids)
+        self.hps = hps # (not sure)
         self.batch_size = hps.batch_size
-        self.n = len(df)
+        self.nsteps = len(df)
+        labels, vecs, seqlens, _ = self.convert_df(df, hps.max_seq_len)
+        self.n = labels.shape[0]
         self.nbatches = self.n // self.batch_size
-        labels, vecs, seqlens = self.convert_df(df, hps.max_seq_len)
         self.labels = labels
         self.vectors = vecs
         self.seqlens = seqlens
@@ -26,21 +28,24 @@ class Dataset(object):
         df = pd.read_pickle(fname)
         return Dataset(df, hps)
 
-    def convert_df(self, df, maxlen):
+    @staticmethod
+    def convert_df(df, maxlen):
         """Return ndarrays of labels, vectors, and seqlens. Or something."""
-        #self.labels = df['reordered'] # TODO: convert to int8 or whatever?
-        nseqs = len(self.seqids)
+        seqids = df['seqid'].unique()
+        nseqs = len(seqids)
         labels = np.zeros( (nseqs, maxlen), dtype=np.bool_)
         seqlens = np.zeros(nseqs, dtype=np.int32)
+        pids = np.zeros(nseqs, dtype=np.int32)
         nfeats = len(FEATURE_COLS)
         vectors = np.zeros( (nseqs, maxlen, nfeats), dtype=np.float32)
         i = 0
         for (seqid, group) in df.groupby('seqid'):
+            pids[i] = group.iloc[0]['prodid'] # Should be the same throughout group
             slen = len(group)
             seqlens[i] = slen
             labels[i,:slen] = group['reordered']
             vectors[i,:slen] = group.loc[:,FEATURE_COLS]
-        return (labels, vectors, seqlens)
+        return (labels, vectors, seqlens, pids)
 
     def get_batch(self, idx):
         #assert idx < self.nbatches
