@@ -17,13 +17,15 @@ class Batcher(object):
   def reset_record_iterator(self):
     self.records = tf.python_io.tf_record_iterator(recordpath)
 
-  def get_batch(self):
+  def get_batch(self, i):
+    """(i currently ignored)"""
     bs = self.batchsize
     maxlen = self.max_seq_len
     x = np.zeros([bs, maxlen, self.nfeats])
     labels = np.zeros([bs, maxlen])
     seqlens = np.zeros([bs])
 
+    # TODO: hacky implementation. Right now just sample 1 sequence per user.
     for i in range(bs):
       user = User()
       try:
@@ -32,6 +34,7 @@ class Batcher(object):
         self.reset_record_iterator()
         user.ParseFromString(self.records.next())
       wrapper = UserWrapper(user)
+      # TODO: incorporate lossmask
       x_i, l_i, s_i, lossmask_i = wrapper.sample_training_sequence(maxlen)
       x[i] = x_i
       labels[i] = l_i
@@ -53,8 +56,43 @@ class UserWrapper(object):
   def norders(self):
     return len(self.user.orders)
 
+  @property
+  def seqlen(self):
+    return len(self.user.orders) - 1
+
+  @property
+  def all_pids(self):
+    pids = set()
+    for order in self.user.orders[:-1]:
+      pids.update( set(order.products) )
+    return pids
+
+  # TODO: maybe these training_sequence methods should just return a 
+  # big dataframe? This would solve the problem of having to return
+  # these big tuples, and give us something for some downstream 
+  # thing to work with for scaling or otherwise transforming features.
+  # Also, for testing, it would make it easy to refer to features by name.
+  def all_training_sequences(self, maxlen):
+    pids = self.all_pids
+    nseqs = len(pids)
+    x = np.zeros([nseqs, maxlen, self.NFEATS])
+    labels = np.zeros([nseqs, maxlen])
+    lossmask = np.zeros([nseqs, maxlen])
+    seqlens = np.zeros(nseqs) + self.seqlen
+    for i, pid in enumerate(pids):
+      # TODO: could be optimized to avoid redundant work
+      x_i, l_i, _, lm_i = self.training_sequence_for_pid(pid, maxlen)
+      x[i] = x_i
+      labels[i] = l_i
+      lossmask[i] = lm_i
+    return x, labels, seqlens, lossmask
+
+
   def sample_pid(self):
-    iorder = random.randint(0, self.norders-1)
+    # Why -2? We don't want to include the last order, just because there might
+    # be pids there for products never ordered in any previous order. A train
+    # sequence focused on that product will give no signal.
+    iorder = random.randint(0, self.norders-2)
     order = self.user.orders[iorder]
     iprod = random.randint(0, len(order.products)-1)
     return order.products[iprod]
@@ -87,4 +125,5 @@ class UserWrapper(object):
           # (Becomes easier once we treat pids as sets, which we probably should regardless)
         + [previously_ordered, len(prev.products), 0]
       )
+    return x, labels, self.seqlen, lossmask
 

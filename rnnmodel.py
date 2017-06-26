@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from tensorflow.contrib.training import HParams
 
-from dataset import FEATURE_COLS
+from batch_helpers import UserWrapper
 
 # TODO: stuff to add later
 # - dropout
@@ -16,9 +16,11 @@ def get_default_hparams():
       rnn_size=128,
       batch_size=100,
       max_seq_len=100, # TODO: not sure about this
-      nfeats=len(FEATURE_COLS),
+      nfeats=UserWrapper.NFEATS,
       learning_rate=0.001, # ???
       save_every=5000,
+      # Can scale this up to at least like 195k even using our dumb sampling
+      # technique, since that's the # of users in the dataset
       num_steps=17000,
   )
 

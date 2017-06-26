@@ -28,11 +28,14 @@ class BasketDB(object):
       self.truncate(truncate)
 
   @classmethod
-  def load(kls, truncate=0, usecache=True):
+  def load(kls, truncate=0, usecache=True, dropops=0):
     """If truncate is provided, take a subset with that many users"""
     if usecache:
       try:
-        ops = pd.read_pickle('ops.pickle')
+        if not dropops:
+          ops = pd.read_pickle('ops.pickle')
+        else:
+          ops = None
         orders = pd.read_pickle('orders.pickle')
         return BasketDB(ops, orders, truncate)
       except IOError:
@@ -42,15 +45,19 @@ class BasketDB(object):
     tables = {}
     logging.debug('Loading csv files')
     for table_meta in TABLES:
+      if dropops and table_meta.name.startswith('ops'):
+        continue
       path = os.path.join(DATA_DIR, table_meta.fname + '.csv')
       df = pd.read_csv(path, dtype=table_meta.dtype)
       tables[table_meta.name] = df
 
-    ops = pd.concat([ tables['ops_prior'], tables['ops_train'] ], 
-        ignore_index=1)
-    ops.set_index(['order_id', 'product_id'], inplace=True, drop=0)
-    logging.debug('Adding indices')
-    ops.sort_index(level=[0,1], inplace=True)
+
+    if not dropops:
+      ops = pd.concat([ tables['ops_prior'], tables['ops_train'] ], 
+          ignore_index=1)
+      ops.set_index(['order_id', 'product_id'], inplace=True, drop=0)
+      logging.debug('Adding indices')
+      ops.sort_index(level=[0,1], inplace=True)
     orders = tables['orders']
     orders.set_index('order_id', inplace=True, drop=0)
     return BasketDB(ops, orders, truncate)
