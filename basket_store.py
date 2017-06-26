@@ -23,9 +23,11 @@ class Store(object):
     self.store['uids'] = uids
     return uids
 
-  def train_df(self):
-    uids = self.store['train_uids']
-    uidlist = uids.tolist()
+  def train_df(self, uidlist=None):
+    """(uidlist parameter is for testing purposes only)"""
+    if uidlist is None:
+      uids = self.store['train_uids']
+      uidlist = uids.tolist()
     # TODO: may later want to do some kind of batching at this level
     # (see select's chunksize kwarg)
     df = self.store.select(
@@ -86,5 +88,5 @@ def reload_upo(s):
 
 if __name__ == '__main__':
   s = Store()
-  t = s.train_df()
-  t2 = s.enrich_train_df(t)
+  #t = s.train_df()
+  #t2 = s.enrich_train_df(t)

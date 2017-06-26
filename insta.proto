@@ -1,0 +1,18 @@
+message User {
+  optional int32 uid = 1;
+  // test vs. train set
+  optional bool test = 2;
+  repeated Order orders = 3;
+}
+
+message Order {
+  optional int32 orderid = 1;
+  optional int32 nth = 2;
+  // day of week, hour of day
+  // should probably be enums?
+  optional int32 dow = 3;
+  optional int32 hour = 4;
+  optional int32 days_since_prior = 5;
+
+  repeated int32 products = 6 [packed=true];
+}
