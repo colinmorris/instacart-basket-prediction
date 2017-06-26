@@ -1,3 +1,4 @@
+import logging
 import random
 import itertools
 import numpy as np
@@ -26,6 +27,7 @@ class Batcher(object):
     x = np.zeros([bs, maxlen, self.nfeats])
     labels = np.zeros([bs, maxlen])
     seqlens = np.zeros([bs])
+    lossmask = np.zeros([bs, maxlen])
 
     # TODO: hacky implementation. Right now just sample 1 sequence per user.
     for i in range(bs):
@@ -33,6 +35,7 @@ class Batcher(object):
       try:
         user.ParseFromString(self.records.next())
       except StopIteration:
+        logging.info("Starting a new 'epoch'. Resetting record iterator.")
         self.reset_record_iterator()
         user.ParseFromString(self.records.next())
       wrapper = UserWrapper(user)
@@ -41,7 +44,8 @@ class Batcher(object):
       x[i] = x_i
       labels[i] = l_i
       seqlens[i] = s_i
-    return x, labels, seqlens
+      lossmask[i] = lossmask_i
+    return x, labels, seqlens, lossmask
 
 
 class UserWrapper(object):

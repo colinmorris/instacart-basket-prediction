@@ -19,8 +19,8 @@ def get_default_hparams():
       nfeats=UserWrapper.NFEATS,
       learning_rate=0.001, # ???
       save_every=5000,
-      # Can scale this up to at least like 195k even using our dumb sampling
-      # technique, since that's the # of users in the dataset
+      # There are about 195k users in the dataset, so if we take on sequence
+      # from each, it'd take about 2k steps to cycle through them all
       num_steps=17000,
   )
 
@@ -65,6 +65,9 @@ class RNNModel(object):
             # TODO: idk about this dtype stuff
             dtype=tf.float32, shape=label_shape, name="labels",
     )
+    self.lossmask = tf.placeholder(
+        dtype=tf.float32, shape=label_shape, name='lossmask',
+    )
 
     self.initial_state = self.cell.zero_state(batch_size=hps.batch_size,
             dtype=tf.float32)
@@ -90,8 +93,11 @@ class RNNModel(object):
     logits = tf.reshape(logits, label_shape)
     self.logits = logits
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels, logits=logits)
+    # apply loss mask
+    loss = tf.multiply(loss, self.lossmask)
     # TODO: does the fact that the mean here includes a variable number of dummy
     # values (from padding to max seq len) change anything? Need to be a bit careful.
+    # Maybe need to do it in 2 steps? inner avgs. then outer avg-of-avgs?
     self.cost = tf.reduce_mean(loss)
 
     if self.hps.is_training:

@@ -57,11 +57,12 @@ def train(sess, model, batcher, runlabel): # TODO: eval_model
 
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
-    x, y, seqlens = batcher.get_batch(i)
+    x, y, seqlens, lossmask = batcher.get_batch(i)
     feed = {
         model.input_data: x,
         model.labels: y,
         model.sequence_lengths: seqlens,
+        model.lossmask: lossmask,
     }
     cost, _ = sess.run([model.cost, model.train_op], feed)
     if step % 20 == 0 and step > 0:
