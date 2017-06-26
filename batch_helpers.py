@@ -1,3 +1,4 @@
+import random
 import itertools
 import numpy as np
 import tensorflow as tf
@@ -9,17 +10,18 @@ class Batcher(object):
   def __init__(self, hps, recordpath=None):
     if recordpath is None:
       recordpath = self.DEFAULT_RECORD_PATH
+    self.recordpath = recordpath
     self.batch_size = hps.batch_size
     self.nfeats = hps.nfeats
     self.max_seq_len = hps.max_seq_len
     self.reset_record_iterator()
 
   def reset_record_iterator(self):
-    self.records = tf.python_io.tf_record_iterator(recordpath)
+    self.records = tf.python_io.tf_record_iterator(self.recordpath)
 
   def get_batch(self, i):
     """(i currently ignored)"""
-    bs = self.batchsize
+    bs = self.batch_size
     maxlen = self.max_seq_len
     x = np.zeros([bs, maxlen, self.nfeats])
     labels = np.zeros([bs, maxlen])

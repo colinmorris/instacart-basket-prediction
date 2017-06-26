@@ -13,8 +13,8 @@ import pandas as pd
 import rnnmodel
 import utils
 from rnnmodel import RNNModel
-from dataset import Dataset
-from basket_store import Store
+#from dataset import Dataset
+from batch_helpers import Batcher
 
 logger = logging.getLogger(__name__)
 _handler = logging.StreamHandler(sys.stderr)
@@ -33,7 +33,7 @@ def get_next_run_num():
   return max(rundirs) + 1  
 
 
-def train(sess, model, data, runlabel): # TODO: eval_model
+def train(sess, model, batcher, runlabel): # TODO: eval_model
   # Setup summary writer.
   # TODO: allow explicitly passing in a run label
   summary_writer = tf.summary.FileWriter('logs/{}'.format(runlabel))
@@ -57,7 +57,7 @@ def train(sess, model, data, runlabel): # TODO: eval_model
 
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
-    y, x, seqlens = data.get_batch(i)
+    x, y, seqlens = batcher.get_batch(i)
     feed = {
         model.input_data: x,
         model.labels: y,
@@ -103,9 +103,8 @@ def main():
 
   logger.info('Building model')
   model = RNNModel(hps)
-  logger.info('Loading dataset')
-  store = Store()
-  data = Dataset(store.train_df(), hps)
+  logger.info('Loading batcher')
+  batcher = Batcher(hps)
   sess = tf.InteractiveSession()
   sess.run(tf.global_variables_initializer())
   logger.info('Training')
@@ -115,7 +114,7 @@ def main():
     runlabel = args.run_label
   # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
   # Could be annoying in some cases.
-  train(sess, model, data, runlabel)
+  train(sess, model, batcher, runlabel)
 
 if __name__ == '__main__':
   logger.setLevel(logging.INFO)

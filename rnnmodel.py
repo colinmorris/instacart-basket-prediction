@@ -53,15 +53,17 @@ class RNNModel(object):
         #activation='tanh',
     )
     self.sequence_lengths = tf.placeholder(
-        dtype=tf.int32, shape=[self.hps.batch_size])
+        dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",
+    )
     self.input_data = tf.placeholder(
         dtype=tf.float32,
-        shape=[hps.batch_size, hps.max_seq_len, hps.nfeats]
+        shape=[hps.batch_size, hps.max_seq_len, hps.nfeats],
+        name="input",
     )
     label_shape = [hps.batch_size, hps.max_seq_len]
     self.labels = tf.placeholder(
             # TODO: idk about this dtype stuff
-            dtype=tf.float32, shape=label_shape
+            dtype=tf.float32, shape=label_shape, name="labels",
     )
 
     self.initial_state = self.cell.zero_state(batch_size=hps.batch_size,
