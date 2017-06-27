@@ -29,6 +29,8 @@ class Batcher(object):
     labels = np.zeros([bs, maxlen])
     seqlens = np.zeros([bs])
     lossmask = np.zeros([bs, maxlen])
+    # (These are actually pids minus one. Kaggle pids start from 1, and we want
+    # our indices to start from 0.)
     pids = np.zeros([bs])
 
     # TODO: hacky implementation. Right now just sample 1 sequence per user.
@@ -182,7 +184,7 @@ class UserWrapper(object):
       pids_seen.update(set(prev.products))
 
     feats = self.transform_raw_feats(x, maxlen)
-    return feats, labels, self.seqlen, lossmask, pid
+    return feats, labels, self.seqlen, lossmask, pid-1
 
 def vectorize(df, user, maxlen):
   res = np.zeros([maxlen, NFEATS])

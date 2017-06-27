@@ -24,13 +24,15 @@ class RnnModelPredictor(BasePredictor):
         self.predict_nones = predict_nones
         assert model.hps.batch_size == 1
 
-    def predict_prob(self, vec, seqlen):
+    def predict_prob(self, vec, seqlen, pindex):
         model = self.model
         sess = self.sess
         feed = {
             model.input_data:  [vec],
             model.sequence_lengths: [seqlen]
         }
+        if model.hps.product_embeddings:
+          feed[model.product_ids] = [pindex] 
         logits = sess.run(model.logits, feed)
         assert logits.shape == (1, 100), 'Got shape {}'.format(logits.shape)
         logits = logits[0] # Unwrap outer arr
@@ -47,9 +49,9 @@ class RnnModelPredictor(BasePredictor):
       # Probability of no items being reordered
       p_none = 1
       for pid in user.all_pids:
-        x, labels, seqlen, lossmask = user.training_sequence_for_pid(pid, 
+        x, labels, seqlen, lossmask, pindex = user.training_sequence_for_pid(pid, 
             self.model.hps.max_seq_len)
-        prob = self.predict_prob(x, seqlen)
+        prob = self.predict_prob(x, seqlen, pindex)
         p_none *= (1 - prob)
         if prob >= self.thresh:
           order.append(pid)

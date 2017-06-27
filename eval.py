@@ -20,8 +20,13 @@ def main():
   parser.add_argument('--recordfile', default='test.tfrecords', 
       help='tfrecords file with the users to test on (default: test.tfrecords)')
   parser.add_argument('-n', '--n-users', type=int, help='Limit number of users tested on')
+  parser.add_argument('-c', '--config', default=None,
+      help='json file with hyperparam overwrites') 
   args = parser.parse_args()
   hps = rnnmodel.get_toy_hparams()
+  if args.config:
+    with open(args.config) as f:
+      hps.parse_json(f.read())
   hps.is_training = False
   hps.batch_size = 1
   tf.logging.info('Creating model')
