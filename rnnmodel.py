@@ -98,6 +98,7 @@ class RNNModel(object):
     # TODO: does the fact that the mean here includes a variable number of dummy
     # values (from padding to max seq len) change anything? Need to be a bit careful.
     # Maybe need to do it in 2 steps? inner avgs. then outer avg-of-avgs?
+    # Or just weight by seqlens.
     self.cost = tf.reduce_mean(loss)
 
     if self.hps.is_training:

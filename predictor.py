@@ -39,38 +39,20 @@ class RnnModelPredictor(BasePredictor):
         prob = expit(logit)
         return prob
 
-    def predict_next_order(self, history):
-        labels, vecs, seqlens, pids = Dataset.convert_df(history, self.model.hps.max_seq_len)
-        tf.logging.debug('Calculating probabilities for user\'s {} reordered products'\
-                .format(len(pids)))
-        order = []
-        for (i, pid) in enumerate(pids):
-            prob = self.predict_prob(vecs[i], seqlens[i])
-            if prob >= self.thresh:
-                order.append(pid)
-        return order
+    def predict_last_order(self, user):
+      order = []
+      tf.logging.debug('Calculating probabilities for user\'s {} reordered products'\
+              .format(len(user.all_pids)))
+      for pid in user.all_pids:
+        x, labels, seqlen, lossmask = user.training_sequence_for_pid(pid, 
+            self.model.hps.max_seq_len)
+        prob = self.predict_prob(x, seqlen)
+        if prob >= self.thresh:
+          order.append(pid)
+      return order
 
 class PreviousOrderPredictor(BasePredictor):
 
-  def __init__(self, db, always_none=0):
-    super(PreviousOrderPredictor, self).__init__()
-    self.db = db
-    self.always_none = always_none
+  def predict_last_order(self, user):
+    return user.user.orders[-2].products
 
-  def predict_order(self, order):
-    """Return a series of product ids"""
-    uid = order.user_id
-    onum = order.order_number
-    assert onum > 1, onum
-    orders = self.db.orders
-    prevorder = orders[
-        (orders['user_id'] == uid)
-        & (orders['order_number'] == onum-1)
-        ]
-    assert len(prevorder) == 1
-    prevorder = prevorder.iloc[0]
-    prevprods = self.db.get_ops(prevorder)
-    prods = prevprods['product_id']
-    if self.always_none:
-      prods = prods.append(pd.Series([0]))
-    return prods

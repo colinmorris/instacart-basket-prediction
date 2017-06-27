@@ -55,9 +55,13 @@ def train(sess, model, batcher, runlabel): # TODO: eval_model
   hps = model.hps
   start = time.time()
 
+  batch_fetch_time = 0
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
+    tb0 = time.time()
     x, y, seqlens, lossmask = batcher.get_batch(i)
+    tb1 = time.time()
+    batch_fetch_time += (tb1 - tb0)
     feed = {
         model.input_data: x,
         model.labels: y,
@@ -73,8 +77,9 @@ def train(sess, model, batcher, runlabel): # TODO: eval_model
       cost_summ = tf.summary.Summary()
       cost_summ.value.add(tag='Train_Cost', simple_value=float(cost))
       time_summ = tf.summary.Summary()
-      time_summ.value.add(
-          tag='Time_Taken_Train', simple_value=float(time_taken))
+      time_summ.value.add(tag='Time_Taken_Train', simple_value=float(time_taken))
+      time_summ.value.add(tag='Time_Taken_Batchfetch', simple_value=batch_fetch_time)
+      batch_fetch_time = 0
 
       output_format = ('step: %d, cost: %.4f, train_time_taken: %.4f')
       output_values = (step, cost, time_taken)
@@ -94,8 +99,10 @@ def main():
   parser = argparse.ArgumentParser()
   # TODO: allow passing in hparams config json
   parser.add_argument('-r', '--run-label', default=None)
-  parser.add_argument('-c', '--config', default=None, 
-    help='Path to json file with hyperparams config')
+  parser.add_argument('-c', '--config', default=None,
+      help='json file with hyperparam overwrites') 
+  parser.add_argument('--recordfile', default='train.tfrecords', 
+      help='tfrecords file with the users to train on (default: train.tfrecords)')
   args = parser.parse_args()
   hps = rnnmodel.get_default_hparams()
   if args.config:
@@ -105,7 +112,7 @@ def main():
   logger.info('Building model')
   model = RNNModel(hps)
   logger.info('Loading batcher')
-  batcher = Batcher(hps)
+  batcher = Batcher(hps, args.recordfile)
   sess = tf.InteractiveSession()
   sess.run(tf.global_variables_initializer())
   logger.info('Training')

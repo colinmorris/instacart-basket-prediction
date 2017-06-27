@@ -16,7 +16,13 @@ class OrderResults(object):
     num = prec * rec
     denom = prec + rec
     if denom == 0:
-      return 0
+      actual_pos = self.tp + self.fn
+      pred_pos = self.tp + self.fp
+      # Special case: There were no products to predict, and we predicted none.
+      if actual_pos == 0 and pred_pos == 0:
+        return 1
+      else:
+        return 0
     return 2 * (num / denom)
 
   @property
@@ -31,8 +37,8 @@ class OrderResults(object):
 # TODO: maybe this should be a thin wrapper around a df with cols for prec, rec, fscore
 class Results(object):
 
-  def __init__(self, subresults=[]):
-    self.subs = subresults
+  def __init__(self, subresults=None):
+    self.subs = subresults or []
 
   def add_result(self, predicted, actual):
     # TODO: it might be worth storing the actual/predicted values, at least
