@@ -2,15 +2,17 @@ import logging
 import random
 import itertools
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 
 from insta_pb2 import User
+from features import FEATURES, NFEATS
 
 class Batcher(object):
   def __init__(self, hps, recordpath):
     self.recordpath = recordpath
     self.batch_size = hps.batch_size
-    self.nfeats = hps.nfeats
+    self.nfeats = NFEATS
     self.max_seq_len = hps.max_seq_len
     self.reset_record_iterator()
 
@@ -124,11 +126,16 @@ class UserWrapper(object):
     pid = self.sample_pid()
     return self.training_sequence_for_pid(pid, maxlen)
 
+  rawcols = ['dow', 'hour', 'days_since_prior',
+      'previously_ordered', 'n_prev_products', 'n_prev_reorders', 'n_prev_repeats']
+  def transform_raw_feats(self, featdata, maxlen):
+    df = pd.DataFrame(featdata, columns=self.rawcols)
+    return vectorize(df, self.user, maxlen)
+
   def training_sequence_for_pid(self, pid, maxlen):
     """Return a tuple of (x, labels, seqlen, lossmask)
     """
-    nfeats = self.NFEATS
-    x = np.zeros([maxlen, nfeats])
+    x = np.zeros([self.seqlen, len(self.rawcols)])
     labels = np.zeros([maxlen])
     lossmask = np.zeros([maxlen])
     # Start from second order (because of reasons)
@@ -160,10 +167,16 @@ class UserWrapper(object):
       )
       prevprev = prev
       pids_seen.update(set(prev.products))
-    return x, labels, self.seqlen, lossmask
 
-class Vectorizer(object):
+    feats = self.transform_raw_feats(x, maxlen)
+    return feats, labels, self.seqlen, lossmask
 
-  def vectorize(self, df, user):
-    labels = df['label'].values
-    lossmask = df['lossmask'].values
+def vectorize(df, user, maxlen):
+  res = np.zeros([maxlen, NFEATS])
+  i = 0
+  seqlen = len(df) 
+  for feat in FEATURES:
+    featvals = feat.fn(df, user)
+    res[:seqlen,i:i+feat.arity] = featvals.reshape(seqlen, feat.arity)
+    i += feat.arity
+  return res
