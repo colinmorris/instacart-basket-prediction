@@ -7,6 +7,7 @@ import tensorflow as tf
 from tensorflow.contrib.training import HParams
 
 from batch_helpers import UserWrapper
+from features import NFEATS
 
 # TODO: stuff to add later
 # - dropout
@@ -16,7 +17,7 @@ def get_default_hparams():
       rnn_size=128,
       batch_size=100,
       max_seq_len=100, # TODO: not sure about this
-      nfeats=UserWrapper.NFEATS,
+      nfeats=NFEATS,
       learning_rate=0.001, # ???
       save_every=5000,
       # There are about 195k users in the dataset, so if we take on sequence
