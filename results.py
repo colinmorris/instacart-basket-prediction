@@ -20,7 +20,7 @@ class OrderResults(object):
       pred_pos = self.tp + self.fp
       # Special case: There were no products to predict, and we predicted none.
       if actual_pos == 0 and pred_pos == 0:
-        return 1
+        assert False, "Shouldn't be possible for actual_pos to be 0. Use dummy pid."
       else:
         return 0
     return 2 * (num / denom)

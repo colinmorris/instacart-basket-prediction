@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from scipy.special import expit
 
-from dataset import Dataset
+from constants import NONE_PRODUCTID
 
 class BasePredictor(object):
 
@@ -17,10 +17,11 @@ class BasePredictor(object):
 
 class RnnModelPredictor(BasePredictor):
 
-    def __init__(self, sess, model, thresh):
+    def __init__(self, sess, model, thresh, predict_nones=True):
         self.model = model
         self.thresh = thresh
         self.sess = sess
+        self.predict_nones = predict_nones
         assert model.hps.batch_size == 1
 
     def predict_prob(self, vec, seqlen):
@@ -43,12 +44,18 @@ class RnnModelPredictor(BasePredictor):
       order = []
       tf.logging.debug('Calculating probabilities for user\'s {} reordered products'\
               .format(len(user.all_pids)))
+      # Probability of no items being reordered
+      p_none = 1
       for pid in user.all_pids:
         x, labels, seqlen, lossmask = user.training_sequence_for_pid(pid, 
             self.model.hps.max_seq_len)
         prob = self.predict_prob(x, seqlen)
+        p_none *= (1 - prob)
         if prob >= self.thresh:
           order.append(pid)
+
+      if self.predict_nones and p_none >= (1.5 * self.thresh): # XXX
+        order.append(NONE_PRODUCTID)
       return order
 
 class PreviousOrderPredictor(BasePredictor):

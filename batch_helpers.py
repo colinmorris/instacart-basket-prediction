@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from insta_pb2 import User
 from features import FEATURES, NFEATS
+from constants import NONE_PRODUCTID
 
 class Batcher(object):
   def __init__(self, hps, recordpath):
@@ -84,7 +85,12 @@ class UserWrapper(object):
     last_o = self.user.orders[-1]
     pids = self.all_pids
     last_pids = set(last_o.products)
-    return pids.intersection(last_pids)
+    res = pids.intersection(last_pids)
+    # Special case: if predictable prods is empty, return a single dummy
+    # product id representing "none" (to be consistent with kaggle's scoring method)
+    if not res:
+      return set([NONE_PRODUCTID])
+    return res
 
   # TODO: maybe these training_sequence methods should just return a 
   # big dataframe? This would solve the problem of having to return

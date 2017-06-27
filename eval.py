@@ -35,7 +35,7 @@ def main():
   tf.logging.info('Loading test set')
   user_iterator = iterate_wrapped_users(args.recordfile)
   judge = evaluator.Evaluator(user_iterator)
-  predictor = pred.RnnModelPredictor(sess, model, args.thresh)
+  predictor = pred.RnnModelPredictor(sess, model, args.thresh, predict_nones=1)
   baseline = pred.PreviousOrderPredictor()
 
   # TODO: would be real nice to use tensorboard to look at dist. of
