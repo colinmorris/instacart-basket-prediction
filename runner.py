@@ -61,7 +61,7 @@ def train(sess, model, batcher, runlabel): # TODO: eval_model
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
     tb0 = time.time()
-    x, y, seqlens, lossmask = batcher.get_batch(i)
+    x, y, seqlens, lossmask, pids = batcher.get_batch(i)
     tb1 = time.time()
     batch_fetch_time += (tb1 - tb0)
     feed = {
@@ -70,8 +70,10 @@ def train(sess, model, batcher, runlabel): # TODO: eval_model
         model.sequence_lengths: seqlens,
         model.lossmask: lossmask,
     }
+    if hps.product_embeddings:
+      feed[model.product_ids] = pids
     cost, _ = sess.run([model.cost, model.train_op], feed)
-    if step % 100 == 0 and step > 0:
+    if step % 100 == 0 and step > 0 or (hps.num_steps <= 100 and step % 20 == 0 and step > 0):
 
       end = time.time()
       time_taken = end - start

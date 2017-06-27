@@ -11,6 +11,7 @@ from constants import NONE_PRODUCTID
 
 class Batcher(object):
   def __init__(self, hps, recordpath):
+    self.hps = hps
     self.recordpath = recordpath
     self.batch_size = hps.batch_size
     self.nfeats = NFEATS
@@ -28,6 +29,7 @@ class Batcher(object):
     labels = np.zeros([bs, maxlen])
     seqlens = np.zeros([bs])
     lossmask = np.zeros([bs, maxlen])
+    pids = np.zeros([bs])
 
     # TODO: hacky implementation. Right now just sample 1 sequence per user.
     for i in range(bs):
@@ -40,12 +42,13 @@ class Batcher(object):
         user.ParseFromString(self.records.next())
       wrapper = UserWrapper(user)
       # TODO: incorporate lossmask
-      x_i, l_i, s_i, lossmask_i = wrapper.sample_training_sequence(maxlen)
+      x_i, l_i, s_i, lossmask_i, pid_i = wrapper.sample_training_sequence(maxlen)
       x[i] = x_i
       labels[i] = l_i
       seqlens[i] = s_i
       lossmask[i] = lossmask_i
-    return x, labels, seqlens, lossmask
+      pids[i] = pid_i
+    return x, labels, seqlens, lossmask, pids
 
 def iterate_wrapped_users(recordpath):
   records = tf.python_io.tf_record_iterator(recordpath)
@@ -63,6 +66,7 @@ class UserWrapper(object):
 
   def __init__(self, user):
     self.user = user
+    self._all_pids = None
 
   @property
   def norders(self):
@@ -74,10 +78,13 @@ class UserWrapper(object):
 
   @property
   def all_pids(self):
-    pids = set()
-    for order in self.user.orders[:-1]:
-      pids.update( set(order.products) )
-    return pids
+    # This can get called a fair number of times, so cache it
+    if self._all_pids is None:
+      pids = set()
+      for order in self.user.orders[:-1]:
+        pids.update( set(order.products) )
+      self._all_pids = pids
+    return self._all_pids
 
   # TODO: should filter new products from last orders in the pb generation
   # step. then this won't be necessary.
@@ -139,7 +146,7 @@ class UserWrapper(object):
     return vectorize(df, self.user, maxlen)
 
   def training_sequence_for_pid(self, pid, maxlen):
-    """Return a tuple of (x, labels, seqlen, lossmask)
+    """Return a tuple of (x, labels, seqlen, lossmask, pid)
     """
     x = np.zeros([self.seqlen, len(self.rawcols)])
     labels = np.zeros([maxlen])
@@ -175,7 +182,7 @@ class UserWrapper(object):
       pids_seen.update(set(prev.products))
 
     feats = self.transform_raw_feats(x, maxlen)
-    return feats, labels, self.seqlen, lossmask
+    return feats, labels, self.seqlen, lossmask, pid
 
 def vectorize(df, user, maxlen):
   res = np.zeros([maxlen, NFEATS])
