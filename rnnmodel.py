@@ -8,6 +8,7 @@ from tensorflow.contrib.training import HParams
 
 from batch_helpers import UserWrapper
 from features import NFEATS
+from constants import N_PRODUCTS
 
 # TODO: stuff to add later
 # - dropout
@@ -23,6 +24,8 @@ def get_default_hparams():
       # There are about 195k users in the dataset, so if we take on sequence
       # from each, it'd take about 2k steps to cycle through them all
       num_steps=17000,
+      product_embeddings=False,
+      product_embedding_size=64,
   )
 
 def get_toy_hparams():
@@ -53,6 +56,7 @@ class RNNModel(object):
         # since this doesn't work
         #activation='tanh',
     )
+
     self.sequence_lengths = tf.placeholder(
         dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",
     )
@@ -61,6 +65,22 @@ class RNNModel(object):
         shape=[hps.batch_size, hps.max_seq_len, hps.nfeats],
         name="input",
     )
+    cell_input = self.input_data
+    if hps.product_embeddings:
+      product_embeddings = tf.get_variable("product_embeddings",
+          [N_PRODUCTS, hps.product_embedding_size])
+      self.product_ids = tf.placeholder(
+          dtype=tf.int32, shape=[self.hps.batch_size], name="product_ids"
+      )
+      lookuped = tf.nn.embedding_lookup(
+          product_embeddings,
+          self.product_ids,
+          max_norm=None, # TODO: experiment with this param
+      )
+      lookuped = tf.reshape(lookuped, [self.hps.batch_size, 1, hps.product_embedding_size])
+      lookuped = tf.tile(lookuped, [1, self.hps.max_seq_len, 1])
+      cell_input = tf.concat([self.input_data, lookuped], 2)
+    
     label_shape = [hps.batch_size, hps.max_seq_len]
     self.labels = tf.placeholder(
             # TODO: idk about this dtype stuff
@@ -75,7 +95,7 @@ class RNNModel(object):
     
     output, last_state = tf.nn.dynamic_rnn(
             self.cell, 
-            self.input_data,
+            cell_input,
             sequence_length=self.sequence_lengths,
             # this kwarg is optional, but docs aren't really clear on what
             # happens if it isn't provided. Probably just the zero state,
