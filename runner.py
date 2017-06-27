@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+#import cProfile
+
 import argparse
 import time
 import logging
@@ -69,7 +71,7 @@ def train(sess, model, batcher, runlabel): # TODO: eval_model
         model.lossmask: lossmask,
     }
     cost, _ = sess.run([model.cost, model.train_op], feed)
-    if step % 20 == 0 and step > 0:
+    if step % 100 == 0 and step > 0:
 
       end = time.time()
       time_taken = end - start
@@ -127,3 +129,4 @@ def main():
 if __name__ == '__main__':
   logger.setLevel(logging.INFO)
   main()
+  #cProfile.run('main()', 'runner.profile')
