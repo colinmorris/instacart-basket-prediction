@@ -116,11 +116,17 @@ class RNNModel(object):
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels, logits=logits)
     # apply loss mask
     loss = tf.multiply(loss, self.lossmask)
+    # Total loss per sequence
+    loss_per_seq = tf.reduce_sum(loss, axis=1)
+    # tf has way too many ways to do division :[
+    loss_per_seq = tf.realdiv(loss_per_seq, 
+        tf.reduce_sum(self.lossmask, axis=1)
+    )
     # TODO: does the fact that the mean here includes a variable number of dummy
     # values (from padding to max seq len) change anything? Need to be a bit careful.
     # Maybe need to do it in 2 steps? inner avgs. then outer avg-of-avgs?
     # Or just weight by seqlens.
-    self.cost = tf.reduce_mean(loss)
+    self.cost = tf.reduce_mean(loss_per_seq)
 
     if self.hps.is_training:
         self.lr = tf.Variable(self.hps.learning_rate, trainable=False)
