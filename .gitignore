@@ -1,1 +1,9 @@
 *.pickle
+*.h5
+*.tfrecords
+.ipynb_checkpoints/
+checkpoints/
+scratch/
+.cache/
+logs/
+dat/
