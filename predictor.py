@@ -43,7 +43,8 @@ class BaseRNNModelPredictor(BasePredictor):
     def predict_last_order_from_probs(self, pid_to_prob):
       raise NotImplemented
 
-    def predict_order_by_threshold(self, pid_to_prob, thresh):
+    @classmethod
+    def predict_order_by_threshold(kls, pid_to_prob, thresh):
       order = []
       # Probability of no items being reordered
       p_none = 1

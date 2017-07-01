@@ -42,7 +42,8 @@ def test_userwrapper_props(user):
 
 def test_half_and_half_trainseq(user):
   maxlen = 100
-  x, labels, seqlen, lossmask = user.training_sequence_for_pid(HHID, maxlen)
+  x, labels, seqlen, lossmask, pindex = user.training_sequence_for_pid(HHID, maxlen)
+  assert pindex == HHID-1 # Translated from 1-indexing to 0-indexing
   # Training sequence starts from second order
   assert seqlen == user.norders - 1
   hh_orders = np.array([0, 3, 4, 6])
