@@ -43,6 +43,20 @@ class BaseRNNModelPredictor(BasePredictor):
     def predict_last_order_from_probs(self, pid_to_prob):
       raise NotImplemented
 
+    def predict_order_by_threshold(self, pid_to_prob, thresh):
+      order = []
+      # Probability of no items being reordered
+      p_none = 1
+      for pid, prob in pid_to_prob.iteritems():
+        p_none *= (1 - prob)
+        if prob >= thresh:
+          order.append(pid)
+
+      # TODO: refactor this out
+      if 0 and self.predict_nones and p_none >= (1.5 * thresh): # XXX
+        order.append(NONE_PRODUCTID)
+      return order
+
     def predict_last_order(self, user):
       tf.logging.debug('Calculating probabilities for user\'s {} reordered products'\
               .format(len(user.all_pids)))
@@ -64,24 +78,13 @@ class RnnModelPredictor(BaseRNNModelPredictor):
         assert model.hps.batch_size == 1
 
     def predict_last_order_from_probs(self, pid_to_prob):
-      return self.predict_order_by_threshold(self.thresh)
-
-    def predict_order_by_threshold(self, pid_to_prob, thresh):
-      order = []
-      # Probability of no items being reordered
-      p_none = 1
-      for pid, prob in pid_to_prob.iteritems():
-        p_none *= (1 - prob)
-        if prob >= thresh:
-          order.append(pid)
-
-      # TODO: refactor this out
-      if self.predict_nones and p_none >= (1.5 * thresh): # XXX
-        order.append(NONE_PRODUCTID)
-      return order
+      return self.predict_order_by_threshold(pid_to_prob, self.thresh)
 
 class MonteCarloRnnPredictor(BaseRNNModelPredictor):
-  ntrials = 20
+  DEFAULT_NTRIALS = 20
+  def __init__(self, *args, **kwargs):
+    super(MonteCarloRnnPredictor, self).__init__(*args, **kwargs)
+    self.ntrials = kwargs.get('ntrials', self.DEFAULT_NTRIALS)
 
   def predict_last_order_from_probs(self, pid_to_prob):
     items = pid_to_prob.items()
@@ -91,6 +94,13 @@ class MonteCarloRnnPredictor(BaseRNNModelPredictor):
     probs = [i[1] for i in items]
     # get canddiate thresholds
     thresh_cands = self.get_candidate_thresholds(probs)
+    # TODO: rather than just returning the threshold that gives the highest fscore, we might
+    # do better to incorporate some prior about the smoothness of fn from thresh to fscore.
+    # e.g. if we see something like
+    # {.15: .25, .16: .24, .17: .29, .18: .24, ... .21: .26, .22: .27, .23: .28, .24: .26, ...}
+    # then maybe we should pick a thresh of .23 rather than .17, which might just have been a fluke
+    # TODO: at some point should make an ipython notebook to explore this stuff and make 
+    # some graphs
     best_seen = (None, -1)
     thresh_scores = [] # for debugging
     for thresh in thresh_cands:
@@ -99,8 +109,6 @@ class MonteCarloRnnPredictor(BaseRNNModelPredictor):
         best_seen = (thresh, fscore)
       thresh_scores.append( (thresh, fscore) )
       
-    print probs # XXX
-    print thresh_scores
     # return predictions according to best thresh
     return self.predict_order_by_threshold(pid_to_prob, best_seen[0])
 

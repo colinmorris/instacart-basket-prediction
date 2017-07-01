@@ -12,6 +12,7 @@ import evaluator
 from batch_helpers import iterate_wrapped_users
 
 def main():
+  np.set_printoptions(precision=4, threshold=50)
   tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('checkpoint_path')
@@ -42,11 +43,12 @@ def main():
   judge = evaluator.Evaluator(user_iterator)
   predictor = pred.RnnModelPredictor(sess, model, args.thresh, predict_nones=1)
   baseline = pred.PreviousOrderPredictor()
+  predictor2 = pred.MonteCarloRnnPredictor(sess, model)
 
   # TODO: would be real nice to use tensorboard to look at dist. of
   # probabilities/logits/fscores/precisions stuff like that
   t0 = time.time()
-  baseline_res, res = judge.evaluate([baseline, predictor], limit=args.n_users)
+  baseline_res, res, res2 = judge.evaluate([baseline, predictor, predictor2], limit=args.n_users)
   t1 = time.time()
   print "Finished evaluation in {:.1f}s".format(t1-t0)
   print "BASELINE:"
@@ -55,6 +57,9 @@ def main():
   print "RNN:"
   df = res.to_df()
   print df.describe()
+
+  print "RNN (monte carlo):"
+  print res2.to_df().describe()
 
 if __name__ == '__main__':
   main()
