@@ -53,7 +53,7 @@ class BaseRNNModelPredictor(BasePredictor):
         pid_to_prob[pid] = prob
       return self.predict_last_order_from_probs(pid_to_prob)
 
-class RnnModelPredictor(BaseRnnModelPredictor):
+class RnnModelPredictor(BaseRNNModelPredictor):
 
     def __init__(self, sess, model, thresh, predict_nones=True):
         self.model = model
