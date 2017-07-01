@@ -4,6 +4,7 @@ import tensorflow as tf
 from scipy.special import expit
 
 from constants import NONE_PRODUCTID
+import fscore as fscore_helpers
 
 class BasePredictor(object):
 
@@ -63,15 +64,19 @@ class RnnModelPredictor(BaseRNNModelPredictor):
         assert model.hps.batch_size == 1
 
     def predict_last_order_from_probs(self, pid_to_prob):
+      return self.predict_order_by_threshold(self.thresh)
+
+    def predict_order_by_threshold(self, pid_to_prob, thresh):
       order = []
       # Probability of no items being reordered
       p_none = 1
       for pid, prob in pid_to_prob.iteritems():
         p_none *= (1 - prob)
-        if prob >= self.thresh:
+        if prob >= thresh:
           order.append(pid)
 
-      if self.predict_nones and p_none >= (1.5 * self.thresh): # XXX
+      # TODO: refactor this out
+      if self.predict_nones and p_none >= (1.5 * thresh): # XXX
         order.append(NONE_PRODUCTID)
       return order
 
@@ -79,10 +84,32 @@ class MonteCarloRnnPredictor(BaseRNNModelPredictor):
   ntrials = 20
 
   def predict_last_order_from_probs(self, pid_to_prob):
+    items = pid_to_prob.items()
+    # Sort on probability
+    items.sort(key = lambda i: i[1])
+    pids = [i[0] for i in items]
+    probs = [i[1] for i in items]
     # get canddiate thresholds
-    # evaluate
+    thresh_cands = self.get_candidate_thresholds(probs)
+    best_seen = (None, -1)
+    thresh_scores = [] # for debugging
+    for thresh in thresh_cands:
+      fscore = fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)
+      if fscore > best_seen[1]:
+        best_seen = (thresh, fscore)
+      thresh_scores.append( (thresh, fscore) )
+      
+    print probs # XXX
+    print thresh_scores
     # return predictions according to best thresh
-    raise NotImplemented
+    return self.predict_order_by_threshold(pid_to_prob, best_seen[0])
+
+  def get_candidate_thresholds(self, probs):
+    # TODO: Possible ways to be more clever: 
+    # - impose hard limits on min/max thresholds to test
+    # - ignore small deltas
+    for prob in probs:
+      yield prob
 
 class PreviousOrderPredictor(BasePredictor):
 
