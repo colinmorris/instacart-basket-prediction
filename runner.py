@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from __future__ import division
 
 #import cProfile
 
@@ -15,7 +16,6 @@ import pandas as pd
 import rnnmodel
 import utils
 from rnnmodel import RNNModel
-#from dataset import Dataset
 from batch_helpers import Batcher
 
 logger = logging.getLogger(__name__)
@@ -32,12 +32,36 @@ def get_next_run_num():
   rundirs = map(tryint, os.listdir('logs'))
   if not rundirs:
     return 1
-  return max(rundirs) + 1  
+  return max(rundirs) + 1
 
+def eval_model(sess, model, batcher):
+  total_cost = 0.0
+  nbatches = 0
+  for batch in bacher.iter_epoch():
+    cost = batch_cost(sess, model, batch, train=False)
+    total_cost += cost
+    nbatches += 1
+  return total_cost / nbatches
 
-def train(sess, model, batcher, runlabel): # TODO: eval_model
+def batch_cost(sess, model, batch, train):
+  x, y, seqlens, lossmask, pids = batch
+  feed = {
+      model.input_data: x,
+      model.labels: y,
+      model.sequence_lengths: seqlens,
+      model.lossmask: lossmask,
+  }
+  if model.hps.product_embeddings:
+    feed[model.product_ids] = pids
+  to_fetch = [model.cost]
+  if train:
+    to_fetch.append(model.train_op)
+  values = sess.run(to_fetch, feed)
+  return values[0]
+    
+
+def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
   # Setup summary writer.
-  # TODO: allow explicitly passing in a run label
   summary_writer = tf.summary.FileWriter('logs/{}'.format(runlabel))
 
   # Calculate trainable params.
@@ -61,18 +85,10 @@ def train(sess, model, batcher, runlabel): # TODO: eval_model
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
     tb0 = time.time()
-    x, y, seqlens, lossmask, pids = batcher.get_batch(i)
+    batch = batcher.get_batch(i)
     tb1 = time.time()
     batch_fetch_time += (tb1 - tb0)
-    feed = {
-        model.input_data: x,
-        model.labels: y,
-        model.sequence_lengths: seqlens,
-        model.lossmask: lossmask,
-    }
-    if hps.product_embeddings:
-      feed[model.product_ids] = pids
-    cost, _ = sess.run([model.cost, model.train_op], feed)
+    cost = batch_cost(sess, model, batch, train=True)
     if step % 100 == 0 and step > 0 or (hps.num_steps <= 100 and step % 20 == 0 and step > 0):
 
       end = time.time()
@@ -95,7 +111,16 @@ def train(sess, model, batcher, runlabel): # TODO: eval_model
       summary_writer.flush()
       start = time.time()
     if (step % hps.save_every == 0 and step > 0) or i == (hps.num_steps - 1):
-        utils.save_model(sess, runlabel, step)
+      utils.save_model(sess, runlabel, step)
+    if step > 0 and step % hps.eval_every == 0:  
+      t0 = time.time()
+      eval_cost = eval_model(sess, model, eval_batcher)
+      t1 = time.time()
+      eval_time = t1 - t0
+      tf.logging.info('Evaluation loss={:.4f} (took {:.1f}s)'.format(eval_cost, eval_time))
+      eval_summ = tf.summary.Summary()
+      eval_summ.value.add(tag='Eval_Cost', simple_value=eval_cost)
+      eval_summ.value.add(tag='Eval_Time', simple_value=eval_time)
 
 
 def main():
@@ -117,6 +142,8 @@ def main():
   model = RNNModel(hps)
   logger.info('Loading batcher')
   batcher = Batcher(hps, args.recordfile)
+  eval_recordfname = 'eval.tfrecords'
+  eval_batcher = Batcher(hps, eval_recordfname)
   sess = tf.InteractiveSession()
   sess.run(tf.global_variables_initializer())
   logger.info('Training')
@@ -126,7 +153,7 @@ def main():
     runlabel = args.run_label
   # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
   # Could be annoying in some cases.
-  train(sess, model, batcher, runlabel)
+  train(sess, model, batcher, runlabel, eval_batcher)
 
 if __name__ == '__main__':
   logger.setLevel(logging.INFO)

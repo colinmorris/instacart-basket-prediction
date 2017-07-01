@@ -21,6 +21,7 @@ def get_default_hparams():
       nfeats=NFEATS,
       learning_rate=0.001, # ???
       save_every=5000,
+      eval_every=1000,
       # There are about 195k users in the dataset, so if we take on sequence
       # from each, it'd take about 2k steps to cycle through them all
       num_steps=17000,

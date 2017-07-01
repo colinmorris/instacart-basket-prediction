@@ -21,7 +21,15 @@ class Batcher(object):
   def reset_record_iterator(self):
     self.records = tf.python_io.tf_record_iterator(self.recordpath)
 
-  def get_batch(self, i):
+  def iter_epoch(self):
+    while 1:
+      try:
+        batch = self.get_batch(-1, infinite=False)
+      except StopIteration:
+        break
+      yield batch
+
+  def get_batch(self, i, infinite=True):
     """(i currently ignored)"""
     bs = self.batch_size
     maxlen = self.max_seq_len
@@ -39,9 +47,12 @@ class Batcher(object):
       try:
         user.ParseFromString(self.records.next())
       except StopIteration:
-        logging.info("Starting a new 'epoch'. Resetting record iterator.")
-        self.reset_record_iterator()
-        user.ParseFromString(self.records.next())
+        if infinite:
+          logging.info("Starting a new 'epoch'. Resetting record iterator.")
+          self.reset_record_iterator()
+          user.ParseFromString(self.records.next())
+        else:
+          raise
       wrapper = UserWrapper(user)
       # TODO: incorporate lossmask
       x_i, l_i, s_i, lossmask_i, pid_i = wrapper.sample_training_sequence(maxlen)
