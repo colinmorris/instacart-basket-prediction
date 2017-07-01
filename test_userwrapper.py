@@ -42,15 +42,20 @@ def test_userwrapper_props(user):
 
 def test_half_and_half_trainseq(user):
   maxlen = 100
-  x, labels, seqlen, lossmask, pindex = user.training_sequence_for_pid(HHID, maxlen)
-  assert pindex == HHID-1 # Translated from 1-indexing to 0-indexing
+  ts = user.training_sequence_for_pid(HHID, maxlen)
+  assert ts['pindex'] == HHID-1 # Translated from 1-indexing to 0-indexing
   # Training sequence starts from second order
+  seqlen = ts['seqlen']
   assert seqlen == user.norders - 1
   hh_orders = np.array([0, 3, 4, 6])
   true_label_indices = np.array([3, 4, 6]) - 1
   expected_labels = np.zeros(maxlen)
   expected_labels[true_label_indices] = 1
-  assert (labels == expected_labels).all()
+  assert (ts['labels'] == expected_labels).all()
+
+  lossmask = ts['lossmask']
+  assert (lossmask[seqlen:] == 0).all()
+  assert (lossmask[:seqlen] == 1).all()
   # TODO: test features
 
 

@@ -63,9 +63,8 @@ class BaseRNNModelPredictor(BasePredictor):
               .format(len(user.all_pids)))
       pid_to_prob = {}
       for pid in user.all_pids:
-        x, labels, seqlen, lossmask, pindex = user.training_sequence_for_pid(pid, 
-            self.model.hps.max_seq_len)
-        prob = self.predict_prob(x, seqlen, pindex)
+        ts = user.training_sequence_for_pid(pid, self.model.hps.max_seq_len)
+        prob = self.predict_prob(ts['x'], ts['seqlen'], ts['pindex'])
         pid_to_prob[pid] = prob
       return self.predict_last_order_from_probs(pid_to_prob)
 

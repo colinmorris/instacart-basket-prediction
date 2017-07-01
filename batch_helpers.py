@@ -55,13 +55,12 @@ class Batcher(object):
         else:
           raise
       wrapper = UserWrapper(user)
-      # TODO: incorporate lossmask
-      x_i, l_i, s_i, lossmask_i, pid_i = wrapper.sample_training_sequence(maxlen)
-      x[i] = x_i
-      labels[i] = l_i
-      seqlens[i] = s_i
-      lossmask[i] = lossmask_i
-      pids[i] = pid_i
+      ts = wrapper.sample_training_sequence(maxlen)
+      x[i] = ts['x']
+      labels[i] = ts['labels']
+      seqlens[i] = ts['seqlen']
+      lossmask[i] = ts['lossmask']
+      pids[i] = ts['pindex']
     return x, labels, seqlens, lossmask, pids
 
 def iterate_wrapped_users(recordpath):
@@ -127,10 +126,10 @@ class UserWrapper(object):
     seqlens = np.zeros(nseqs) + self.seqlen
     for i, pid in enumerate(pids):
       # TODO: could be optimized to avoid redundant work
-      x_i, l_i, _, lm_i = self.training_sequence_for_pid(pid, maxlen)
-      x[i] = x_i
-      labels[i] = l_i
-      lossmask[i] = lm_i
+      ts = self.training_sequence_for_pid(pid, maxlen)
+      x[i] = ts['x']
+      labels[i] = ts['labels']
+      lossmask[i] = ts['lossmask']
     return x, labels, seqlens, lossmask
 
 
@@ -161,6 +160,7 @@ class UserWrapper(object):
 
   def training_sequence_for_pid(self, pid, maxlen):
     """Return a tuple of (x, labels, seqlen, lossmask, pid)
+    Where feats is an ndarray, seqlen and pid are scalars, and everything else is a 1-d array
     """
     x = np.zeros([self.seqlen, len(self.rawcols)])
     labels = np.zeros([maxlen])
@@ -175,11 +175,14 @@ class UserWrapper(object):
     pids_seen = set()
     for i, prev, order in itertools.izip(range(maxlen), prevs, orders):
       ordered = pid in order.products
-      labels[i] = int(ordered)
-      lossmask[i] = int(seen_first)
-      if ordered and not seen_first:
-        seen_first = True
       previously_ordered = int(pid in prev.products)
+      labels[i] = int(ordered)
+      seen_first = seen_first or previously_ordered
+      # We only care about our ability to predict when a product is *re*ordered. 
+      # So we zero out the loss for predicting all labels up to and including the
+      # first order that has that product. (We also zero out the loss past the end
+      # of the actual sequence, i.e. for the padding section)
+      lossmask[i] = int(seen_first)
       prevprods = set(prev.products)
       if prevprev is None:
         prev_repeats = 0
@@ -196,7 +199,9 @@ class UserWrapper(object):
       pids_seen.update(set(prev.products))
 
     feats = self.transform_raw_feats(x, maxlen)
-    return feats, labels, self.seqlen, lossmask, pid-1
+    return dict(x=feats, labels=labels, seqlen=self.seqlen, lossmask=lossmask,
+        pindex=pid-1
+    )
 
 def vectorize(df, user, maxlen):
   res = np.zeros([maxlen, NFEATS])
