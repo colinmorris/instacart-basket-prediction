@@ -53,21 +53,3 @@ def test_half_and_half_trainseq(user):
   # TODO: test features
 
 
-
-
-'''
-  # TODO: for a test like this, maybe makes sense to test the 
-  # ndarray forms at the same time?
-  def test_half_and_half(self):
-    """This user ordered half and half a few times."""
-    train = self.train_df
-    hhid = 27086 # product_id of half and half
-    hh_vecs = train[train['product_id'] == hhid]
-    
-    # We should have exactly one vector/instance for .5+.5 for
-    # each of this user's 7 orders.
-    self.assertEqual(len(hh_vecs), self.userinfo['norders'])
-
-    # It was ordered 4 times (including 1st and last order)
-    self.assertEqual(hh_vecs['ordered'].sum(), len(hh_orders))
-'''
