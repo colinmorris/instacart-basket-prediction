@@ -84,6 +84,9 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
   hps = model.hps
   start = time.time()
 
+  log_every = 100
+  train_costs = np.zeros(log_every)
+
   batch_fetch_time = 0
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
@@ -91,9 +94,12 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
     batch = batcher.get_batch(i)
     tb1 = time.time()
     batch_fetch_time += (tb1 - tb0)
-    cost = batch_cost(sess, model, batch, train=True)
-    if step % 100 == 0 and step > 0 or (hps.num_steps <= 100 and step % 20 == 0 and step > 0):
-
+    bcost = batch_cost(sess, model, batch, train=True)
+    costi = i % log_every
+    train_costs[costi] = bcost
+    if (step+1) % log_every == 0:
+      # Average cost over last 100 (or whatever) batches
+      cost = train_costs.mean()
       end = time.time()
       time_taken = end - start
 
