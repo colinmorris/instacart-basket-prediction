@@ -130,6 +130,8 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
       eval_summ = tf.summary.Summary()
       eval_summ.value.add(tag='Eval_Cost', simple_value=eval_cost)
       eval_summ.value.add(tag='Eval_Time', simple_value=eval_time)
+      summary_writer.add_summary(eval_summ, step)
+      summary_writer.flush()
 
 
 def main():
