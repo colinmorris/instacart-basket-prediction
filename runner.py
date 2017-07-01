@@ -8,6 +8,7 @@ import time
 import logging
 import sys
 import os
+import random
 
 import numpy as np
 import tensorflow as tf
@@ -37,10 +38,17 @@ def get_next_run_num():
 def eval_model(sess, model, batcher):
   total_cost = 0.0
   nbatches = 0
+  # I think this should work?
+  random.seed(1337)
+  # XXX
+  pids = []
   for batch in bacher.iter_epoch():
+    pid = batch[-1]
+    pids.extend(pid)
     cost = batch_cost(sess, model, batch, train=False)
     total_cost += cost
     nbatches += 1
+  print pids
   return total_cost / nbatches
 
 def batch_cost(sess, model, batch, train):
