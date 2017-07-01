@@ -1,0 +1,689 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": [
+    "%matplotlib inline\n",
+    "from matplotlib import pyplot as plt\n",
+    "import pandas as pd\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {
+    "collapsed": false,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": [
+    "%load_ext autoreload\n",
+    "%aimport basket_db\n",
+    "%aimport evaluator\n",
+    "%aimport predictor\n",
+    "from basket_db import BasketDB\n",
+    "from evaluator import TrainEvaluator\n",
+    "from predictor import PreviousOrderPredictor"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": [
+    "ops_train = pd.read_csv('dat/order_products__train.csv')\n",
+    "ops_prior = pd.read_csv('dat/order_products__prior.csv')\n",
+    "orders = pd.read_csv('dat/orders.csv') # index_col = 'order_id'\n",
+    "# or\n",
+    "# orders.set_index('order_id', drop=0)\n",
+    "products = pd.read_csv('dat/products.csv')\n",
+    "aisles = pd.read_csv('dat/aisles.csv')\n",
+    "departments = pd.read_csv('dat/departments.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": [
+    "db = BasketDB(\n",
+    "    ops_train=ops_train,\n",
+    "    ops_prior=ops_prior,\n",
+    "    orders=orders,\n",
+    "    products=products,\n",
+    "    aisles=aisles,\n",
+    "    departments=departments,\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 98,
+   "metadata": {
+    "collapsed": false,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Results over 100 orders with mean fscore = 0.3547\n"
+     ]
+    }
+   ],
+   "source": [
+    "%autoreload 1\n",
+    "# slooow. Add indices to some of these columns?\n",
+    "n = 100\n",
+    "dummy = PreviousOrderPredictor(db)\n",
+    "scale = TrainEvaluator(db)\n",
+    "\n",
+    "res = scale.evaluate(dummy, n)\n",
+    "print res\n",
+    "# TODO: more fine-grained results (precision and recall)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 102,
+   "metadata": {
+    "collapsed": false,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Results over 100 orders with mean fscore = 0.3414\n",
+      " "
+     ]
+    }
+   ],
+   "source": [
+    "%%prun -s cumulative\n",
+    "dummy2 = PreviousOrderPredictor(db, always_none=1)\n",
+    "res2 = scale.evaluate(dummy2, n)\n",
+    "print res2"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 219,
+   "metadata": {
+    "collapsed": false,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Peek at user 149012's last 10 orders:\n",
+       "Order 10 (+11.0 days, @13:00):\n",
+       "    100% Apple Juice<35199>\n",
+       "    Banana<24852>\n",
+       "    Chopped Tomatoes<40992>\n",
+       "    Crackers Cheddar Bunnies Snack Packs<39561>\n",
+       "    Cucumber & Garlic  Tzatziki<28535>\n",
+       "    Cucumber Kirby<49683>\n",
+       "    Feta Cheese Crumbles<40604>\n",
+       "    Hearty Nine Grain Bread<22537>\n",
+       "    Organic Gala Apples<37646>\n",
+       "    Organic Greek Whole Milk Blended Vanilla Bean Yogurt<44008>\n",
+       "    Organic Hass Avocado<47209>\n",
+       "    Organic Large Brown Grade AA Cage Free Eggs<30233>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Yellow Onion<22935>\n",
+       "    Original Hummus<30489>\n",
+       "    Smoked Salmon<13877>\n",
+       "    Wild Berry Smoothie<4793>\n",
+       "  Order 9 (+9.0 days, @17:00):\n",
+       "    100% Apple Juice<35199>\n",
+       "    Banana<24852>\n",
+       "    Classic White Bread<35383>\n",
+       "    Crackers Cheddar Bunnies Snack Packs<39561>\n",
+       "    Crinkle Cut French Fries<22451>\n",
+       "    Cucumber Kirby<49683>\n",
+       "    Dairy Free Coconut Milk Vanilla Bean Frozen Dessert<21508>\n",
+       "    Dairy Free Plain Cream Cheese Style Spread<35223>\n",
+       "    Lactose Free Low Fat Vanilla Yogurt<29672>\n",
+       "    Lightly Sweet Popcorn<21070>\n",
+       "    Mini Original Babybel Cheese<6348>\n",
+       "    Organic Baby Carrots<42265>\n",
+       "    Organic Gala Apples<37646>\n",
+       "    Organic Hass Avocado<47209>\n",
+       "    Organic Lactose Free Strawberry Yogurt<1377>\n",
+       "    Organic Large Brown Grade AA Cage Free Eggs<30233>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Raspberries<27966>\n",
+       "    Organic Reduced Fat 2% Milk<5785>\n",
+       "    Organic Strawana Probugs Kefir<43643>\n",
+       "    Simple Bites Gluten Free Ginger Snapz<29710>\n",
+       "    Smoked Turkey Breast Slices<49131>\n",
+       "    Sweet Corn On The Cob<23339>\n",
+       "    Unsweetened Vanilla Almond Milk<43295>\n",
+       "    Vanilla Almond Milk Yogurt<31635>\n",
+       "    Vanilla Pure Almond Milk<46820>\n",
+       "    Wild Berry Smoothie<4793>\n",
+       "    Yoghurt Blueberry<49628>\n",
+       "  Order 8 (+18.0 days, @14:00):\n",
+       "    Cucumber Kirby<49683>\n",
+       "    Fusilli No. 34<23801>\n",
+       "    Olive Oil & Sel Gris Sourdough Flatbread<20788>\n",
+       "    Organic Gala Apples<37646>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Reduced Fat 2% Milk<5785>\n",
+       "    Organic Strawana Probugs Kefir<43643>\n",
+       "    Original Hummus<30489>\n",
+       "    Sweet Corn On The Cob<23339>\n",
+       "    Wild Berry Smoothie<4793>\n",
+       "    Wild Smoked Sockeye Salmon<8379>\n",
+       "  Order 7 (+8.0 days, @14:00):\n",
+       "    100% Apple Juice<35199>\n",
+       "    Banana<24852>\n",
+       "    California Orange Juice<47280>\n",
+       "    Carrots<17794>\n",
+       "    Crackers Cheddar Bunnies Snack Packs<39561>\n",
+       "    Cucumber Kirby<49683>\n",
+       "    Fusilli No. 34<23801>\n",
+       "    Lightly Sweet Popcorn<21070>\n",
+       "    Mini Original Babybel Cheese<6348>\n",
+       "    Orange Calcium & Vitamin D Pulp Free<19173>\n",
+       "    Organic Baby Carrots<42265>\n",
+       "    Organic Gala Apples<37646>\n",
+       "    Organic Greek Whole Milk Blended Vanilla Bean Yogurt<44008>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Raspberries<27966>\n",
+       "    Organic Reduced Fat 2% Milk<5785>\n",
+       "    Organic Strawberries<21137>\n",
+       "    Red Potatoes<13733>\n",
+       "    Sweet Corn On The Cob<23339>\n",
+       "    Yoghurt Blueberry<49628>\n",
+       "  Order 6 (+9.0 days, @10:00):\n",
+       "    100% Apple Juice<35199>\n",
+       "    Banana<24852>\n",
+       "    Crackers Cheddar Bunnies Snack Packs<39561>\n",
+       "    Fusilli No. 34<23801>\n",
+       "    Lightly Sweet Popcorn<21070>\n",
+       "    Orange Calcium & Vitamin D Pulp Free<19173>\n",
+       "    Organic Cheddar Snack Mix<25072>\n",
+       "    Organic Cucumber<30391>\n",
+       "    Organic Gala Apples<37646>\n",
+       "    Organic Greek Whole Milk Blended Vanilla Bean Yogurt<44008>\n",
+       "    Organic Hass Avocado<47209>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Raspberries<27966>\n",
+       "    Organic Reduced Fat 2% Milk<5785>\n",
+       "    Organic Strawana Probugs Kefir<43643>\n",
+       "    Organic Strawberries<21137>\n",
+       "    Organic YoKids Smoothie Strawberry Banana Lowfat Yogurt<30949>\n",
+       "    Original Hummus<30489>\n",
+       "    Smoked Turkey Breast Slices<49131>\n",
+       "    Yoghurt Blueberry<49628>\n",
+       "  Order 5 (+12.0 days, @14:00):\n",
+       "    100% Apple Juice<35199>\n",
+       "    Complete Iron System Mini Tabs<46337>\n",
+       "    Crackers Cheddar Bunnies Snack Packs<39561>\n",
+       "    Feta Cheese Crumbles<40604>\n",
+       "    Fusilli No. 34<23801>\n",
+       "    Lightly Sweet Popcorn<21070>\n",
+       "    Multi-Vitamin & Mineral, Gummy Bears, Fruit Flavors<37050>\n",
+       "    Organic Large Brown Grade AA Cage Free Eggs<30233>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Reduced Fat 2% Milk<5785>\n",
+       "    Sweet Corn On The Cob<23339>\n",
+       "    Wild Berry Smoothie<4793>\n",
+       "    Wild Smoked Sockeye Salmon<8379>\n",
+       "  Order 4 (+8.0 days, @10:00):\n",
+       "    Bartlett Pears<41787>\n",
+       "    California Orange Juice<47280>\n",
+       "    Garnet Sweet Potato (Yam)<581>\n",
+       "    Natural Buttermilk Pancake & Waffle Mix<46812>\n",
+       "    Organic Greek Whole Milk Blended Vanilla Bean Yogurt<44008>\n",
+       "    Organic Strawana Probugs Kefir<43643>\n",
+       "    Sweet Corn On The Cob<23339>\n",
+       "  Order 3 (+7.0 days, @14:00):\n",
+       "    Banana<24852>\n",
+       "    Crackers Cheddar Bunnies Snack Packs<39561>\n",
+       "    Cucumber & Garlic  Tzatziki<28535>\n",
+       "    Feta Cheese Crumbles<40604>\n",
+       "    Fusilli No. 34<23801>\n",
+       "    Mini Original Babybel Cheese<6348>\n",
+       "    Orange Calcium & Vitamin D Pulp Free<19173>\n",
+       "    Organic Baby Arugula<21616>\n",
+       "    Organic Cucumber<30391>\n",
+       "    Organic Gala Apples<37646>\n",
+       "    Organic Greek Whole Milk Blended Vanilla Bean Yogurt<44008>\n",
+       "    Organic Hass Avocado<47209>\n",
+       "    Organic Honey Nut O's Cereal<26177>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Raspberries<27966>\n",
+       "    Organic Reduced Fat 2% Milk<5785>\n",
+       "    Original Hummus<30489>\n",
+       "    Sweet Corn On The Cob<23339>\n",
+       "  Order 2 (+20.0 days, @14:00):\n",
+       "    Banana<24852>\n",
+       "    Classic White Bread<35383>\n",
+       "    Organic Gala Apples<37646>\n",
+       "    Organic Greek Whole Milk Blended Vanilla Bean Yogurt<44008>\n",
+       "    Organic Honey Nut O's Cereal<26177>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Reduced Fat 2% Milk<5785>\n",
+       "    Roasted Turkey Breast<42342>\n",
+       "    Wild Berry Smoothie<4793>\n",
+       "  Order 1 (+nan days, @13:00):\n",
+       "    100% Apple Juice<35199>\n",
+       "    Banana<24852>\n",
+       "    Black Tea Pyramids<3274>\n",
+       "    Cheerios Cereal<365>\n",
+       "    Clementines, Bag<28199>\n",
+       "    Crackers Cheddar Bunnies Snack Packs<39561>\n",
+       "    Florida Orange Juice With Calcium & Vitamin D<8087>\n",
+       "    Fusilli No. 34<23801>\n",
+       "    Mini Original Babybel Cheese<6348>\n",
+       "    Olive Oil & Sel Gris Sourdough Flatbread<20788>\n",
+       "    Organic Baby Carrots<42265>\n",
+       "    Organic Gala Apples<37646>\n",
+       "    Organic Greek Whole Milk Blended Vanilla Bean Yogurt<44008>\n",
+       "    Organic Honey Nut O's Cereal<26177>\n",
+       "    Organic Jasmine Rice<39121>\n",
+       "    Organic Large Brown Grade AA Cage Free Eggs<30233>\n",
+       "    Organic Milk<1463>\n",
+       "    Organic Raspberries<27966>\n",
+       "    Organic Reduced Fat 2% Milk<5785>\n",
+       "    Organic Strawberries<21137>\n",
+       "    Organic Strawberry Lemonade<5883>\n",
+       "    Organic YoKids Smoothie Strawberry Banana Lowfat Yogurt<30949>\n",
+       "    Original Hummus<30489>\n",
+       "    Pesto Sauce With Pine Nuts<40879>\n",
+       "    Smoked Turkey Breast Slices<49131>\n",
+       "    Sonoma Traditional Flour Tortillas 10 Count<19816>\n",
+       "    Yoghurt Blueberry<49628>"
+      ]
+     },
+     "execution_count": 219,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "foo = db.snoop()\n",
+    "foo"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 285,
+   "metadata": {
+    "collapsed": false,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style>\n",
+       "    .dataframe thead tr:only-child th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: left;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th>0</th>\n",
+       "      <th>1</th>\n",
+       "      <th>2</th>\n",
+       "      <th>3</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th rowspan=\"2\" valign=\"top\">bar</th>\n",
+       "      <th>one</th>\n",
+       "      <td>0.930044</td>\n",
+       "      <td>0.406536</td>\n",
+       "      <td>0.912237</td>\n",
+       "      <td>-0.372620</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>two</th>\n",
+       "      <td>-1.811798</td>\n",
+       "      <td>0.337231</td>\n",
+       "      <td>1.318732</td>\n",
+       "      <td>-0.134818</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th rowspan=\"2\" valign=\"top\">baz</th>\n",
+       "      <th>one</th>\n",
+       "      <td>-0.699501</td>\n",
+       "      <td>1.292387</td>\n",
+       "      <td>-0.254038</td>\n",
+       "      <td>0.601983</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>two</th>\n",
+       "      <td>0.597459</td>\n",
+       "      <td>-0.298892</td>\n",
+       "      <td>-1.026000</td>\n",
+       "      <td>-1.233956</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th rowspan=\"2\" valign=\"top\">foo</th>\n",
+       "      <th>one</th>\n",
+       "      <td>-0.121156</td>\n",
+       "      <td>0.177525</td>\n",
+       "      <td>-0.858362</td>\n",
+       "      <td>-0.942518</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>two</th>\n",
+       "      <td>1.035928</td>\n",
+       "      <td>-0.531414</td>\n",
+       "      <td>0.035130</td>\n",
+       "      <td>-0.447061</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th rowspan=\"2\" valign=\"top\">qux</th>\n",
+       "      <th>one</th>\n",
+       "      <td>0.623212</td>\n",
+       "      <td>0.511346</td>\n",
+       "      <td>-1.455502</td>\n",
+       "      <td>0.616120</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>two</th>\n",
+       "      <td>-0.388895</td>\n",
+       "      <td>3.001072</td>\n",
+       "      <td>-0.656922</td>\n",
+       "      <td>0.698149</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                0         1         2         3\n",
+       "bar one  0.930044  0.406536  0.912237 -0.372620\n",
+       "    two -1.811798  0.337231  1.318732 -0.134818\n",
+       "baz one -0.699501  1.292387 -0.254038  0.601983\n",
+       "    two  0.597459 -0.298892 -1.026000 -1.233956\n",
+       "foo one -0.121156  0.177525 -0.858362 -0.942518\n",
+       "    two  1.035928 -0.531414  0.035130 -0.447061\n",
+       "qux one  0.623212  0.511346 -1.455502  0.616120\n",
+       "    two -0.388895  3.001072 -0.656922  0.698149"
+      ]
+     },
+     "execution_count": 285,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux']),\n",
+    "          np.array(['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two'])]\n",
+    "tuples = list(zip(*arrays))\n",
+    "index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])\n",
+    "df = pd.DataFrame(np.random.randn(8, 4), index=arrays)\n",
+    "#df = pd.DataFrame(np.random.randn(3, 8), index=['A', 'B', 'C'], columns=index)\n",
+    "df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 286,
+   "metadata": {
+    "collapsed": false,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style>\n",
+       "    .dataframe thead tr:only-child th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: left;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>0</th>\n",
+       "      <th>1</th>\n",
+       "      <th>2</th>\n",
+       "      <th>3</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>one</th>\n",
+       "      <td>0.930044</td>\n",
+       "      <td>0.406536</td>\n",
+       "      <td>0.912237</td>\n",
+       "      <td>-0.372620</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>two</th>\n",
+       "      <td>-1.811798</td>\n",
+       "      <td>0.337231</td>\n",
+       "      <td>1.318732</td>\n",
+       "      <td>-0.134818</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "            0         1         2         3\n",
+       "one  0.930044  0.406536  0.912237 -0.372620\n",
+       "two -1.811798  0.337231  1.318732 -0.134818"
+      ]
+     },
+     "execution_count": 286,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "df.loc['bar']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {
+    "collapsed": false,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Peek at user 2455's last 7 orders:\n",
+       "Order 7 (+1.0 days, @15:00):\n",
+       "    Half & Half<27086>\n",
+       "    Limes<26209>\n",
+       "    Medium Navel Orange<47630>\n",
+       "    Organic Chai Tea Latte Concentrate<15429>\n",
+       "  Order 6 (+1.0 days, @8:00):\n",
+       "    Cereal Honey Bears<49424>\n",
+       "    Chocolate Delight Granola<32423>\n",
+       "    Classic Granola<30066>\n",
+       "    Natural Free & Clear Dishwasher Detergent Packs<22950>\n",
+       "    Premium Pure Cane Granulated Sugar<27243>\n",
+       "  Order 5 (+2.0 days, @8:00):\n",
+       "    Classic Green Tea<47114>\n",
+       "    Fat Free Milk<19348>\n",
+       "    Half & Half<27086>\n",
+       "    Organic Chai Tea Latte Concentrate<15429>\n",
+       "    Organic Unsweetened Almond Milk<35951>\n",
+       "    Organic Whole Milk<27845>\n",
+       "  Order 4 (+3.0 days, @7:00):\n",
+       "    Half & Half<27086>\n",
+       "    Organic Unsweetened Almond Milk<35951>\n",
+       "    Organic Whole Milk<27845>\n",
+       "  Order 3 (+1.0 days, @10:00):\n",
+       "    Natural Artesian Water<14233>\n",
+       "    Peanut Butter Crunch<33334>\n",
+       "  Order 2 (+2.0 days, @7:00):\n",
+       "    Fat Free Milk<19348>\n",
+       "    Organic Chai Tea Latte Concentrate<15429>\n",
+       "    Organic Unsweetened Almond Milk<35951>\n",
+       "    Organic Whole Milk<27845>\n",
+       "    Peanut Butter Crunch<33334>\n",
+       "  Order 1 (+nan days, @10:00):\n",
+       "    Fat Free Milk<19348>\n",
+       "    Half & Half<27086>\n",
+       "    Organic Chai Tea Latte Concentrate<15429>\n",
+       "    Organic Unsweetened Almond Milk<35951>\n",
+       "    Organic Whole Milk<27845>\n",
+       "    White Orchard Pure China White Tea<15598>"
+      ]
+     },
+     "execution_count": 31,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# 13, 18\n",
+    "# 6376\n",
+    "zoo = db.snoop(uid=2455)\n",
+    "zoo"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "collapsed": true,
+    "deletable": true,
+    "editable": true
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 2",
+   "language": "python",
+   "name": "python2"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
