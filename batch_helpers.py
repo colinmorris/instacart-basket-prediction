@@ -26,6 +26,7 @@ class Batcher(object):
       try:
         batch = self.get_batch(-1, infinite=False)
       except StopIteration:
+        self.reset_record_iterator()
         break
       yield batch
 

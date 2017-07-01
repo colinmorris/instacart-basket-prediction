@@ -127,7 +127,11 @@ class RNNModel(object):
     # values (from padding to max seq len) change anything? Need to be a bit careful.
     # Maybe need to do it in 2 steps? inner avgs. then outer avg-of-avgs?
     # Or just weight by seqlens.
-    self.cost = tf.reduce_mean(loss_per_seq)
+    
+    # TODO XXX I think I had the right idea with this, but right now it's producing
+    # nans. I guess sometimes lossmask sums to 0? Need to look more into this later.
+    #self.cost = tf.reduce_mean(loss_per_seq)
+    self.cost = tf.reduce_mean(loss)
 
     if self.hps.is_training:
         self.lr = tf.Variable(self.hps.learning_rate, trainable=False)

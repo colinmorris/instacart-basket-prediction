@@ -38,17 +38,12 @@ def get_next_run_num():
 def eval_model(sess, model, batcher):
   total_cost = 0.0
   nbatches = 0
-  # I think this should work?
+  # This seems to work. (Want the pid used for a given user to be the same for each eval run)
   random.seed(1337)
-  # XXX
-  pids = []
-  for batch in bacher.iter_epoch():
-    pid = batch[-1]
-    pids.extend(pid)
+  for batch in batcher.iter_epoch():
     cost = batch_cost(sess, model, batch, train=False)
     total_cost += cost
     nbatches += 1
-  print pids
   return total_cost / nbatches
 
 def batch_cost(sess, model, batch, train):
@@ -118,9 +113,9 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
       summary_writer.add_summary(time_summ, step)
       summary_writer.flush()
       start = time.time()
-    if (step % hps.save_every == 0 and step > 0) or i == (hps.num_steps - 1):
+    if (step+1) % hps.save_every == 0 or i == (hps.num_steps - 1):
       utils.save_model(sess, runlabel, step)
-    if step > 0 and step % hps.eval_every == 0:  
+    if (step+1) % hps.eval_every == 0:  
       t0 = time.time()
       eval_cost = eval_model(sess, model, eval_batcher)
       t1 = time.time()
