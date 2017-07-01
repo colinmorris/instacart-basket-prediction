@@ -15,13 +15,10 @@ class BasePredictor(object):
     history up to that point."""
     raise NotImplemented
 
-class RnnModelPredictor(BasePredictor):
-
-    def __init__(self, sess, model, thresh, predict_nones=True):
+class BaseRNNModelPredictor(BasePredictor):
+    def __init__(self, sess, model):
         self.model = model
-        self.thresh = thresh
         self.sess = sess
-        self.predict_nones = predict_nones
         assert model.hps.batch_size == 1
 
     def predict_prob(self, vec, seqlen, pindex):
@@ -42,16 +39,34 @@ class RnnModelPredictor(BasePredictor):
         prob = expit(logit)
         return prob
 
+    def predict_last_order_from_probs(self, pid_to_prob):
+      raise NotImplemented
+
     def predict_last_order(self, user):
-      order = []
       tf.logging.debug('Calculating probabilities for user\'s {} reordered products'\
               .format(len(user.all_pids)))
-      # Probability of no items being reordered
-      p_none = 1
+      pid_to_prob = {}
       for pid in user.all_pids:
         x, labels, seqlen, lossmask, pindex = user.training_sequence_for_pid(pid, 
             self.model.hps.max_seq_len)
         prob = self.predict_prob(x, seqlen, pindex)
+        pid_to_prob[pid] = prob
+      return self.predict_last_order_from_probs(pid_to_prob)
+
+class RnnModelPredictor(BaseRnnModelPredictor):
+
+    def __init__(self, sess, model, thresh, predict_nones=True):
+        self.model = model
+        self.thresh = thresh
+        self.sess = sess
+        self.predict_nones = predict_nones
+        assert model.hps.batch_size == 1
+
+    def predict_last_order_from_probs(self, pid_to_prob):
+      order = []
+      # Probability of no items being reordered
+      p_none = 1
+      for pid, prob in pid_to_prob.iteritems():
         p_none *= (1 - prob)
         if prob >= self.thresh:
           order.append(pid)
@@ -59,6 +74,15 @@ class RnnModelPredictor(BasePredictor):
       if self.predict_nones and p_none >= (1.5 * self.thresh): # XXX
         order.append(NONE_PRODUCTID)
       return order
+
+class MonteCarloRnnPredictor(BaseRNNModelPredictor):
+  ntrials = 20
+
+  def predict_last_order_from_probs(self, pid_to_prob):
+    # get canddiate thresholds
+    # evaluate
+    # return predictions according to best thresh
+    raise NotImplemented
 
 class PreviousOrderPredictor(BasePredictor):
 
