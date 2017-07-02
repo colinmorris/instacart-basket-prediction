@@ -9,12 +9,8 @@ so we could even just zero out the loss for those first n timesteps.)
 
 # Evaluation
 - code to generate Kaggle submission file
-- think more about fscore optimization
-  - is it possible you might want different thresholds per instance?
-  - more elegant way of dealing w nones?
 - look at some example predictions, see if there's anything to be learned there
-
-# Order prediction
+- sample more than one prod per user when doing eval_model in runner.py
 - other approaches to none prediction. Threshold on expected basket size (= sum of all product probabilities)
 - threshold per user. this seems important.
   
@@ -24,8 +20,13 @@ so we could even just zero out the loss for those first n timesteps.)
   - learning rate schedule
     - (it's kind of confusing that the sketch-rnn code uses lr decay and also the adam
       optimizer. I thought lr decay was sort of baked into the way adam works?)
+    - maybe not. see comments on: https://stats.stackexchange.com/a/214788/112472
   - regularization (esp. for weights on embeddings - lots of potential for overfitting there)
+    - weight cost
+    - dropout
   - batch norm, whatever that is
+  - gradient clipping (e.g. sketch-rnn uses "gradient clipping of 1.0"). Whatever *that* is.
+    - maybe log the size of gradient updates to tensorboard to see how much of a problem it is?
   - peephole connections in lstm
 - multiple layers per cell. Learning interaction terms.
   - seems esp. important for the product embedding thing
@@ -41,6 +42,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - install tf from source for SSE instructions
 - make eval.py not so slow.
   - could possibly get a big speedup just by using batch_size > 1
+- look into precomputing features (or at least speeding up current code)
 
 # Misc
 - push to a remote
@@ -62,4 +64,5 @@ so we could even just zero out the loss for those first n timesteps.)
 - bake feature selection into hps?
 - more investigation into feature transformations
    - try one-hot encoding for dow, hour
+   - whitening
 - feature selection experiments

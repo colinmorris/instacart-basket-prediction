@@ -27,6 +27,7 @@ def get_default_hparams():
       num_steps=17000,
       product_embeddings=False,
       product_embedding_size=64,
+      grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
   )
 
 def get_toy_hparams():
@@ -136,7 +137,15 @@ class RNNModel(object):
     if self.hps.is_training:
         self.lr = tf.Variable(self.hps.learning_rate, trainable=False)
         optimizer = tf.train.AdamOptimizer(self.lr)
-        self.train_op = optimizer.minimize(
-                self.cost,
-                self.global_step,
-        )
+        if self.hps.grad_clip:
+          gvs = optimizer.compute_gradients(self.cost)
+          g = self.hps.grad_clip
+          capped_gvs = [ (tf.clip_by_value(grad, -g, g), var) for grad, var in gvs]
+          self.train_op = optimizer.apply_gradients(
+              capped_gvs, global_step=self.global_step
+          )
+        else:
+          self.train_op = optimizer.minimize(
+                  self.cost,
+                  self.global_step,
+          )

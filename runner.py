@@ -84,10 +84,11 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
   hps = model.hps
   start = time.time()
 
-  log_every = 100
+  log_every = 250
   train_costs = np.zeros(log_every)
 
   batch_fetch_time = 0
+  eval_time = 0
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
     tb0 = time.time()
@@ -101,7 +102,7 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
       # Average cost over last 100 (or whatever) batches
       cost = train_costs.mean()
       end = time.time()
-      time_taken = end - start
+      time_taken = (end - start) - eval_time
 
       cost_summ = tf.summary.Summary()
       cost_summ.value.add(tag='Train_Cost', simple_value=float(cost))
@@ -132,6 +133,7 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
       eval_summ.value.add(tag='Eval_Time', simple_value=eval_time)
       summary_writer.add_summary(eval_summ, step)
       summary_writer.flush()
+      eval_time = 0
 
 
 def main():
