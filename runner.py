@@ -46,7 +46,7 @@ def eval_model(sess, model, batcher):
     nbatches += 1
   return total_cost / nbatches
 
-def batch_cost(sess, model, batch, train):
+def batch_cost(sess, model, batch, train, lr=None):
   x, y, seqlens, lossmask, pids = batch
   feed = {
       model.input_data: x,
@@ -56,6 +56,8 @@ def batch_cost(sess, model, batch, train):
   }
   if model.hps.product_embeddings:
     feed[model.product_ids] = pids
+  if train:
+    feed[model.lr] = lr
   to_fetch = [model.cost]
   if train:
     to_fetch.append(model.train_op)
@@ -95,7 +97,10 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
     batch = batcher.get_batch(i)
     tb1 = time.time()
     batch_fetch_time += (tb1 - tb0)
-    bcost = batch_cost(sess, model, batch, train=True)
+    lr = ( (hps.learning_rate - hps.min_learning_rate) *
+           (hps.decay_rate)**step + hps.min_learning_rate
+         )
+    bcost = batch_cost(sess, model, batch, train=True, lr=lr)
     costi = i % log_every
     train_costs[costi] = bcost
     if (step+1) % log_every == 0:

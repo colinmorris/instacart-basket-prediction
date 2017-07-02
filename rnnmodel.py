@@ -20,6 +20,9 @@ def get_default_hparams():
       max_seq_len=100, # TODO: not sure about this
       nfeats=NFEATS,
       learning_rate=0.001, # ???
+      #decay_rate=0.9999,
+      decay_rate=1.0, # set to 1 to disable lr decay
+      min_learning_rate=0.00001,
       save_every=5000,
       eval_every=1000,
       # There are about 195k users in the dataset, so if we take on sequence
