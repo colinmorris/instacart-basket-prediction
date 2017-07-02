@@ -54,7 +54,7 @@ so we could even just zero out the loss for those first n timesteps.)
 
 # Bugfixes
 - fix double log lines with runner.py
-- seems like sometimes lossmask can have sum of 0? Should never be possible
+- remove user arg from features. not used.
 
 # Features
 - add to cart order

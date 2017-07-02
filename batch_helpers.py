@@ -153,9 +153,11 @@ class UserWrapper(object):
     return self.training_sequence_for_pid(pid, maxlen)
 
   rawcols = ['dow', 'hour', 'days_since_prior',
-      'previously_ordered', 'n_prev_products', 'n_prev_reorders', 'n_prev_repeats']
+      'previously_ordered', 'n_prev_products', 'n_prev_repeats', 'n_prev_reorders']
+  def rawfeats_to_df(self, featdata):
+    return pd.DataFrame(featdata, columns=self.rawcols)
   def transform_raw_feats(self, featdata, maxlen):
-    df = pd.DataFrame(featdata, columns=self.rawcols)
+    df = self.rawfeats_to_df(featdata)
     return vectorize(df, self.user, maxlen)
 
   def training_sequence_for_pid(self, pid, maxlen):
@@ -189,7 +191,6 @@ class UserWrapper(object):
       else:
         prod2 = set(prevprev.products)
         prev_repeats = len(prevprods.intersection(prod2))
-      # XXX: New feature
       prev_reorders = len(prevprods.intersection(pids_seen))
       x[i] = (
           [order.dow, order.hour, order.days_since_prior]
@@ -200,7 +201,7 @@ class UserWrapper(object):
 
     feats = self.transform_raw_feats(x, maxlen)
     return dict(x=feats, labels=labels, seqlen=self.seqlen, lossmask=lossmask,
-        pindex=pid-1
+        pindex=pid-1, xraw=x
     )
 
 def vectorize(df, user, maxlen):
@@ -209,6 +210,9 @@ def vectorize(df, user, maxlen):
   seqlen = len(df) 
   for feat in FEATURES:
     featvals = feat.fn(df, user)
-    res[:seqlen,i:i+feat.arity] = featvals.reshape(seqlen, feat.arity)
+    if feat.arity == 1:
+      res[:seqlen,i] = featvals
+    else:
+      res[:seqlen,i:i+feat.arity] = featvals
     i += feat.arity
   return res

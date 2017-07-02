@@ -43,6 +43,6 @@ def test_expected_fscore_montecarlo():
     assert fsc.expected_fscore_montecarlo(probs, thresh, 1) == ef
 
   for (probs, thresh, (lb, ub)) in _montecarlo_nondeterministic_examples:
-    ef = fsc.expected_fscore_montecarlo(probs, thresh, 20)
+    ef = fsc.expected_fscore_montecarlo(probs, thresh, 50)
     assert lb <= ef <= ub
 

@@ -39,7 +39,7 @@ def day_of_week_circular_sincos(df, user):
   scaled = (dow / 7) * (2 * math.pi)
   sin = np.sin(scaled)
   cos = np.cos(scaled)
-  return np.stack([sin, cos])
+  return np.stack([sin, cos], axis=1)
 
 
 @feature_with_arity(2)
@@ -49,7 +49,7 @@ def hour_of_day_circular_sincos(df, user):
   scaled = (hr / 24) * (2 * math.pi)
   sin = np.sin(scaled)
   cos = np.cos(scaled)
-  return np.stack([sin, cos])
+  return np.stack([sin, cos], axis=1)
 
 @feature
 def prev_repeat_rate(df, user):

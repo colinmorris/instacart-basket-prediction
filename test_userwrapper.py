@@ -1,8 +1,13 @@
+from __future__ import division
+
 import pytest
+import math
 import numpy as np
 
 from insta_pb2 import User
+import batch_helpers
 from batch_helpers import UserWrapper
+import features as feats
 
 TEST_UID = 2455
 userinfo = dict(
@@ -56,6 +61,94 @@ def test_half_and_half_trainseq(user):
   lossmask = ts['lossmask']
   assert (lossmask[seqlen:] == 0).all()
   assert (lossmask[:seqlen] == 1).all()
-  # TODO: test features
+
+def test_half_and_half_features(user):
+  maxlen = 100
+  ts = user.training_sequence_for_pid(HHID, maxlen)
+  seqlen = ts['seqlen']
+  x = ts['x']
+  xraw = ts['xraw']
+  df = user.rawfeats_to_df(xraw)
+
+  assert len(df) == seqlen
+  days_since = [2, 1, 3, 2, 1, 1]
+  assert (df['days_since_prior'] == days_since).all()
+  hours = [7, 10, 7, 8, 8, 15]
+  assert (df['hour'].values == hours).all()
+  
+  hh_orders = np.array([0, 3, 4, 6])
+  hh_indices = [0, 3, 4, 6]
+  # Above are wrt all orders. Because train seqs start from 2nd order, we need to subtract
+  # 1 to get corresponding sequence indices. Then we *add* 1 to get the indices
+  # of the orders for which these are the previous orders.
+  prev_ordered_indices = [0, 3, 4] # we drop 6 because it falls off the end
+  prev_ordered = np.zeros(seqlen)
+  prev_ordered[prev_ordered_indices] = 1 
+  assert (df['previously_ordered'] == prev_ordered).all()
+  
+  products_per_order = [6, 5, 2, 3, 6, 5] # (last order = 4, but not used)
+  assert (df['n_prev_products'] == products_per_order).all()
+
+  reorders = [0, 4, 1, 3, 5, 0, 2][:-1]
+  repeats =  [0, 4, 1, 0, 3, 0, 0][:-1]
+  assert (df['n_prev_reorders'].values == reorders).all()
+  assert (df['n_prev_repeats'].values == repeats).all()
+  # TODO: other raw feats
+
+  vec = batch_helpers.vectorize(df, user.user, maxlen)
+  assert vec.shape == (maxlen, feats.NFEATS)
+  prev_ordered_padded = np.pad(prev_ordered, (0, maxlen-seqlen), 'constant')
+  assert (vec[:,0] == prev_ordered_padded).all()
+
+  vec_n_prev_products = vec[:,1]
+  assert (vec_n_prev_products[:seqlen] > 0).all()
+  assert (vec_n_prev_products[:seqlen] == products_per_order).all()
+  assert (vec_n_prev_products[seqlen:] == 0).all()
+
+  dow_sincos = feats.day_of_week_circular_sincos(df, user)
+  assert dow_sincos.shape == (seqlen, 2)
+  dows = [2, 4, 5, 1, 3, 4, 5]
+  # skip first order
+  dows = dows[1:]
+  sin, cos = dow_sincos[0]
+  scaled = (4/7.0) * (2 * math.pi)
+  assert sin == np.sin(scaled)
+  assert cos == np.cos(scaled)
+
+  assert (dow_sincos[0] != dow_sincos[1]).all()
+  assert (dow_sincos >= -1).all()
+  assert (dow_sincos <= 1).all()
+
+  rep_rate = feats.prev_repeat_rate(df, user)
+  reorder_rate = feats.prev_reorder_rate(df, user)
+  # For the first sequence element, the prev order was the user's first one,
+  # so it will have had no repeats/reorders.
+  assert rep_rate[0] == 0
+  assert reorder_rate[0] == 0
+  # Order #2 has 4 products that were in order #1 and 1 new one.
+  assert rep_rate[1] == 4/5
+  assert reorder_rate[1] == 4/5
+  assert rep_rate[2] == reorder_rate[2] == 1/2
+  # Order #4 has reorders but no repeats
+  assert rep_rate[3] == 0
+  assert reorder_rate[3] == 1
+
+  maxdays = feats.days_since_is_maxed(df, user)
+  sameday = feats.same_day(df, user)
+  assert not maxdays.any()
+  assert not sameday.any()
+
+  days_scaled = feats.days_since_last_scaled(df, user)
+  days_since = np.array([2, 1, 3, 2, 1, 1])
+  assert (days_scaled == days_since/30).all()
+  assert days_scaled[0] > days_scaled[1]
+
+
+
+
+
+
+
+
 
 
