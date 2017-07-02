@@ -31,6 +31,7 @@ def get_default_hparams():
       product_embeddings=False,
       product_embedding_size=64,
       grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
+      embedding_l2_cost=.0001,
   )
 
 def get_toy_hparams():
@@ -136,6 +137,9 @@ class RNNModel(object):
     # nans. I guess sometimes lossmask sums to 0? Need to look more into this later.
     #self.cost = tf.reduce_mean(loss_per_seq)
     self.cost = tf.reduce_mean(loss)
+    if self.hps.product_embeddings:
+      embedding_weight_penalty = self.hps.embedding_l2_cost * tf.nn.l2_loss(product_embeddings)
+      self.cost = tf.add(self.cost, embedding_weight_penalty)
 
     if self.hps.is_training:
         self.lr = tf.Variable(self.hps.learning_rate, trainable=False)

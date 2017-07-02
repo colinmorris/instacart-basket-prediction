@@ -22,7 +22,7 @@ class BaseRNNModelPredictor(BasePredictor):
         self.sess = sess
         assert model.hps.batch_size == 1
 
-    def predict_prob(self, vec, seqlen, pindex):
+    def _get_logits(self, vec, seqlen, pindex):
         model = self.model
         sess = self.sess
         feed = {
@@ -36,6 +36,10 @@ class BaseRNNModelPredictor(BasePredictor):
         logits = logits[0] # Unwrap outer arr
         # TODO: when looking at these, why non-zero repeated values (e.g. -0.35435...)
         # past the 'end' of seq len? I guess that's the bias.
+        return logits
+
+    def predict_prob(self, vec, seqlen, pindex):
+        logits = self._get_logits(vec, seqlen, pindex)
         logit = logits[seqlen-1]
         prob = expit(logit)
         return prob
