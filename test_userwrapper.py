@@ -3,6 +3,7 @@ from __future__ import division
 import pytest
 import math
 import numpy as np
+import numpy.testing as npt
 
 from insta_pb2 import User
 import batch_helpers
@@ -118,6 +119,12 @@ def test_half_and_half_features(user):
   assert (dow_sincos[0] != dow_sincos[1]).all()
   assert (dow_sincos >= -1).all()
   assert (dow_sincos <= 1).all()
+
+  dow_onehot = feats.day_of_week_onehot(df, user)
+  assert dow_onehot.shape == (seqlen, 7)
+  npt.assert_array_equal(dow_onehot[0], [0, 0, 0, 0, 1, 0, 0])
+  #assert (dow_onehot[0] == [0, 0, 1, 0, 0, 0, 0]).all()
+  assert (dow_onehot.sum(axis=1) == [1, 1, 1, 1, 1, 1]).all()
 
   rep_rate = feats.prev_repeat_rate(df, user)
   reorder_rate = feats.prev_reorder_rate(df, user)

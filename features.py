@@ -31,7 +31,6 @@ define_passthrough_feature('n_prev_products')
 define_passthrough_feature('n_prev_reorders')
 define_passthrough_feature('n_prev_repeats')
 
-# TODO: also try one-hot version
 @feature_with_arity(2)
 def day_of_week_circular_sincos(df, user):
   # Raw value is an int from 0 to 6
@@ -41,6 +40,11 @@ def day_of_week_circular_sincos(df, user):
   cos = np.cos(scaled)
   return np.stack([sin, cos], axis=1)
 
+@feature_with_arity(7)
+def day_of_week_onehot(df, user):
+  res = np.zeros([len(df), 7])
+  res[np.arange(len(df)), df['dow'].values.astype(np.int8)] = 1
+  return res
 
 @feature_with_arity(2)
 def hour_of_day_circular_sincos(df, user):
