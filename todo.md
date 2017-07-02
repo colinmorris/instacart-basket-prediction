@@ -35,7 +35,6 @@ so we could even just zero out the loss for those first n timesteps.)
   giving more information shouldn't hurt.
 
 # Testing
-- test features.py stuff
 
 # Perf
 - set up input queue (good for more than just perf reasons - also makes it easier to randomize order of instances per epoch)
@@ -45,7 +44,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - look into precomputing features (or at least speeding up current code)
 
 # Misc
-- push to a remote
 - review TODOs in code
 - check on kaggle discussions
 - add more stuff to tensorboard to understand what's going on (weights, biases...)
@@ -66,3 +64,7 @@ so we could even just zero out the loss for those first n timesteps.)
    - try one-hot encoding for dow, hour
    - whitening
 - feature selection experiments
+- more features that are theoretically computable from the existing inputs, but
+  seem useful nudging the model toward/making it easier for the model to use it
+    - total days since focal prod was ordered
+    - n orders since last focal order
