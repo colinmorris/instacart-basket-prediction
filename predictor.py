@@ -9,11 +9,10 @@ import fscore as fscore_helpers
 class BasePredictor(object):
 
   def __init__(self):
-      pass
+    self.none_predictor = None
 
-  def predict_next_order(self, history):
-    """Return list of product_id for next order given a user's order
-    history up to that point."""
+  def predict_last_order(self, user):
+    """Return list of product_id for last order"""
     raise NotImplemented
 
 class PreviousOrderPredictor(BasePredictor):
@@ -23,11 +22,15 @@ class PreviousOrderPredictor(BasePredictor):
 class ProbabilisticPredictor(BasePredictor):
 
   def __init__(self, probmap):
+    super(ProbabilisticPredictor, self).__init__()
     self.probmap = probmap
 
   def predict_last_order(self, user):
     pid_to_prob = self.probmap[user.uid]
-    return self.predict_order_from_probs(pid_to_prob)
+    reorders = self.predict_order_from_probs(pid_to_prob)
+    if self.none_predictor and self.none_predictor.should_predict_none(pid_to_prob):
+      reorders.append(NONE_PRODUCTID)
+    return reorders
 
   def predict_order_from_probs(self, pid_to_prob):
     raise NotImplemented
@@ -68,8 +71,10 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
     # some graphs
     best_seen = (None, -1)
     thresh_scores = [] # for debugging
+    predict_none = self.none_predictor and self.none_predictor.should(pid_to_prob)
     for thresh in thresh_cands:
-      fscore = fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)
+      fscore = fscore_helpers.expected_fscore_montecarlo(
+          probs, thresh, self.ntrials, predict_none)
       if fscore > best_seen[1]:
         best_seen = (thresh, fscore)
       thresh_scores.append( (thresh, fscore) )
@@ -81,8 +86,23 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
     # TODO: Possible ways to be more clever: 
     # - impose hard limits on min/max thresholds to test
     # - ignore small deltas
+    minprob = .05
+    maxprob = .5
+    mindelta = .005
+    lastprob = -1
     for prob in probs:
+      if not (minprob <= prob <= maxprob):
+        continue
+      delta = abs(lastprob - prob)
+      if delta < mindelta:
+        continue
       yield prob
+      lastprob = prob
+    # End on a big one. All the thresholds we've yielded so far have been
+    # low enough to allow at least one product in. It could be that the 
+    # optimal thresh is higher than the max product prob (i.e. the optimal
+    # strategy is just to predict none)
+    yield .5
 
 
 ## Stuff below is basically deprecated

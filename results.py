@@ -9,6 +9,7 @@ class OrderResults(object):
     self.fp = fp
     self.fn = fn
 
+  # TODO: why is this implemented in 2 places? (cf. fscore.py)
   @property
   def fscore(self):
     prec = self.precision

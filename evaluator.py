@@ -1,7 +1,9 @@
 from __future__ import division
 
 import numpy as np
+import logging
 
+import constants
 from results import OrderResults, Results
 from predictor import BasePredictor
 
@@ -22,6 +24,10 @@ class Evaluator(object):
       actual = user.last_order_predictable_prods()
       for pred_idx, predictor in enumerate(predictors):
         predicted = predictor.predict_last_order(user)
+        if not predicted:
+          logging.warning('''Predictor {} returned an empty prediction. Helping 
+it out by turning it into {{NONE_PRODUCTID}}'''.format(predictor))
+          predicted = set([constants.NONE_PRODUCTID])
         results[pred_idx].add_result(predicted, actual)
       i += 1
       if limit and i >= limit:
