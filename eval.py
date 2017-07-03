@@ -26,6 +26,7 @@ def main():
   
   t0 = time.time()
 
+
   pmap = helpers.pdict_for_tag(args.tag)
   user_iterator = iterate_wrapped_users(args.recordfile)
   judge = evaluator.Evaluator(user_iterator)
@@ -34,6 +35,7 @@ def main():
   baseline = pred.PreviousOrderPredictor()
   mcpredictor = pred.MonteCarloThresholdPredictor(pmap, ntrials=args.mc_trials)
   predictors = [baseline, tpredictor, mcpredictor]
+  
   # TODO: would be real nice to use tensorboard to look at dist. of
   # probabilities/logits/fscores/precisions stuff like that
   results = judge.evaluate(predictors, limit=args.n_users)
@@ -43,7 +45,8 @@ def main():
   dfs = [res.to_df() for res in results]
   for (predictor, df) in zip(predictors, dfs):
     print "{}:".format(predictor.__class__.__name__)
-    print df.describe()
+    #print df.describe()
+    print df.mean()
 
 if __name__ == '__main__':
   main()
