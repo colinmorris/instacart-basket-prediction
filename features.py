@@ -73,6 +73,10 @@ def prev_reorder_rate(df, user):
   repeats = df['n_prev_reorders'].values
   return repeats / sizes
 
+# TODO: Based on a very naive reading of the weights on the inputs to the RNN,
+# these days_since_prior features seem very important (i.e. they have large
+# norms. Suggests that it might be worth exploring even more variations. 
+# e.g. maybe bucketize?
 @feature
 def days_since_is_maxed(df, user):
   # Is days_since_prior_order its max value (30)? (It's pretty clear that

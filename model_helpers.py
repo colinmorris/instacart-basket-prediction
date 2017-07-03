@@ -21,7 +21,7 @@ class NoConfigException(Exception):
   pass
 
 def hps_for_tag(tag, fallback_to_default=True):
-  hps = rnnmodel.get_default_hparams
+  hps = rnnmodel.get_default_hparams()
   full_config_path = 'configs/{}_full.json'.format(tag)
   config_path = 'configs/{}.json'.format(tag)
   if os.path.exists(full_config_path):

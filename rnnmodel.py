@@ -34,7 +34,13 @@ def get_default_hparams():
       product_embeddings=False,
       product_embedding_size=64,
       grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
-      embedding_l2_cost=.0001,
+      # Did a run with weight = .0001 and that seemed too strong.
+      # Mean l1 weight of embeddings was .01, max=.4. Mean l2 norm = .005 
+      embedding_l2_cost=.001,
+      # TODO: not sure if above is actually doing much now that I think
+      # about it? Given some overfitted model, what's stopping it from just
+      # dividing all the embeddings by 10, and multiplying all the weights
+      # from the embedding to the rnn by 10? Seems I should penalize those too?
 
       fully_specified=False, # Used for config file bookkeeping
   )
