@@ -13,6 +13,11 @@ so we could even just zero out the loss for those first n timesteps.)
 - sample more than one prod per user when doing eval_model in runner.py
 - other approaches to none prediction. Threshold on expected basket size (= sum of all product probabilities)
 - threshold per user. this seems important.
+- heuristics to improve monte carlo threshold selection (e.g. the threshold choosing code)
+- incorporate nones into monte carlo thresh selection
+- implement exact expected fscore
+  - option 1: implement n^4 algo from paper
+  - option 2: implement naive exponential time sol'n (and apply some limit to #products when using this approach - use mc sim for others)
   
 # Architecture
 - lots of technical fiddly parameters to play with

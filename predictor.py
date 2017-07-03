@@ -17,7 +17,7 @@ class BasePredictor(object):
     raise NotImplemented
 
 class BaseRNNModelPredictor(BasePredictor):
-    def __init__(self, sess, model):
+    def __init__(self, sess, model, **kwargs):
         self.model = model
         self.sess = sess
         assert model.hps.batch_size == 1

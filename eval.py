@@ -16,8 +16,8 @@ def main():
   tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('checkpoint_path')
-  parser.add_argument('-t', '--thresh', default=.5, help='Probability threshold '+
-      'for taking a product', type=float)
+  parser.add_argument('-t', '--thresh', default=.2, help='Probability threshold '+
+      'for taking a product (default=.2)', type=float)
   parser.add_argument('--recordfile', default='test.tfrecords', 
       help='tfrecords file with the users to test on (default: test.tfrecords)')
   parser.add_argument('-n', '--n-users', type=int, help='Limit number of users tested on')
@@ -43,7 +43,7 @@ def main():
   judge = evaluator.Evaluator(user_iterator)
   predictor = pred.RnnModelPredictor(sess, model, args.thresh, predict_nones=1)
   baseline = pred.PreviousOrderPredictor()
-  predictor2 = pred.MonteCarloRnnPredictor(sess, model)
+  predictor2 = pred.MonteCarloRnnPredictor(sess, model, ntrials=50)
 
   # TODO: would be real nice to use tensorboard to look at dist. of
   # probabilities/logits/fscores/precisions stuff like that
