@@ -19,22 +19,12 @@ import utils
 import model_helpers
 from rnnmodel import RNNModel
 from batch_helpers import Batcher
+import model_helpers
 
 logger = logging.getLogger(__name__)
 _handler = logging.StreamHandler(sys.stderr)
 _handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(_handler)
-
-def get_next_run_num():
-  def tryint(x):
-    try:
-      return int(x)
-    except ValueError:
-      return 1
-  rundirs = map(tryint, os.listdir('logs'))
-  if not rundirs:
-    return 1
-  return max(rundirs) + 1
 
 def eval_model(sess, model, batcher):
   total_cost = 0.0
@@ -141,17 +131,21 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
-  # TODO: allow passing in hparams config json
-  parser.add_argument('-r', '--run-label', default=None)
-  parser.add_argument('-c', '--config', default=None,
-      help='json file with hyperparam overwrites') 
+  parser.add_argument('tag')
   parser.add_argument('--recordfile', default='train.tfrecords', 
       help='tfrecords file with the users to train on (default: train.tfrecords)')
   args = parser.parse_args()
-  hps = rnnmodel.get_default_hparams()
-  if args.config:
-    with open(args.config) as f:
-      hps.parse_json(f.read())
+  hps = model_helpers.hps_for_tag(args.tag, fallback_to_default=False)
+
+  # Write out the full hps, including the ones inherited from defaults. Because
+  # defaults can change over time, and mess us up. This is particularly true
+  # of features.
+  if not hps.fully_specified:
+    hps.fully_specified = True
+    full_config_path = 'configs/{}_full.json'.format(args.tag)
+    with open(full_config_path, 'w') as f:
+      f.write( hps.to_json() )
+    print "Wrote full inherited hyperparams to {}".format(full_config_path)
 
   logger.info('Building model')
   model = RNNModel(hps)
@@ -162,13 +156,9 @@ def main():
   sess = tf.InteractiveSession()
   sess.run(tf.global_variables_initializer())
   logger.info('Training')
-  if args.run_label is None:
-    runlabel = get_next_run_num()
-  else:
-    runlabel = args.run_label
   # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
   # Could be annoying in some cases.
-  train(sess, model, batcher, runlabel, eval_batcher)
+  train(sess, model, batcher, args.tag, eval_batcher)
 
 if __name__ == '__main__':
   logger.setLevel(logging.INFO)

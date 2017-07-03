@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow.contrib.training import HParams
 
 from batch_helpers import UserWrapper
-from features import NFEATS
+from features import NFEATS, FEATURES
 from constants import N_PRODUCTS
 
 # TODO: stuff to add later
@@ -18,7 +18,10 @@ def get_default_hparams():
       rnn_size=128,
       batch_size=100,
       max_seq_len=100, # TODO: not sure about this
+      # More correctly, the dimensionality of the feature space (there are 
+      # some "features" that correspond to 2+ numbers, e.g. onehot day of week
       nfeats=NFEATS,
+      feats=[f.name for f in FEATURES],
       learning_rate=0.001, # ???
       #decay_rate=0.9999,
       decay_rate=0.99999, # set to 1 to disable lr decay
@@ -32,6 +35,8 @@ def get_default_hparams():
       product_embedding_size=64,
       grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
       embedding_l2_cost=.0001,
+
+      fully_specified=False, # Used for config file bookkeeping
   )
 
 def get_toy_hparams():

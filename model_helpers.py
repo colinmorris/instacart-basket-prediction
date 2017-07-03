@@ -17,14 +17,24 @@ def feed_dict_for_batch(batch, model):
     feed[model.product_ids] = pids
   return feed
 
-def hps_for_tag(tag):
+class NoConfigException(Exception):
+  pass
+
+def hps_for_tag(tag, fallback_to_default=True):
   hps = rnnmodel.get_default_hparams
+  full_config_path = 'configs/{}_full.json'.format(tag)
   config_path = 'configs/{}.json'.format(tag)
-  if os.path.exists(config_path):
+  if os.path.exists(full_config_path):
+    with open(full_config_path) as f:
+      hps.parse_json(f.read())
+  elif os.path.exists(config_path):
     with open(config_path) as f:
       hps.parse_json(f.read())
   else:
-    logging.warn('No config file found for tag {}. Using default hps.'.format(tag))
+    if fallback_to_default:
+      logging.warn('No config file found for tag {}. Using default hps.'.format(tag))
+    else:
+      raise NoConfigException
   return hps
 
 def pdict_for_tag(tag):

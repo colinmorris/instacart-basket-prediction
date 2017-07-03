@@ -39,6 +39,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - there could be some consideration given to starting each (user, prod)
   sequence at the order where that product was first ordered. But 
   giving more information shouldn't hurt.
+- add tb logging for lr
 
 # Testing
 - add tests for some of the batching helper stuff

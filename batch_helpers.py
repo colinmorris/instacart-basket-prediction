@@ -14,7 +14,14 @@ class Batcher(object):
     self.hps = hps
     self.recordpath = recordpath
     self.batch_size = hps.batch_size
-    self.nfeats = NFEATS
+    self.nfeats = hps.nfeats
+    if self.nfeats != NFEATS:
+      # We're not using all the crayons in the crayon box. Either we've deliberately
+      # chosen not to use some features, or we're running in 'legacy mode' (i.e. we've
+      # added more features since we trained this model).
+      self.feat_fixture = (hps.feats, hps.nfeats)
+    else:
+      self.feat_fixture = None
     self.max_seq_len = hps.max_seq_len
     self.reset_record_iterator()
 
@@ -70,7 +77,7 @@ class Batcher(object):
           # (Not clear if we should do this as a matter of course, or leave it up to caller)
           self.reset_record_iterator()
           raise StopIteration
-      wrapper = UserWrapper(user)
+      wrapper = UserWrapper(user, self.feat_fixture)
       if pids_per_user == 1:
         user_pids = [wrapper.sample_pid()]
       elif pids_per_user == -1:
@@ -106,9 +113,10 @@ class UserWrapper(object):
   # (day, hour, days_since) + (prev_ordered, prev_nprods, prev_nreorders)
   NFEATS = 3 + 3 
 
-  def __init__(self, user):
+  def __init__(self, user, feat_fixture=None):
     self.user = user
     self._all_pids = None
+    self.feat_fixture = feat_fixture
 
   @property
   def uid(self):
@@ -190,9 +198,13 @@ class UserWrapper(object):
       'previously_ordered', 'n_prev_products', 'n_prev_repeats', 'n_prev_reorders']
   def rawfeats_to_df(self, featdata):
     return pd.DataFrame(featdata, columns=self.rawcols)
-  def transform_raw_feats(self, featdata, maxlen):
+  def transform_raw_feats(self, featdata, maxlen): 
     df = self.rawfeats_to_df(featdata)
-    return vectorize(df, self.user, maxlen)
+    if self.feat_fixture:
+      feats, dimen = self.feat_fixture
+      return vectorize(df, self.user, maxlen, feats, dimen)
+    else:
+      return vectorize(df, self.user, maxlen)
 
   def training_sequence_for_pid(self, pid, maxlen):
     """Return a tuple of (x, labels, seqlen, lossmask, pid)
@@ -238,11 +250,13 @@ class UserWrapper(object):
         pindex=pid-1, xraw=x
     )
 
-def vectorize(df, user, maxlen):
-  res = np.zeros([maxlen, NFEATS])
+def vectorize(df, user, maxlen, features=None, nfeats=None):
+  features = features or FEATURES # Default to all of them
+  nfeats = nfeats or NFEATS
+  res = np.zeros([maxlen, nfeats])
   i = 0
   seqlen = len(df) 
-  for feat in FEATURES:
+  for feat in features:
     featvals = feat.fn(df, user)
     if feat.arity == 1:
       res[:seqlen,i] = featvals
