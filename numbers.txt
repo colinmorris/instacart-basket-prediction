@@ -1,0 +1,4 @@
+195k users
+50k products
+# of prior orders ranges from 3 to 100, inclusive
+products / order ranges from 1 to around 55. mode =5.
