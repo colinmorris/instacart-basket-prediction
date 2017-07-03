@@ -25,6 +25,10 @@ def define_passthrough_feature(colname):
   f = Feature(colname, 1, fn)
   FEATURES.append(f)
 
+def lookup_features(names):
+  name_to_feat = {f.name: f for f in FEATURES}
+  return [name_to_feat[name] for name in names]
+
 #define_passthrough_feature('days_since_prior')
 define_passthrough_feature('previously_ordered')
 define_passthrough_feature('n_prev_products')

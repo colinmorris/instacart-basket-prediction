@@ -6,6 +6,7 @@ import pandas as pd
 import tensorflow as tf
 
 from insta_pb2 import User
+import features
 from features import FEATURES, NFEATS
 from constants import NONE_PRODUCTID
 
@@ -19,7 +20,9 @@ class Batcher(object):
       # We're not using all the crayons in the crayon box. Either we've deliberately
       # chosen not to use some features, or we're running in 'legacy mode' (i.e. we've
       # added more features since we trained this model).
-      self.feat_fixture = (hps.feats, hps.nfeats)
+      feats = features.lookup_features(hp.feats)
+      assert sum(f.arity for f in feats) == hhps.nfeats
+      self.feat_fixture = (feats, hps.nfeats)
     else:
       self.feat_fixture = None
     self.max_seq_len = hps.max_seq_len
