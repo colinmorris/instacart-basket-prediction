@@ -58,6 +58,9 @@ so we could even just zero out the loss for those first n timesteps.)
 - spend some time trying to understand the model. look at...
   - some examples of predictions for particular user/product pairs
   - weights/biases, esp. for the product embeddings
+- clearer identification of runs/models with 'tags' (s.t. we can automatically 
+  identify the appropriate json config, checkpoint dir, log dir, pdict, etc.
+  given one of those)
 
 # Bugfixes
 - fix double log lines with runner.py

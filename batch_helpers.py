@@ -38,7 +38,7 @@ class Batcher(object):
     lossmask = np.zeros([bs, maxlen])
     # (These are actually pids minus one. Kaggle pids start from 1, and we want
     # our indices to start from 0.)
-    pids = np.zeros([bs])
+    pids = np.zeros([bs], dtype=np.int32)
     uids = np.zeros([bs], dtype=np.int32)
 
     # TODO: Not clear if it's necessary to call this between batches.
@@ -62,6 +62,10 @@ class Batcher(object):
           user.ParseFromString(self.records.next())
         else:
           if allow_smaller_final_batch and i > 0:
+            # Set remaining uid/pid/seqlen slots to 0 as signal to caller that
+            # these are just dummy/padding values
+            for arr in [pids, uids, seqlens]:
+              arr[i:] = 0
             yield x, labels, seqlens, lossmask, pids, uids
           # (Not clear if we should do this as a matter of course, or leave it up to caller)
           self.reset_record_iterator()
@@ -105,6 +109,10 @@ class UserWrapper(object):
   def __init__(self, user):
     self.user = user
     self._all_pids = None
+
+  @property
+  def uid(self):
+    return self.user.uid
 
   @property
   def norders(self):

@@ -1,65 +1,49 @@
 import time
 import argparse
-
 import numpy as np
-import tensorflow as tf
-import pandas as pd
 
+import model_helpers as helpers
 import predictor as pred
 import rnnmodel
-import utils
 import evaluator
 from batch_helpers import iterate_wrapped_users
 
 def main():
   np.set_printoptions(precision=4, threshold=50)
-  tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
-  parser.add_argument('checkpoint_path')
+  parser.add_argument('tag')
   parser.add_argument('-t', '--thresh', default=.2, help='Probability threshold '+
       'for taking a product (default=.2)', type=float)
   parser.add_argument('--recordfile', default='test.tfrecords', 
       help='tfrecords file with the users to test on (default: test.tfrecords)')
-  parser.add_argument('-n', '--n-users', type=int, help='Limit number of users tested on')
-  parser.add_argument('-c', '--config', default=None,
-      help='json file with hyperparam overwrites') 
+  parser.add_argument('--mc-trials', type=int, default=50,
+      help='Number of rounds of monte carlo sim to perform per product/threshold (default:50)')
+  parser.add_argument('-n', '--n-users', type=int, 
+      help='Limit number of users tested on (default: no limit)')
+  #parser.add_argument('-c', '--config', default=None,
+  #    help='json file with hypeVrparam overwrites (default: infer from tag)') 
   args = parser.parse_args()
-  hps = rnnmodel.get_toy_hparams()
-  if args.config:
-    with open(args.config) as f:
-      hps.parse_json(f.read())
-  hps.is_training = False
-  hps.batch_size = 1
-  tf.logging.info('Creating model')
-  model = rnnmodel.RNNModel(hps)
   
-  sess = tf.InteractiveSession()
-  # Load pretrained weights
-  tf.logging.info('Loading weights')
-  utils.load_checkpoint(sess, args.checkpoint_path)
+  t0 = time.time()
 
-  tf.logging.info('Loading test set')
+  pmap = helpers.pdict_for_tag(args.tag)
   user_iterator = iterate_wrapped_users(args.recordfile)
   judge = evaluator.Evaluator(user_iterator)
-  predictor = pred.RnnModelPredictor(sess, model, args.thresh, predict_nones=1)
+  # TODO: ability to configure which predictors to test via command line args
+  tpredictor = pred.ThresholdPredictor(pmap, args.thresh)
   baseline = pred.PreviousOrderPredictor()
-  predictor2 = pred.MonteCarloRnnPredictor(sess, model, ntrials=50)
-
+  mcpredictor = pred.MonteCarloThresholdPredictor(pmap, ntrials=args.mc_trials)
+  predictors = [baseline, tpredictor, mcpredictor]
   # TODO: would be real nice to use tensorboard to look at dist. of
   # probabilities/logits/fscores/precisions stuff like that
-  t0 = time.time()
-  baseline_res, res, res2 = judge.evaluate([baseline, predictor, predictor2], limit=args.n_users)
+  results = judge.evaluate(predictors, limit=args.n_users)
   t1 = time.time()
   print "Finished evaluation in {:.1f}s".format(t1-t0)
-  print "BASELINE:"
-  dfb = baseline_res.to_df()
-  print dfb.describe()
-  print "RNN:"
-  df = res.to_df()
-  print df.describe()
-
-  print "RNN (monte carlo):"
-  print res2.to_df().describe()
+  
+  dfs = [res.to_df() for res in results]
+  for (predictor, df) in zip(predictors, dfs):
+    print "{}:".format(predictor.__class__.__name__)
+    print df.describe()
 
 if __name__ == '__main__':
   main()
