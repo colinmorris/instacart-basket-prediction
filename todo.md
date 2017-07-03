@@ -11,6 +11,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - code to generate Kaggle submission file
 - look at some example predictions, see if there's anything to be learned there
 - sample more than one prod per user when doing eval_model in runner.py
+- add fscore to tensorboard summaries. that'd be wicked.
 - other approaches to none prediction. Threshold on expected basket size (= sum of all product probabilities)
 - threshold per user. this seems important.
 - heuristics to improve monte carlo threshold selection (e.g. the threshold choosing code)
@@ -40,6 +41,7 @@ so we could even just zero out the loss for those first n timesteps.)
   giving more information shouldn't hurt.
 
 # Testing
+- add tests for some of the batching helper stuff
 
 # Perf
 - set up input queue (good for more than just perf reasons - also makes it easier to randomize order of instances per epoch)
@@ -65,6 +67,10 @@ so we could even just zero out the loss for those first n timesteps.)
 - add to cart order
 - aisle/department (embeddings?)
 - bake feature selection into hps?
+  - would be kind of annoying to have to, say, list out every feature you 
+    want to use in the json config file...
+  - but maybe at train time, we could write the names of the features used 
+    to somewhere (maybe the config file itself)?
 - more investigation into feature transformations
    - try one-hot encoding for dow, hour
    - whitening

@@ -21,19 +21,16 @@ class Batcher(object):
   def reset_record_iterator(self):
     self.records = tf.python_io.tf_record_iterator(self.recordpath)
 
-  def iter_epoch(self):
-    while 1:
-      try:
-        batch = self.get_batch(-1, infinite=False)
-      except StopIteration:
-        self.reset_record_iterator()
-        break
-      yield batch
-
-  def get_batch(self, i, infinite=True):
-    """(i currently ignored)"""
+  def get_batches(self, pids_per_user=1, infinite=True, allow_smaller_final_batch=False):
+    """if pids_per_user == -1, then use all pids
+    """
     bs = self.batch_size
     maxlen = self.max_seq_len
+    # XXX: is it okay to overwrite and re-yield these ndarrays?
+    # proooobably? callers should never modify their values, and
+    # after they're ready for the next() batch, they should have
+    # no reason to be interacting with the previous one. But gotta
+    # be careful.
     x = np.zeros([bs, maxlen, self.nfeats])
     labels = np.zeros([bs, maxlen])
     seqlens = np.zeros([bs])
@@ -41,9 +38,19 @@ class Batcher(object):
     # (These are actually pids minus one. Kaggle pids start from 1, and we want
     # our indices to start from 0.)
     pids = np.zeros([bs])
+    uids = np.zeros([bs])
 
-    # TODO: hacky implementation. Right now just sample 1 sequence per user.
-    for i in range(bs):
+    # TODO: Not clear if it's necessary to call this between batches.
+    # Ideally we'd be smart enough not to care about any junk beyond :seqlen
+    # in any of the returned arrays, but not sure that's the case.
+    def _clear_batch_arrays():
+      # Only need to do this for arrays with values per sequence element,
+      # rather than just per sequence
+      for arr in [x, labels, lossmask]:
+        arr[:] = 0
+
+    i = 0 # index into current batch
+    while 1:
       user = User()
       try:
         user.ParseFromString(self.records.next())
@@ -53,15 +60,32 @@ class Batcher(object):
           self.reset_record_iterator()
           user.ParseFromString(self.records.next())
         else:
+          if allow_smaller_final_batch and i > 0:
+            yield x, labels, seqlens, lossmask, pids, uids
+          # (Not clear if we should do this as a matter of course, or leave it up to caller)
+          self.reset_record_iterator()
           raise
       wrapper = UserWrapper(user)
-      ts = wrapper.sample_training_sequence(maxlen)
-      x[i] = ts['x']
-      labels[i] = ts['labels']
-      seqlens[i] = ts['seqlen']
-      lossmask[i] = ts['lossmask']
-      pids[i] = ts['pindex']
-    return x, labels, seqlens, lossmask, pids
+      if pids_per_user == 1:
+        user_pids = [wrapper.sample_pid()]
+      elif pids_per_user == -1:
+        user_pids = wrapper.all_pids
+      else:
+        assert False, "not implemented"
+      for pid in user_pids:
+        ts = wrapper.training_sequence_for_pid(pid, maxlen)
+        x[i] = ts['x']
+        labels[i] = ts['labels']
+        seqlens[i] = ts['seqlen']
+        lossmask[i] = ts['lossmask']
+        pids[i] = ts['pindex']
+        uids[i] = user.user.uid
+        i += 1
+        if i == bs:
+          yield x, labels, seqlens, lossmask, pids, uids
+          i = 0
+          _clear_batch_arrays()
+          
 
 def iterate_wrapped_users(recordpath):
   records = tf.python_io.tf_record_iterator(recordpath)
@@ -117,6 +141,7 @@ class UserWrapper(object):
   # these big tuples, and give us something for some downstream 
   # thing to work with for scaling or otherwise transforming features.
   # Also, for testing, it would make it easy to refer to features by name.
+  # NB: not actually used right now
   def all_training_sequences(self, maxlen):
     pids = self.all_pids
     nseqs = len(pids)

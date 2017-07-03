@@ -16,6 +16,7 @@ import pandas as pd
 
 import rnnmodel
 import utils
+import model_helpers
 from rnnmodel import RNNModel
 from batch_helpers import Batcher
 
@@ -40,22 +41,17 @@ def eval_model(sess, model, batcher):
   nbatches = 0
   # This seems to work. (Want the pid used for a given user to be the same for each eval run)
   random.seed(1337)
-  for batch in batcher.iter_epoch():
+  # TODO: set pids_per_user=-1, and maybe even try smaller final batch
+  batches = batcher.get_batches(pids_per_user=1, infinite=False,
+      allow_smaller_final_batch=False)
+  for batch in batches:
     cost = batch_cost(sess, model, batch, train=False)
     total_cost += cost
     nbatches += 1
   return total_cost / nbatches
 
 def batch_cost(sess, model, batch, train, lr=None):
-  x, y, seqlens, lossmask, pids = batch
-  feed = {
-      model.input_data: x,
-      model.labels: y,
-      model.sequence_lengths: seqlens,
-      model.lossmask: lossmask,
-  }
-  if model.hps.product_embeddings:
-    feed[model.product_ids] = pids
+  feed = model_helpers.feed_dict_for_batch(batch, model)
   if train:
     feed[model.lr] = lr
   to_fetch = [model.cost]
@@ -91,10 +87,11 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
 
   batch_fetch_time = 0
   eval_time = 0
+  batches = batcher.get_batches(infinite=True)
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
     tb0 = time.time()
-    batch = batcher.get_batch(i)
+    batch = batches.next()
     tb1 = time.time()
     batch_fetch_time += (tb1 - tb0)
     lr = ( (hps.learning_rate - hps.min_learning_rate) *

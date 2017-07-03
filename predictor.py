@@ -25,6 +25,7 @@ class BaseRNNModelPredictor(BasePredictor):
     def _get_logits(self, vec, seqlen, pindex):
         model = self.model
         sess = self.sess
+        # TODO: use model_helpers feed dict helper
         feed = {
             model.input_data:  [vec],
             model.sequence_lengths: [seqlen]
