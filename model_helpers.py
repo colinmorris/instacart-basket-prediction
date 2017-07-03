@@ -10,3 +10,4 @@ def feed_dict_for_batch(batch, model):
   }
   if model.hps.product_embeddings:
     feed[model.product_ids] = pids
+  return feed

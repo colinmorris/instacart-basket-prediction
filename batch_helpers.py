@@ -23,6 +23,7 @@ class Batcher(object):
 
   def get_batches(self, pids_per_user=1, infinite=True, allow_smaller_final_batch=False):
     """if pids_per_user == -1, then use all pids
+    TODO: should maybe yield dicts rather than massive tuples
     """
     bs = self.batch_size
     maxlen = self.max_seq_len
@@ -33,12 +34,12 @@ class Batcher(object):
     # be careful.
     x = np.zeros([bs, maxlen, self.nfeats])
     labels = np.zeros([bs, maxlen])
-    seqlens = np.zeros([bs])
+    seqlens = np.zeros([bs], dtype=np.int32)
     lossmask = np.zeros([bs, maxlen])
     # (These are actually pids minus one. Kaggle pids start from 1, and we want
     # our indices to start from 0.)
     pids = np.zeros([bs])
-    uids = np.zeros([bs])
+    uids = np.zeros([bs], dtype=np.int32)
 
     # TODO: Not clear if it's necessary to call this between batches.
     # Ideally we'd be smart enough not to care about any junk beyond :seqlen
@@ -64,7 +65,7 @@ class Batcher(object):
             yield x, labels, seqlens, lossmask, pids, uids
           # (Not clear if we should do this as a matter of course, or leave it up to caller)
           self.reset_record_iterator()
-          raise
+          raise StopIteration
       wrapper = UserWrapper(user)
       if pids_per_user == 1:
         user_pids = [wrapper.sample_pid()]
@@ -79,7 +80,7 @@ class Batcher(object):
         seqlens[i] = ts['seqlen']
         lossmask[i] = ts['lossmask']
         pids[i] = ts['pindex']
-        uids[i] = user.user.uid
+        uids[i] = user.uid
         i += 1
         if i == bs:
           yield x, labels, seqlens, lossmask, pids, uids
