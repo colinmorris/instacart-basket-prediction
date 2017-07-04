@@ -5,7 +5,6 @@ from __future__ import division
 
 import argparse
 import time
-import logging
 import sys
 import os
 import random
@@ -19,12 +18,7 @@ import utils
 import model_helpers
 from rnnmodel import RNNModel
 from batch_helpers import Batcher
-import model_helpers
 
-logger = logging.getLogger(__name__)
-_handler = logging.StreamHandler(sys.stderr)
-_handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
-logger.addHandler(_handler)
 
 EVAL_PIDS_PER_USER = 2
 def evaluate_model(sess, model, batcher):
@@ -77,7 +71,7 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model):
   hps = model.hps
   start = time.time()
 
-  log_every = 250
+  log_every = 500
   train_costs = np.zeros(log_every)
   l2_costs = np.zeros(log_every)
 
@@ -160,9 +154,9 @@ def main():
       f.write( hps.to_json() )
     print "Wrote full inherited hyperparams to {}".format(full_config_path)
 
-  logger.info('Building model')
+  tf.logging.info('Building model')
   model = RNNModel(hps)
-  logger.info('Loading batcher')
+  tf.logging.info('Loading batcher')
   batcher = Batcher(hps, args.recordfile)
 
   eval_hps = model_helpers.copy_hps(hps)
@@ -173,12 +167,11 @@ def main():
 
   sess = tf.InteractiveSession()
   sess.run(tf.global_variables_initializer())
-  logger.info('Training')
+  tf.logging.info('Training')
   # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
   # Could be annoying in some cases.
   train(sess, model, batcher, args.tag, eval_batcher, eval_model)
 
 if __name__ == '__main__':
-  logger.setLevel(logging.INFO)
   main()
   #cProfile.run('main()', 'runner.profile')
