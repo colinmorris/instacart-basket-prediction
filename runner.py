@@ -141,6 +141,10 @@ def main():
   parser.add_argument('tag')
   parser.add_argument('--recordfile', default='train.tfrecords', 
       help='tfrecords file with the users to train on (default: train.tfrecords)')
+  parser.add_argument('-f', '--force', action='store_true',
+      help='If a run with this tag exists, then overwrite it (or maybe it makes a new run side-by-side? I make no guarantees.')
+  parser.add_argument('-r', '--resume', action='store_true',
+      help='Load existing checkpoint with this tag name and resume training')
   args = parser.parse_args()
   hps = model_helpers.hps_for_tag(args.tag, fallback_to_default=False)
 
@@ -148,15 +152,21 @@ def main():
   # defaults can change over time, and mess us up. This is particularly true
   # of features.
   if not hps.fully_specified:
+    assert not (args.force or args.resume), "No full hp specification found for {}".format(args.tag)
     hps.fully_specified = True
     full_config_path = 'configs/{}_full.json'.format(args.tag)
     with open(full_config_path, 'w') as f:
       f.write( hps.to_json() )
     print "Wrote full inherited hyperparams to {}".format(full_config_path)
+  else:
+    assert args.force or args.resume, "This tag has been run before. Please specify --force or --resume"
 
   tf.logging.info('Building model')
   model = RNNModel(hps)
   tf.logging.info('Loading batcher')
+  # TODO: A model that is resumed a few times will be disproportionately exposed
+  # to users at the beginning of the list. Might want to add option to batcher
+  # to skip a random number of users on startup.
   batcher = Batcher(hps, args.recordfile)
 
   eval_hps = model_helpers.copy_hps(hps)
@@ -166,7 +176,12 @@ def main():
   eval_model = RNNModel(eval_hps, reuse=True)
 
   sess = tf.InteractiveSession()
-  sess.run(tf.global_variables_initializer())
+  if args.resume:
+    tf.logging.info('Loading saved weights')
+    cpkt = 'checkpoints/{}'.format(args.tag)
+    utils.load_checkpoint(sess, cpkt)
+  else:
+    sess.run(tf.global_variables_initializer())
   tf.logging.info('Training')
   # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
   # Could be annoying in some cases.

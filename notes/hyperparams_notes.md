@@ -16,3 +16,4 @@ Some default params to start with for next runs:
 Other things to try:
 - bigger/smaller starting learning rates
 - sketch-rnn's lstm implementation vs. vanilla tf (which doesn't have ortho init, or dropout w/o memory loss). particularly interesting to see if there are perf differences (since layernorm rnn was so slow)
+- even bigger rnn?
