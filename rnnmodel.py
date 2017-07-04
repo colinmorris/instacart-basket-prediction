@@ -32,7 +32,7 @@ def get_default_hparams():
       # There are about 195k users in the dataset, so if we take on sequence
       # from each, it'd take about 2k steps to cycle through them all
       num_steps=17000,
-      product_embeddings=False,
+      product_embeddings=True,
       product_embedding_size=64,
       grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
       # Did a run with weight = .0001 and that seemed too strong.
