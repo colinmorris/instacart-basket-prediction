@@ -86,7 +86,12 @@ class Batcher(object):
       elif pids_per_user == -1:
         user_pids = wrapper.all_pids
       else:
-        assert False, "not implemented"
+        user_pids = wrapper.sample_pids(pids_per_user)
+        if len(user_pids) < pids_per_user:
+          logging.warning('User {} has only {} pids (< {})'.format(
+            user.uid, len(user_pids), pids_per_user)
+            )
+
       for pid in user_pids:
         ts = wrapper.training_sequence_for_pid(pid, maxlen)
         x[i] = ts['x']
@@ -177,6 +182,10 @@ class UserWrapper(object):
       lossmask[i] = ts['lossmask']
     return x, labels, seqlens, lossmask
 
+  def sample_pids(self, n):
+    if n > len(self.all_pids):
+      return self.all_pids
+    return random.sample(self.all_pids, n)
 
   def sample_pid(self):
     uniform = 1

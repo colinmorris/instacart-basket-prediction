@@ -26,13 +26,15 @@ _handler = logging.StreamHandler(sys.stderr)
 _handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(_handler)
 
+EVAL_PIDS_PER_USER = 2
 def eval_model(sess, model, batcher):
   total_cost = 0.0
   nbatches = 0
   # This seems to work. (Want the pid used for a given user to be the same for each eval run)
   random.seed(1337)
   # TODO: set pids_per_user=-1, and maybe even try smaller final batch
-  batches = batcher.get_batches(pids_per_user=1, infinite=False,
+  batches = batcher.get_batches(pids_per_user=EVAL_PIDS_PER_USER, 
+      infinite=False,
       allow_smaller_final_batch=False)
   for batch in batches:
     cost = batch_cost(sess, model, batch, train=False)
@@ -41,14 +43,17 @@ def eval_model(sess, model, batcher):
   return total_cost / nbatches
 
 def batch_cost(sess, model, batch, train, lr=None):
+  """Return tuple of basic_cost, regularization_cost"""
   feed = model_helpers.feed_dict_for_batch(batch, model)
   if train:
     feed[model.lr] = lr
-  to_fetch = [model.cost]
+  # TODO: this'll break for a model where product_embeddings is False 
+  # (though it seems like I'm probably gonna stick with them)
+  to_fetch = [model.cost, model.weight_penalty]
   if train:
     to_fetch.append(model.train_op)
   values = sess.run(to_fetch, feed)
-  return values[0]
+  return values[:2]
     
 
 def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
@@ -74,6 +79,7 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
 
   log_every = 250
   train_costs = np.zeros(log_every)
+  l2_costs = np.zeros(log_every)
 
   batch_fetch_time = 0
   eval_time = 0
@@ -87,29 +93,36 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
     lr = ( (hps.learning_rate - hps.min_learning_rate) *
            (hps.decay_rate)**step + hps.min_learning_rate
          )
-    bcost = batch_cost(sess, model, batch, train=True, lr=lr)
+    bcost, bl2_cost = batch_cost(sess, model, batch, train=True, lr=lr)
     costi = i % log_every
     train_costs[costi] = bcost
+    l2_costs[costi] = bl2_cost
     if (step+1) % log_every == 0:
       # Average cost over last 100 (or whatever) batches
       cost = train_costs.mean()
+      l2_cost = l2_costs.mean()
       end = time.time()
       time_taken = (end - start) - eval_time
 
+      misc_summ = tf.summary.Summary()
+      misc_summ.value.add(tag='Learning_Rate', simple_value=lr)
       cost_summ = tf.summary.Summary()
-      cost_summ.value.add(tag='Train_Cost', simple_value=float(cost))
+      cost_summ.value.add(tag='Basic_Train_Cost', simple_value=float(cost))
+      cost_summ.value.add(tag='Weight_Penalty', simple_value=float(l2_cost))
+      cost_summ.value.add(tag='Total_Train_Cost', simple_value=float(cost+l2_cost))
       time_summ = tf.summary.Summary()
       time_summ.value.add(tag='Time_Taken_Train', simple_value=float(time_taken))
       time_summ.value.add(tag='Time_Taken_Batchfetch', simple_value=batch_fetch_time)
       batch_fetch_time = 0
 
-      output_format = ('step: %d, cost: %.4f, train_time_taken: %.4f')
-      output_values = (step, cost, time_taken)
+      output_format = ('step: %d, cost: %.4f, train_time_taken: %.3f, lr: %.3f')
+      output_values = (step, cost, time_taken, lr)
       output_log = output_format % output_values
       tf.logging.info(output_log)
 
       summary_writer.add_summary(cost_summ, step)
       summary_writer.add_summary(time_summ, step)
+      summary_writer.add_summary(misc_summ, step)
       summary_writer.flush()
       start = time.time()
     if (step+1) % hps.save_every == 0 or i == (hps.num_steps - 1):

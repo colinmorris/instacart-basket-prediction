@@ -149,14 +149,14 @@ class RNNModel(object):
     #self.cost = tf.reduce_mean(loss_per_seq)
     self.cost = tf.reduce_mean(loss)
     if self.hps.product_embeddings:
-      embedding_weight_penalty = self.hps.embedding_l2_cost * tf.nn.l2_loss(product_embeddings)
-      self.cost = tf.add(self.cost, embedding_weight_penalty)
+      self.weight_penalty = self.hps.embedding_l2_cost * tf.nn.l2_loss(product_embeddings)
+      self.total_cost = tf.add(self.cost, self.weight_penalty)
 
     if self.hps.is_training:
         self.lr = tf.Variable(self.hps.learning_rate, trainable=False)
         optimizer = tf.train.AdamOptimizer(self.lr)
         if self.hps.grad_clip:
-          gvs = optimizer.compute_gradients(self.cost)
+          gvs = optimizer.compute_gradients(self.total_cost)
           g = self.hps.grad_clip
           capped_gvs = [ (tf.clip_by_value(grad, -g, g), var) for grad, var in gvs]
           self.train_op = optimizer.apply_gradients(
@@ -164,6 +164,6 @@ class RNNModel(object):
           )
         else:
           self.train_op = optimizer.minimize(
-                  self.cost,
+                  self.total_cost,
                   self.global_step,
           )
