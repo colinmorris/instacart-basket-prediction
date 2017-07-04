@@ -91,7 +91,7 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model):
     costi = i % log_every
     train_costs[costi] = bcost
     l2_costs[costi] = bl2_cost
-    if (step+1) % log_every == 0:
+    if (i+1) % log_every == 0:
       # Average cost over last 100 (or whatever) batches
       cost = train_costs.mean()
       l2_cost = l2_costs.mean()
@@ -119,9 +119,9 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model):
       summary_writer.add_summary(misc_summ, step)
       summary_writer.flush()
       start = time.time()
-    if (step+1) % hps.save_every == 0 or i == (hps.num_steps - 1):
+    if (i+1) % hps.save_every == 0 or i == (hps.num_steps - 1):
       utils.save_model(sess, runlabel, step)
-    if (step+1) % hps.eval_every == 0:  
+    if (i+1) % hps.eval_every == 0:  
       t0 = time.time()
       eval_cost = evaluate_model(sess, eval_model, eval_batcher)
       t1 = time.time()
