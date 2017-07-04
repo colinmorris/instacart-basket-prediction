@@ -35,15 +35,21 @@ so we could even just zero out the loss for those first n timesteps.)
     - weight cost
     - dropout
   - batch norm, whatever that is
+    - sketch-rnn's rnn.py has an example of this
+    - also something called 'ortho initializer' which is maybe worth looking into? I kind of assumed
+      that staying on the golden path of basic tensorflow rnn interfaces would mean weights would be
+      initialized sanely, but maybe that's no the case? aaaaaargh, too many things to worry about :(
   - gradient clipping (e.g. sketch-rnn uses "gradient clipping of 1.0"). Whatever *that* is.
     - maybe log the size of gradient updates to tensorboard to see how much of a problem it is?
   - peephole connections in lstm
+    - hyperlstm (see rnn.py in sketch-rnn)
 - multiple layers per cell. Learning interaction terms.
   - seems esp. important for the product embedding thing
 - there could be some consideration given to starting each (user, prod)
   sequence at the order where that product was first ordered. But 
   giving more information shouldn't hurt.
 - add tb logging for lr
+- fanciful idea: stacked RNNs
 
 # Testing
 - add tests for some of the batching helper stuff
@@ -81,7 +87,11 @@ so we could even just zero out the loss for those first n timesteps.)
     to somewhere (maybe the config file itself)?
 - more investigation into feature transformations
    - try one-hot encoding for dow, hour
-   - whitening
+   - normalization. subtract mean, divide by std.
+    - subtle/interesting question: calculate the mean over all (user, pid) sequences, or 
+      reweight so each user contributes equally?
+    - also, like, to what degree does this really help if you have adam learning 
+      different learning rates per variable? and if you're doing batch norm too?
 - feature selection experiments
 - more features that are theoretically computable from the existing inputs, but
   seem useful nudging the model toward/making it easier for the model to use it
