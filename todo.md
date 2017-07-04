@@ -23,6 +23,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - implement exact expected fscore
   - option 1: implement n^4 algo from paper
   - option 2: implement naive exponential time sol'n (and apply some limit to #products when using this approach - use mc sim for others)
+- worth thinking about: how confident are you that your loss fn correlates with fscore on the task?
   
 # Architecture
 - lots of technical fiddly parameters to play with
@@ -48,7 +49,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - there could be some consideration given to starting each (user, prod)
   sequence at the order where that product was first ordered. But 
   giving more information shouldn't hurt.
-- add tb logging for lr
 - fanciful idea: stacked RNNs
 
 # Testing
@@ -57,8 +57,6 @@ so we could even just zero out the loss for those first n timesteps.)
 # Perf
 - set up input queue (good for more than just perf reasons - also makes it easier to randomize order of instances per epoch)
 - install tf from source for SSE instructions
-- make eval.py not so slow.
-  - could possibly get a big speedup just by using batch_size > 1
 - look into precomputing features (or at least speeding up current code)
 
 # Misc
@@ -69,9 +67,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - spend some time trying to understand the model. look at...
   - some examples of predictions for particular user/product pairs
   - weights/biases, esp. for the product embeddings
-- clearer identification of runs/models with 'tags' (s.t. we can automatically 
-  identify the appropriate json config, checkpoint dir, log dir, pdict, etc.
-  given one of those)
 
 # Bugfixes
 - fix double log lines with runner.py
@@ -80,11 +75,6 @@ so we could even just zero out the loss for those first n timesteps.)
 # Features
 - add to cart order
 - aisle/department (embeddings?)
-- bake feature selection into hps?
-  - would be kind of annoying to have to, say, list out every feature you 
-    want to use in the json config file...
-  - but maybe at train time, we could write the names of the features used 
-    to somewhere (maybe the config file itself)?
 - more investigation into feature transformations
    - try one-hot encoding for dow, hour
    - normalization. subtract mean, divide by std.
