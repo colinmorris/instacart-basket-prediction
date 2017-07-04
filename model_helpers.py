@@ -40,9 +40,7 @@ def hps_for_tag(tag, fallback_to_default=True):
   return hps
 
 def copy_hps(hps):
-  new_hparams = HParams()
-  new_hparams.update(hparams.keyvals)
-  return new_hparams
+  return HParams(**hps.values())
 
 def pdict_for_tag(tag):
   path = 'pdicts/{}.pickle'.format(tag)

@@ -115,7 +115,7 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model):
       time_summ.value.add(tag='Time_Taken_Batchfetch', simple_value=batch_fetch_time)
       batch_fetch_time = 0
 
-      output_format = ('step: %d, cost: %.4f, train_time_taken: %.3f, lr: %.3f')
+      output_format = ('step: %d, cost: %.4f, train_time_taken: %.3f, lr: %.5f')
       output_values = (step, cost, time_taken, lr)
       output_log = output_format % output_values
       tf.logging.info(output_log)
