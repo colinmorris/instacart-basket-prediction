@@ -37,7 +37,7 @@ def evaluate_model(sess, model, batcher):
       infinite=False,
       allow_smaller_final_batch=False)
   for batch in batches:
-    cost = batch_cost(sess, model, batch, train=False)
+    cost, _l2cost = batch_cost(sess, model, batch, train=False)
     total_cost += cost
     nbatches += 1
   return total_cost / nbatches
