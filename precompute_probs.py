@@ -59,11 +59,12 @@ def main():
       '(default: pdicts/[tag].pickle where [tag] is the name of the last dir in checkpoint_path)')
   args = parser.parse_args()
 
-  hps = rnnmodel.get_toy_hparams()
+  hps = rnnmodel.get_default_hparams()
   if args.config:
     with open(args.config) as f:
       hps.parse_json(f.read())
   hps.is_training = False
+  hps.use_recurrent_dropout = False
   tf.logging.info('Creating model')
   model = rnnmodel.RNNModel(hps)
   

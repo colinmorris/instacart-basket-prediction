@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from tensorflow.contrib.training import HParams
 
+import rnn
 from batch_helpers import UserWrapper
 from features import NFEATS, FEATURES
 from constants import N_PRODUCTS
@@ -41,6 +42,9 @@ def get_default_hparams():
       # about it? Given some overfitted model, what's stopping it from just
       # dividing all the embeddings by 10, and multiplying all the weights
       # from the embedding to the rnn by 10? Seems I should penalize those too?
+      use_recurrent_dropout=True,
+      recurrent_dropout_prob=.9,
+      cell='lstm', # One of lstm, layer_norm, or hyper
 
       fully_specified=False, # Used for config file bookkeeping
   )
@@ -66,12 +70,19 @@ class RNNModel(object):
     # TODO: later look at LSTMCell, which enables peephole + projection layer
     # Also, this looks superficially interesting: 
     #   https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/TimeFreqLSTMCell
-    self.cell = tf.contrib.rnn.BasicLSTMCell(
+    if hps.cell == 'lstm':
+      cellfn = rnn.LSTMCell
+    elif hps.cell == 'layer_norm':
+      cellfn = rnn.LayerNormLSTMCell
+    elif hps.cell == 'hyper':
+      cellfn = rnn.HyperLSTMCell
+    else:
+      assert False, 'please choose a *respectable* cell type'
+    self.cell = cellfn(
         hps.rnn_size,
         forget_bias=1.0,
-        # TODO: maybe docs should be more clear on type of activation kwarg,
-        # since this doesn't work
-        #activation='tanh',
+        use_recurrent_dropout=hps.use_recurrent_dropout,
+        dropout_keep_prob=hps.recurrent_dropout_prob,
     )
 
     self.sequence_lengths = tf.placeholder(

@@ -10,7 +10,7 @@ so we could even just zero out the loss for those first n timesteps.)
 # Evaluation
 - code to generate Kaggle submission file
 - look at some example predictions, see if there's anything to be learned there
-- sample more than one prod per user when doing eval_model in runner.py
+- sample more than one prod per user when doing evaluate_model in runner.py
 - add fscore to tensorboard summaries. that'd be wicked.
 - other approaches to none prediction. Threshold on expected basket size (= sum of all product probabilities)
 - threshold per user. this seems important.

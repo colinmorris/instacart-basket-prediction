@@ -2,6 +2,8 @@ import pickle
 import logging
 import os
 
+from tensorflow.contrib.training import HParams
+
 import rnnmodel
 
 def feed_dict_for_batch(batch, model):
@@ -36,6 +38,11 @@ def hps_for_tag(tag, fallback_to_default=True):
     else:
       raise NoConfigException
   return hps
+
+def copy_hps(hps):
+  new_hparams = HParams()
+  new_hparams.update(hparams.keyvals)
+  return new_hparams
 
 def pdict_for_tag(tag):
   path = 'pdicts/{}.pickle'.format(tag)

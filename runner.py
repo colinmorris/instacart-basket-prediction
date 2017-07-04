@@ -27,7 +27,7 @@ _handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT, None))
 logger.addHandler(_handler)
 
 EVAL_PIDS_PER_USER = 2
-def eval_model(sess, model, batcher):
+def evaluate_model(sess, model, batcher):
   total_cost = 0.0
   nbatches = 0
   # This seems to work. (Want the pid used for a given user to be the same for each eval run)
@@ -56,7 +56,7 @@ def batch_cost(sess, model, batch, train, lr=None):
   return values[:2]
     
 
-def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
+def train(sess, model, batcher, runlabel, eval_batcher, eval_model):
   # Setup summary writer.
   summary_writer = tf.summary.FileWriter('logs/{}'.format(runlabel))
 
@@ -129,7 +129,7 @@ def train(sess, model, batcher, runlabel, eval_batcher): # TODO: eval_model
       utils.save_model(sess, runlabel, step)
     if (step+1) % hps.eval_every == 0:  
       t0 = time.time()
-      eval_cost = eval_model(sess, model, eval_batcher)
+      eval_cost = evaluate_model(sess, eval_model, eval_batcher)
       t1 = time.time()
       eval_time = t1 - t0
       tf.logging.info('Evaluation loss={:.4f} (took {:.1f}s)'.format(eval_cost, eval_time))
@@ -164,14 +164,19 @@ def main():
   model = RNNModel(hps)
   logger.info('Loading batcher')
   batcher = Batcher(hps, args.recordfile)
+
+  eval_hps = model_helpers.copy_hps(hps)
+  eval_hps.use_recurrent_dropout = False
   eval_recordfname = 'eval.tfrecords'
-  eval_batcher = Batcher(hps, eval_recordfname)
+  eval_batcher = Batcher(eval_hps, eval_recordfname)
+  eval_model = RNNModel(eval_hps, reuse=True)
+
   sess = tf.InteractiveSession()
   sess.run(tf.global_variables_initializer())
   logger.info('Training')
   # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
   # Could be annoying in some cases.
-  train(sess, model, batcher, args.tag, eval_batcher)
+  train(sess, model, batcher, args.tag, eval_batcher, eval_model)
 
 if __name__ == '__main__':
   logger.setLevel(logging.INFO)
