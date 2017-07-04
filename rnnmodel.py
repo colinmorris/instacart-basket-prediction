@@ -11,12 +11,10 @@ from batch_helpers import UserWrapper
 from features import NFEATS, FEATURES
 from constants import N_PRODUCTS
 
-# TODO: stuff to add later
-# - dropout
 def get_default_hparams():
   return HParams(
       is_training=True,
-      rnn_size=128,
+      rnn_size=256,
       batch_size=100,
       max_seq_len=100, # TODO: not sure about this
       # More correctly, the dimensionality of the feature space (there are 
@@ -28,12 +26,12 @@ def get_default_hparams():
       decay_rate=0.99999, # set to 1 to disable lr decay
       min_learning_rate=0.00001,
       save_every=5000,
-      eval_every=1000,
+      eval_every=2000,
       # There are about 195k users in the dataset, so if we take on sequence
       # from each, it'd take about 2k steps to cycle through them all
-      num_steps=17000,
+      num_steps=10000,
       product_embeddings=True,
-      product_embedding_size=64,
+      product_embedding_size=32,
       grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
       # Did a run with weight = .0001 and that seemed too strong.
       # Mean l1 weight of embeddings was .01, max=.4. Mean l2 norm = .005 
@@ -44,7 +42,7 @@ def get_default_hparams():
       # from the embedding to the rnn by 10? Seems I should penalize those too?
       use_recurrent_dropout=True,
       recurrent_dropout_prob=.9,
-      cell='lstm', # One of lstm, layer_norm, or hyper
+      cell='lstm', # One of lstm, layer_norm, or hyper (all from rnn.py) or basiclstm
 
       fully_specified=False, # Used for config file bookkeeping
   )
@@ -72,18 +70,21 @@ class RNNModel(object):
     #   https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/TimeFreqLSTMCell
     if hps.cell == 'lstm':
       cellfn = rnn.LSTMCell
+    elif hps.cell == 'basiclstm':
+      cellfn = tf.nn.rnn_cell.BasicLSTMCell
+      if hps.use_recurrent_dropout:
+        tf.logging.warning('Dropout not implemented for cell type basiclstm')
     elif hps.cell == 'layer_norm':
       cellfn = rnn.LayerNormLSTMCell
     elif hps.cell == 'hyper':
       cellfn = rnn.HyperLSTMCell
     else:
       assert False, 'please choose a *respectable* cell type'
-    self.cell = cellfn(
-        hps.rnn_size,
-        forget_bias=1.0,
-        use_recurrent_dropout=hps.use_recurrent_dropout,
-        dropout_keep_prob=hps.recurrent_dropout_prob,
-    )
+    cell_kwargs = dict(forget_bias=1.0)
+    if hps.cell != 'basiclstm':
+      cell_kwargs['use_recurrent_dropout'] = hps.use_recurrent_dropout
+      cell_kwargs['dropout_keep_prob'] = hps.recurrent_dropout_prob
+    self.cell = cellfn(hps.rnn_size, **cell_kwargs)
 
     self.sequence_lengths = tf.placeholder(
         dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",
