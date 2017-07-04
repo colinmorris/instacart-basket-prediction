@@ -69,6 +69,7 @@ so we could even just zero out the loss for those first n timesteps.)
   - weights/biases, esp. for the product embeddings
 
 # Bugfixes
+- randomize batcher starting point when resuming training
 - fix double log lines with runner.py
 - remove user arg from features. not used.
 
