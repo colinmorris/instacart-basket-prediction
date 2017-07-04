@@ -37,7 +37,7 @@ def get_default_hparams():
       grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
       # Did a run with weight = .0001 and that seemed too strong.
       # Mean l1 weight of embeddings was .01, max=.4. Mean l2 norm = .005 
-      embedding_l2_cost=.001,
+      embedding_l2_cost=.00001,
       # TODO: not sure if above is actually doing much now that I think
       # about it? Given some overfitted model, what's stopping it from just
       # dividing all the embeddings by 10, and multiplying all the weights
