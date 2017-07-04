@@ -22,14 +22,16 @@ def feed_dict_for_batch(batch, model):
 class NoConfigException(Exception):
   pass
 
-def hps_for_tag(tag, fallback_to_default=True):
+def hps_for_tag(tag, try_full=True, fallback_to_default=True):
   hps = rnnmodel.get_default_hparams()
-  full_config_path = 'configs/{}_full.json'.format(tag)
   config_path = 'configs/{}.json'.format(tag)
-  if os.path.exists(full_config_path):
-    with open(full_config_path) as f:
-      hps.parse_json(f.read())
-  elif os.path.exists(config_path):
+  if try_full:
+    full_config_path = 'configs/{}_full.json'.format(tag)
+    if os.path.exists(full_config_path):
+      with open(full_config_path) as f:
+        hps.parse_json(f.read())
+      return hps
+  if os.path.exists(config_path):
     with open(config_path) as f:
       hps.parse_json(f.read())
   else:

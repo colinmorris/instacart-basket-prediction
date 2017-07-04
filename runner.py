@@ -146,13 +146,16 @@ def main():
   parser.add_argument('-r', '--resume', action='store_true',
       help='Load existing checkpoint with this tag name and resume training')
   args = parser.parse_args()
-  hps = model_helpers.hps_for_tag(args.tag, fallback_to_default=False)
+  # If -f is passed in, we'll load the original base config file, and
+  # (potentially) overwrite the '_full' version with new inherited defaults.
+  hps = model_helpers.hps_for_tag(args.tag, try_full=(not args.force),
+      fallback_to_default=False)
 
   # Write out the full hps, including the ones inherited from defaults. Because
   # defaults can change over time, and mess us up. This is particularly true
   # of features.
   if not hps.fully_specified:
-    assert not (args.force or args.resume), "No full hp specification found for {}".format(args.tag)
+    assert not args.resume, "No full hp specification found for {}".format(args.tag)
     hps.fully_specified = True
     full_config_path = 'configs/{}_full.json'.format(args.tag)
     with open(full_config_path, 'w') as f:
