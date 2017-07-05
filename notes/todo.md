@@ -6,24 +6,38 @@ be asked to make predictions using less than 3 or 4 orders of history,
 so we could even just zero out the loss for those first n timesteps.)
   - one simple sol'n is to only make the last prediction in the seq count
 - tune loss to account for different seqlens (right now just a simple average over max_seq_len?)
+- ooh, ooh, I know: what about a final fine-tuning step? Do a bunch of epochs 
+  of training trying to predict every reorder, then do a little more training
+  at the end with the objective of just predicting the final reorder?
+- I'm a little concerned about the variability of loss (especially wrt schemes
+  like reweighting all of a sequence's loss terms according to the number of 
+  orders/products a user has). How does this interact with L2 cost? 
+  For example, in a final fine-tuning run, the loss related to prediction
+  error is going to go down by a factor of ~10, but the L2 loss is going to
+  stay the same, so won't the model suddenly be incentivized to push weights
+  down further, because they account for a larger proportion of the total loss?
+  I guess this is why it really is important to normalize by sequence length.
 
 # Evaluation
 - code to generate Kaggle submission file
 - look at some example predictions, see if there's anything to be learned there
-- sample more than one prod per user when doing evaluate_model in runner.py
 - add fscore to tensorboard summaries. that'd be wicked.
 - other approaches to none prediction. Threshold on expected basket size (= sum of all product probabilities)
 - threshold per user. this seems important.
 - heuristics to improve monte carlo threshold selection (e.g. the threshold choosing code)
-- incorporate nones into monte carlo thresh selection
-  - the optimal product prob threshold might depend on the chosen none threshold
-    and vice versa, which makes this a harder search problem.
-  - also, yeah, might do well to treat this more like a search problem
 - visually inspect distribution of chosen thresholds, get some intution about how they relate to the input probabilities
+- should also give some ideas about reasonable bounds to set for candidate thresholds
 - implement exact expected fscore
   - option 1: implement n^4 algo from paper
   - option 2: implement naive exponential time sol'n (and apply some limit to #products when using this approach - use mc sim for others)
+  - though akkkkkkkshually, I'm not sure I can blindly copy these, because they won't account for the weird 'none' accounting in 
+    kaggle's evaluation, which could make a big difference. Possible I could incorporate it into these algos if I actually had any
+    intuition about how they worked.
+  - y'know after looking at it again and thinking about it for a while, I think I actually do get the n^4 algo
+- expected fscore as a function of threshold should have one peak and monotonically decrease in either direction away from it, right?
+  so, like, some kind of straightforward hill-climbing algorithm should work?
 - worth thinking about: how confident are you that your loss fn correlates with fscore on the task?
+- may want to redist some more users into the test set? Might make fscore estimates less noisy.
   
 # Architecture
 - lots of technical fiddly parameters to play with
@@ -44,6 +58,7 @@ so we could even just zero out the loss for those first n timesteps.)
     - maybe log the size of gradient updates to tensorboard to see how much of a problem it is?
   - peephole connections in lstm
     - hyperlstm (see rnn.py in sketch-rnn)
+- try applying l2 loss to all weights?
 - multiple layers per cell. Learning interaction terms.
   - seems esp. important for the product embedding thing
 - there could be some consideration given to starting each (user, prod)
@@ -70,6 +85,19 @@ so we could even just zero out the loss for those first n timesteps.)
 - "savers can automatically number checkpoint filenames with a provided counter. This lets you keep multiple checkpoints at different steps while training a model. For example you can number the checkpoint filenames with the training step number. To avoid filling up disks, savers manage checkpoint files automatically. For example, they can keep only the N most recent files, or one checkpoint for every N hours of training."
   - https://www.tensorflow.org/api_docs/python/tf/train/Saver
   - that sounds useful
+- 'tagging' system is a little janky right now. kind of want to have a 1 to many rel'n from
+  configs/hps to tags, rather than 1:1 as it is right now. When I resume training on 
+  an existing model for another 20k timesteps, I might want to track that twice-trained
+  model under a different tag. Sort of related to the problem of early stopping, and the
+  above stuff about multiple checkpoints.
+- 'whales' are kind of a problem - users with, say, 20+ orders, and 90+ prods. 
+  (those are actually the 75th %ile values, so not even whales really). 
+  They generate a lot of training examples compared to typical users. 
+  Are there any simple, high-precision heurisitics I can use to exclude products
+  that are very unlikely to be predicted in the final order? e.g. if #orders > 20, 
+  and this product only ordered once (not incl. final order), and it wasn't in any
+  of the last 6 orders, exclude it? Would this kind of thing put a significant dent
+  in the total number of training sequences?
 
 # Bugfixes
 - randomize batcher starting point when resuming training
@@ -91,3 +119,6 @@ so we could even just zero out the loss for those first n timesteps.)
   seem useful nudging the model toward/making it easier for the model to use it
     - total days since focal prod was ordered
     - n orders since last focal order
+- I think having a 'days since last order is maxed' var was clever. I wonder
+  about having a feat like that for when number of orders is maxed? i.e.
+  a feature that just says whether this is order 100. Is that dumb?

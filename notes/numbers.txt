@@ -1,4 +1,24 @@
-195k users
+200k users (206,209 to be exact)
+current split:
+  test.tfrecords: 509
+  train.tfrecords: 195795
+  eval.tfrecords: 9905
 50k products
 # of prior orders ranges from 3 to 100, inclusive
 products / order ranges from 1 to around 55. mode =5.
+
+dist. of # of products per user
+  see poke_probs.py
+  out of 509 test users...
+  mean = 65
+  25% = 26
+  median = 46
+  75% = 87
+
+dist. of # of orders per user
+  mean = 16
+  min = 3
+  25% = 6
+  median = 10
+  75% = 20
+  max = 100

@@ -26,13 +26,12 @@ _montecarlo_deterministic_examples = [
     # probs, thresh, expected_fscore
     ([1, 1], 0, 1),
     ([1, 1], .5, 1),
-    ([0, 0], 0, 0),
-    ([0, 0], .1, 1),
+    ([0, 0], .9, 1),
 ]
 
 _montecarlo_nondeterministic_examples = [
     # probs,            thresh, expected_fscore range
-    ([.9, .9, .9],      0,      (.9, 1.0)  ), # (these ranges are pretty much eyeballed, so idk)
+    ([.9, .9, .9],      .05,      (.9, 1.0)  ), # (these ranges are pretty much eyeballed, so idk)
     ([.9, .9, .9],      .91,    (0, .2)  ),
     ([.01, .9, .9],      .8,    (.9, 1.0)  ),
     ([.01, .9, .9],      .001,    (.6, .9)  ),
@@ -46,3 +45,16 @@ def test_expected_fscore_montecarlo():
     ef = fsc.expected_fscore_montecarlo(probs, thresh, 50)
     assert lb <= ef <= ub
 
+def test_gt_prob():
+  gtp = fsc.gt_prob
+  probs = np.array([.8, .5])
+  assert gtp(np.array([0,0]), probs) == pytest.approx(.1)
+  assert gtp(np.array([1,1]), probs) == pytest.approx(.4)
+  assert gtp(np.array([0,1]), probs) == pytest.approx(.1)
+  assert gtp(np.array([1,0]), probs) == pytest.approx(.4)
+
+def test_exact_fscore_naive():
+  probs = [.25]
+  ef = fsc.exact_expected_fscore_naive
+  assert ef(probs, 0) == 2/3
+  assert ef(probs, .26) == 3/4

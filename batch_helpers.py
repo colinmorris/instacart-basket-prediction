@@ -34,7 +34,7 @@ class Batcher(object):
   def random_seek(self):
     nusers = 195795
     nskipped = random.randint(0, nusers)
-    for _ in nskipped:
+    for _ in range(nskipped):
       self.records.next()
 
   def reset_record_iterator(self):

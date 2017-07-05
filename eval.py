@@ -41,7 +41,8 @@ def main():
       predictors['{}-tp'.format(tag)] = pred.ThresholdPredictor(pmap, args.thresh)
     if args.montecarlo:
       predictors['{}-mc'.format(tag)] = \
-          pred.MonteCarloThresholdPredictor(pmap, ntrials=args.mc_trials)
+          pred.HybridThresholdPredictor(pmap, ntrials=args.mc_trials)
+          #pred.MonteCarloThresholdPredictor(pmap, ntrials=args.mc_trials)
 
   assert predictors
 

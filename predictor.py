@@ -70,13 +70,16 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
     best_seen = (None, -1)
     thresh_scores = [] # for debugging
     for thresh in thresh_cands:
-      fscore = fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)
+      fscore = self.evaluate_threshold(thresh, probs)
       if fscore > best_seen[1]:
         best_seen = (thresh, fscore)
       thresh_scores.append( (thresh, fscore) )
       
     # return predictions according to best thresh
     return self.predict_order_by_threshold(pid_to_prob, best_seen[0])
+
+  def evaluate_threshold(self, thresh, probs):
+    return fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)
 
   def get_candidate_thresholds(self, probs):
     minprob = .05
@@ -97,6 +100,17 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
     # strategy is just to predict none)
     yield .5
 
+class HybridThresholdPredictor(MonteCarloThresholdPredictor):
+  """Calculate exact expected fscore for users with small number
+  of total products. Use mc simulation for others.
+  """
+  # Of 509 users in test set, 50 have <= 13 prods
+  MAX_PRODUCTS_FOR_EXACT = 13 # less than .5s 
+  def evaluate_threshold(self, thresh, probs):
+    if len(probs) > self.MAX_PRODUCTS_FOR_EXACT:
+      return fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)
+    else:
+      return fscore_helpers.exact_expected_fscore_naive(probs, thresh)
 
 ## Stuff below is basically deprecated
 

@@ -1,12 +1,16 @@
 from __future__ import division
 import numpy as np
+import itertools
+import time
 
 def expected_fscore_montecarlo(probs, thresh, ntrials):
   # TODO: Should none handling be incorporated at this level?
   probs = np.asarray(probs)
 
   p_none = np.product(1-probs)
-  predict_none = p_none >= thresh
+  # TODO: should be consistent about whether threshholds are inclusive
+  # doesn't really matter in practice, but can mess up tests.
+  predict_none = p_none > thresh
 
   predictions = (probs >= thresh).astype(np.int8)
   fscores = np.zeros(ntrials)
@@ -38,3 +42,46 @@ def fscore(predicted, actual, none=False):
 def sample_groundtruth(probs):
   return (np.random.rand(len(probs)) <= probs).astype(np.int8)
     
+def timeit(f):
+  def timed(*args, **kw):
+    ts = time.time()
+    result = f(*args, **kw)
+    te = time.time()
+    print 'took: %2.4f sec' % \
+      (te-ts)
+    return result
+  return timed
+
+def exact_expected_fscore_naive(probs, thresh):
+  """NB: This algorithm is exponential in the size of probs!
+  Based on initial measurements, less than 15 items is
+  sub-second. 16 = 2s, 17=4s, 18=8s, and, well, you know
+  the rest...
+  possible relaxation to allow larger number of products:
+  force items with sufficiently low probs (e.g. < 1%) off
+  in groundtruths.
+  """
+  probs = np.asarray(probs)
+  n = len(probs)
+  expected = 0
+  p_none = np.product(1-probs)
+  predict_none = p_none > thresh
+  predictions = (probs >= thresh).astype(np.int8)
+  for gt in itertools.product([0,1], repeat=n):
+    gt = np.array(gt)
+    fs = fscore(predictions, gt, predict_none)
+    p = gt_prob(gt, probs)
+    expected += fs * p
+  return expected
+  
+def gt_prob(gt, probs):
+  return np.product( np.abs((gt-1) + probs) )
+
+if __name__ == '__main__':
+  exact = exact_expected_fscore_naive
+  ex = timeit(exact)
+  maxitems = 19
+  for n in range(2, maxitems):
+    print "n = {}".format(n)
+    probs = np.random.rand(n)
+    ex(probs, .3)
