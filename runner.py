@@ -167,10 +167,7 @@ def main():
   tf.logging.info('Building model')
   model = RNNModel(hps)
   tf.logging.info('Loading batcher')
-  # TODO: A model that is resumed a few times will be disproportionately exposed
-  # to users at the beginning of the list. Might want to add option to batcher
-  # to skip a random number of users on startup.
-  batcher = Batcher(hps, args.recordfile)
+  batcher = Batcher(hps, args.recordfile, in_media_res=args.resume)
 
   eval_hps = model_helpers.copy_hps(hps)
   eval_hps.use_recurrent_dropout = False

@@ -11,7 +11,7 @@ from features import FEATURES, NFEATS
 from constants import NONE_PRODUCTID
 
 class Batcher(object):
-  def __init__(self, hps, recordpath):
+  def __init__(self, hps, recordpath, in_media_res=False):
     self.hps = hps
     self.recordpath = recordpath
     self.batch_size = hps.batch_size
@@ -27,6 +27,15 @@ class Batcher(object):
       self.feat_fixture = None
     self.max_seq_len = hps.max_seq_len
     self.reset_record_iterator()
+    if in_media_res:
+      assert recordpath == 'train.tfrecords', "Don't know how many records in {}".format(recordpath)
+      self.random_seek()
+
+  def random_seek(self):
+    nusers = 195795
+    nskipped = random.randint(0, nusers)
+    for _ in nskipped:
+      self.records.next()
 
   def reset_record_iterator(self):
     self.records = tf.python_io.tf_record_iterator(self.recordpath)
