@@ -8,3 +8,6 @@ scratch/
 logs/
 dat/
 configs/
+results/
+
+todo.md
