@@ -1,4 +1,5 @@
-import sys
+import sys, os.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import numpy as np
 import tensorflow as tf
 import rnnmodel
