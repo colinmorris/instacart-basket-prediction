@@ -5,6 +5,7 @@ import os
 from tensorflow.contrib.training import HParams
 
 import rnnmodel
+import utils
 
 def feed_dict_for_batch(batch, model):
   """where batch is a thing returned by a Batcher"""
@@ -48,3 +49,11 @@ def pdict_for_tag(tag):
   path = 'pdicts/{}.pickle'.format(tag)
   with open(path) as f:
     return pickle.load(f)
+def save_pdict_for_tag(tag, pdict):
+  path = 'pdicts/{}.pickle'.format(tag)
+  with open(path, 'w') as f:
+    pickle.dump(dict(pdict), f)
+
+def load_checkpoint_for_tag(tag, sess):
+  cpkt_path = 'checkpoints/{}'.format(tag)
+  utils.load_checkpoint(sess, cpkt_path)

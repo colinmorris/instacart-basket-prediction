@@ -9,7 +9,6 @@ from collections import defaultdict
 
 import rnnmodel
 import model_helpers
-import utils
 import batch_helpers as bh
 
 def get_probmap(batcher, model, sess, userlimit):
@@ -46,47 +45,36 @@ def get_probmap(batcher, model, sess, userlimit):
 
 def main():
   parser = argparse.ArgumentParser()
-  # TODO: refactor this to just take a tag, like eval.py
-  parser.add_argument('checkpoint_path')
+  parser.add_argument('tags', metavar='tag', nargs='+')
   parser.add_argument('--recordfile', default='test.tfrecords', 
       help='tfrecords file with the users to test on (default: test.tfrecords)')
   parser.add_argument('-n', '--n-users', type=int, 
       help='Limit number of users tested on (default: no limit)')
-  parser.add_argument('-c', '--config', default=None,
-      help='json file with hyperparam overwrites') 
-  parser.add_argument('--dest',
-      help='destination path for pickled dict of uid -> pid -> prob '
-      '(default: pdicts/[tag].pickle where [tag] is the name of the last dir in checkpoint_path)')
   args = parser.parse_args()
 
-  hps = rnnmodel.get_default_hparams()
-  if args.config:
-    with open(args.config) as f:
-      hps.parse_json(f.read())
+  for tag in args.tags:
+    tf.logging.info('Computing probs for tag {}'.format(tag))
+    precompute_probs_for_tag(tag, args)
+
+def precompute_probs_for_tag(tag, args):
+  hps = model_helpers.hps_for_tag(tag)
   hps.is_training = False
   hps.use_recurrent_dropout = False
   tf.logging.info('Creating model')
   model = rnnmodel.RNNModel(hps)
-  
   sess = tf.InteractiveSession()
   # Load pretrained weights
   tf.logging.info('Loading weights')
-  utils.load_checkpoint(sess, args.checkpoint_path)
+  model_helpers.load_checkpoint_for_tag(tag, sess)
   batcher = bh.Batcher(hps, args.recordfile)
 
   t0 = time.time()
   probmap = get_probmap(batcher, model, sess, args.n_users)
-  dest = args.dest
-  if dest is None:
-    head, tail = os.path.split( os.path.normpath(args.checkpoint_path) ) 
-    tag = tail
-    dest = 'pdicts/{}.pickle'.format(tag)
-  with open(dest, 'w') as f:
-    pickle.dump(dict(probmap), f)
+  model_helpers.save_pdict_for_tag(tag, probmap)
   elapsed = time.time() - t0
-  print "Wrote probability dict to {}. Finished in {:.1f}s".format(
-      dest, elapsed
-      )
+  tf.logging.info("Finished in {:.1f}s".format(elapsed))
+  sess.close()
+  tf.reset_default_graph()
 
 if __name__ == '__main__':
   main()

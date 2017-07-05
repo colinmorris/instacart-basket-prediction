@@ -67,6 +67,9 @@ so we could even just zero out the loss for those first n timesteps.)
 - spend some time trying to understand the model. look at...
   - some examples of predictions for particular user/product pairs
   - weights/biases, esp. for the product embeddings
+- "savers can automatically number checkpoint filenames with a provided counter. This lets you keep multiple checkpoints at different steps while training a model. For example you can number the checkpoint filenames with the training step number. To avoid filling up disks, savers manage checkpoint files automatically. For example, they can keep only the N most recent files, or one checkpoint for every N hours of training."
+  - https://www.tensorflow.org/api_docs/python/tf/train/Saver
+  - that sounds useful
 
 # Bugfixes
 - randomize batcher starting point when resuming training

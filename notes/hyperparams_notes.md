@@ -7,6 +7,9 @@
 
 I'm basing this all on 10k batches. All models were definitely still learning at that point, so it's possible that some setting that seemed bad here could pull ahead after more epochs?
 
+Also worth noting: the difference between the best and worst run (in terms of eval loss), is basically within measurement error wrt fscore, with monte-carlo thresh selection.
+So, none of these seems to have a huge effect in the grand scheme of things.
+
 Some default params to start with for next runs:
 
 - rnn_size = 256
