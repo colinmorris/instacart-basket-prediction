@@ -4,6 +4,8 @@ import sys
 import pandas as pd
 import numpy as np
 
+pd.options.display.width = 120
+
 fname = sys.argv[1]
 
 with open(fname) as f:

@@ -24,6 +24,13 @@ so we could even just zero out the loss for those first n timesteps.)
 - add fscore to tensorboard summaries. that'd be wicked.
 - other approaches to none prediction. Threshold on expected basket size (= sum of all product probabilities)
 - visually inspect distribution of chosen thresholds, get some intution about how they relate to the input probabilities
+  - see scripts/poke_predictions.py
+  - mean: .244
+  - min: .076
+  - 25%: .169
+  - 50%: .223
+  - 75%: .285
+  - max: .5
 - should also give some ideas about reasonable bounds to set for candidate thresholds
 - implement exact expected fscore
   - option 1: implement n^4 algo from paper
@@ -60,6 +67,13 @@ so we could even just zero out the loss for those first n timesteps.)
 - multiple layers per cell. Learning interaction terms.
   - seems esp. important for the product embedding thing
 - fanciful idea: stacked RNNs
+- another crazy idea: some kind of asymmetrical loss emphasizing true positives?
+  cause in terms of fscore, the 'points' per outcome look something like
+  {tpos: 2, tneg: 0, fpos: -1, fneg: -1}
+  - but as soon as we stop trying to do valid (there's some technical statistical
+    term I'm looking for, but I forget it) probability estimates, then our methods
+    for fscore optimization sort of go out the window. Would probably have to move
+    to some static threshold?
 
 # Testing
 - add tests for some of the batching helper stuff

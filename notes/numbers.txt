@@ -11,9 +11,11 @@ dist. of # of products per user
   see poke_probs.py
   out of 509 test users...
   mean = 65
+  min = 1(?)
   25% = 26
   median = 46
   75% = 87
+  max = 200-something?
 
 dist. of # of orders per user
   mean = 16
@@ -22,3 +24,21 @@ dist. of # of orders per user
   median = 10
   75% = 20
   max = 100
+
+Some fun stuff from poke_predictions.py...
+Calculated over 4810 predictions for 509 test users
+(These are stats describing predicted products)
+- dist of orders_since:
+  mean = 1.7
+  median = 1
+  75% = 2
+  82% = 3, 95% = 4
+  max = 10
+- dist of nprev:
+  mean = 6.3
+  min = 1
+  10% = 1
+  25% = 2
+  median = 4
+  75% = 8
+  max = 81

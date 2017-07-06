@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import tensorflow as tf
 
 from scipy.special import expit
@@ -35,7 +36,12 @@ class ProbabilisticPredictor(BasePredictor):
 
   @classmethod
   def predict_order_by_threshold(kls, pid_to_prob, thresh):
-    return [pid for (pid, prob) in pid_to_prob.iteritems() if prob >= thresh]
+    reorders = [pid for (pid, prob) in pid_to_prob.iteritems() if prob >= thresh]
+    probs = np.array(pid_to_prob.values())
+    p_none = np.product(1-probs)
+    if p_none > thresh:
+      reorders.append(NONE_PRODUCTID)
+    return reorders
 
 class ThresholdPredictor(ProbabilisticPredictor):
 
@@ -48,9 +54,11 @@ class ThresholdPredictor(ProbabilisticPredictor):
 
 class MonteCarloThresholdPredictor(ProbabilisticPredictor):
 
-  def __init__(self, probmap, ntrials):
+  def __init__(self, probmap, ntrials, save=False):
     super(MonteCarloThresholdPredictor, self).__init__(probmap)
     self.ntrials = ntrials
+    self.save = save
+    self.history = []
 
   def predict_order_from_probs(self, pid_to_prob):
     items = pid_to_prob.items()
@@ -76,7 +84,11 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
       thresh_scores.append( (thresh, fscore) )
       
     # return predictions according to best thresh
-    return self.predict_order_by_threshold(pid_to_prob, best_seen[0])
+    pred = self.predict_order_by_threshold(pid_to_prob, best_seen[0])
+    if self.save:
+      pred_evt = dict(thresh=best_seen[0], predicted=pred)
+      self.history.append(pred_evt)
+    return pred
 
   def evaluate_threshold(self, thresh, probs):
     return fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)

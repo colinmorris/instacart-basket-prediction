@@ -27,6 +27,7 @@ def main():
       help='Run a monte-carlo thresh predictor per tag')
   parser.add_argument('--no-mc', action='store_false', dest='montecarlo',
       help='Don\'t run a monte-carlo thresh predictor per tag')
+  parser.add_argument('--save', action='store_true', help='Serialize predictions to a file')
   args = parser.parse_args()
   
   t0 = time.time()
@@ -41,7 +42,7 @@ def main():
       predictors['{}-tp'.format(tag)] = pred.ThresholdPredictor(pmap, args.thresh)
     if args.montecarlo:
       predictors['{}-mc'.format(tag)] = \
-          pred.HybridThresholdPredictor(pmap, ntrials=args.mc_trials)
+          pred.HybridThresholdPredictor(pmap, ntrials=args.mc_trials, save=args.save)
           #pred.MonteCarloThresholdPredictor(pmap, ntrials=args.mc_trials)
 
   assert predictors
@@ -50,7 +51,7 @@ def main():
   judge = evaluator.Evaluator(user_iterator)
   # TODO: would be real nice to use tensorboard to look at dist. of
   # probabilities/logits/fscores/precisions stuff like that
-  results = judge.evaluate(predictors, limit=args.n_users)
+  results = judge.evaluate(predictors, limit=args.n_users, save=args.save)
   t1 = time.time()
   print "Finished evaluation in {:.1f}s".format(t1-t0)
 
