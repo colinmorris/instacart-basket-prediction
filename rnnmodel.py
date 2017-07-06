@@ -1,5 +1,5 @@
 """This code roughly based on magenta.models.sketch-rnn.model"""
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import numpy as np
 import tensorflow as tf
@@ -147,6 +147,8 @@ class RNNModel(object):
     loss = tf.multiply(loss, self.lossmask)
     # Total loss per sequence
     loss_per_seq = tf.reduce_sum(loss, axis=1)
+    # mean loss per sequence (averaged over number of sequence elements not 
+    # zeroed out by lossmask - no free rides)
     # tf has way too many ways to do division :[
     loss_per_seq = tf.realdiv(loss_per_seq, 
         tf.reduce_sum(self.lossmask, axis=1)
@@ -156,10 +158,8 @@ class RNNModel(object):
     # Maybe need to do it in 2 steps? inner avgs. then outer avg-of-avgs?
     # Or just weight by seqlens.
     
-    # TODO XXX I think I had the right idea with this, but right now it's producing
-    # nans. I guess sometimes lossmask sums to 0? Need to look more into this later.
-    #self.cost = tf.reduce_mean(loss_per_seq)
-    self.cost = tf.reduce_mean(loss)
+    self.cost = tf.reduce_mean(loss_per_seq)
+    #self.cost = tf.reduce_mean(loss)
     if self.hps.product_embeddings:
       self.weight_penalty = self.hps.embedding_l2_cost * tf.nn.l2_loss(product_embeddings)
       self.total_cost = tf.add(self.cost, self.weight_penalty)
