@@ -23,8 +23,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - look at some example predictions, see if there's anything to be learned there
 - add fscore to tensorboard summaries. that'd be wicked.
 - other approaches to none prediction. Threshold on expected basket size (= sum of all product probabilities)
-- threshold per user. this seems important.
-- heuristics to improve monte carlo threshold selection (e.g. the threshold choosing code)
 - visually inspect distribution of chosen thresholds, get some intution about how they relate to the input probabilities
 - should also give some ideas about reasonable bounds to set for candidate thresholds
 - implement exact expected fscore
@@ -61,9 +59,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - try applying l2 loss to all weights?
 - multiple layers per cell. Learning interaction terms.
   - seems esp. important for the product embedding thing
-- there could be some consideration given to starting each (user, prod)
-  sequence at the order where that product was first ordered. But 
-  giving more information shouldn't hurt.
 - fanciful idea: stacked RNNs
 
 # Testing
@@ -78,7 +73,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - review TODOs in code
 - check on kaggle discussions
 - add more stuff to tensorboard to understand what's going on (weights, biases...)
-- ability to resume training from checkpoint (see sketch-rnn for example)
 - spend some time trying to understand the model. look at...
   - some examples of predictions for particular user/product pairs
   - weights/biases, esp. for the product embeddings
