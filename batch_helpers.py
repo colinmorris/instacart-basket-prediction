@@ -275,12 +275,10 @@ class UserWrapper(object):
     res = dict(x=feats, labels=labels, seqlen=seqlen, lossmask=lossmask,
         pindex=pid-1, xraw=x
     )
-    # This is pretty cheap if we just have a global singleton, right?
-    if not product_df:
-      product_df = utils.load_product_df()
-    aid, did = product_df.loc[pid, ['aisle_id', 'department_id']]
-    res['aisle_id'] = aid-1
-    res['dept_id'] = did-1
+    if product_df:
+      aid, did = product_df.loc[pid, ['aisle_id', 'department_id']]
+      res['aisle_id'] = aid-1
+      res['dept_id'] = did-1
     res
 
 def vectorize(df, user, maxlen, features=None, nfeats=None):
