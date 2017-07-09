@@ -9,7 +9,7 @@ from tensorflow.contrib.training import HParams
 import rnn
 from batch_helpers import UserWrapper
 from features import NFEATS, FEATURES
-from constants import N_PRODUCTS
+from constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 
 def get_default_hparams():
   return HParams(
@@ -31,8 +31,12 @@ def get_default_hparams():
       # There are about 195k users in the dataset, so if we take on sequence
       # from each, it'd take about 2k steps to cycle through them all
       num_steps=10000,
-      product_embeddings=True,
+      product_embeddings=True, # XXX: deprecated. Set size to 0 instead.
       product_embedding_size=32,
+      # Embeddings for aisle and department (22 depts, 135 aisles in dataset)
+      # Set to 0 to disable these embeddings.
+      aisle_embedding_size=8,
+      dept_embedding_size=4,
       grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
       # Did a run with weight = .0001 and that seemed too strong.
       # Mean l1 weight of embeddings was .01, max=.4. Mean l2 norm = .005 
@@ -97,21 +101,33 @@ class RNNModel(object):
         name="input",
     )
     cell_input = self.input_data
-    if hps.product_embeddings:
-      product_embeddings = tf.get_variable("product_embeddings",
-          [N_PRODUCTS, hps.product_embedding_size])
-      self.product_ids = tf.placeholder(
-          dtype=tf.int32, shape=[self.hps.batch_size], name="product_ids"
-      )
+
+    embedding_dat = [
+        ('product', hps.product_embedding_size, N_PRODUCTS),
+        ('aisle', hps.aisle_embedding_size, N_AISLES),
+        ('dept', hps.dept_embedding_size, N_DEPARTMENTS),
+    ]
+    input_embeddings = []
+    for (name, size, n_values) in embedding_dat:
+      if size == 0:
+        continue
+      embeddings = tf.get_variable('{}_embeddings'.format(name),
+          [n_values, size])
+      idname = '{}_ids'.format(name)
+      input_ids = tf.placeholder(
+        dtype=tf.int32, shape=[self.hps.batch_size], name=idname)
+      setattr(self, idname, input_ids)
       lookuped = tf.nn.embedding_lookup(
-          product_embeddings,
-          self.product_ids,
+          embeddings,
+          input_ids,
           max_norm=None, # TODO: experiment with this param
       )
-      lookuped = tf.reshape(lookuped, [self.hps.batch_size, 1, hps.product_embedding_size])
+      lookuped = tf.reshape(lookuped, [self.hps.batch_size, 1, size])
       lookuped = tf.tile(lookuped, [1, self.hps.max_seq_len, 1])
-      cell_input = tf.concat([self.input_data, lookuped], 2)
-    
+      input_embeddings.append(lookuped)
+    if input_embeddings:
+      cell_input = tf.concat([self.input_data, *input_embeddings], 2)
+
     label_shape = [hps.batch_size, hps.max_seq_len]
     self.labels = tf.placeholder(
             # TODO: idk about this dtype stuff

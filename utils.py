@@ -1,5 +1,6 @@
 import os
-
+import pandas as pd
+import numpy as np
 import tensorflow as tf
 
 CHECKPOINT_DIR = 'checkpoints'
@@ -22,3 +23,13 @@ def save_model(sess, identifier, global_step):
   tf.logging.info('saving model %s.', checkpoint_path)
   tf.logging.info('global_step %i.', global_step)
   saver.save(sess, checkpoint_path, global_step=global_step)
+
+_product_df = None
+def load_product_df():
+  global _product_df
+  if _product_df is None:
+    _product_df =  pd.read_csv('dat/products.csv',
+        dtype={'product_id': np.int32, 'aisle_id': np.int32, 'department_id': np.int8},
+        usecols=['product_id', 'aisle_id', 'department_id'],
+        )
+  return _product_df

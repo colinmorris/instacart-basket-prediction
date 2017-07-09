@@ -9,6 +9,7 @@ from insta_pb2 import User
 import features
 from features import FEATURES, NFEATS
 from constants import NONE_PRODUCTID
+import utils
 
 class Batcher(object):
   def __init__(self, hps, recordpath, in_media_res=False, testmode=False):
@@ -30,6 +31,8 @@ class Batcher(object):
     else:
       self.feat_fixture = None
     self.max_seq_len = hps.max_seq_len
+    if (hps.aisle_embedding_size or hps.dept_embedding_size):
+      self.product_df = utils.load_product_df()
     self.reset_record_iterator()
     if in_media_res:
       assert recordpath == 'train.tfrecords', "Don't know how many records in {}".format(recordpath)
@@ -62,14 +65,18 @@ class Batcher(object):
     # (These are actually pids minus one. Kaggle pids start from 1, and we want
     # our indices to start from 0.)
     pids = np.zeros([bs], dtype=np.int32)
+    aids = np.zeros([bs], dtype=np.int32)
+    dids = np.zeros([bs], dtype=np.int32)
     uids = np.zeros([bs], dtype=np.int32)
+
 
     # TODO: Not clear if it's necessary to call this between batches.
     # Ideally we'd be smart enough not to care about any junk beyond :seqlen
     # in any of the returned arrays, but not sure that's the case.
     def _clear_batch_arrays():
       # Only need to do this for arrays with values per sequence element,
-      # rather than just per sequence
+      # rather than just per sequence. (Because they have variable length,
+      # and we don't want leftover cliffhangers.)
       for arr in [x, labels, lossmask]:
         arr[:] = 0
 
@@ -106,16 +113,20 @@ class Batcher(object):
             )
 
       for pid in user_pids:
-        ts = wrapper.training_sequence_for_pid(pid, maxlen, testmode=self.testmode)
+        ts = wrapper.training_sequence_for_pid(pid, maxlen, 
+            product_df=self.product_df,
+            testmode=self.testmode)
         x[i] = ts['x']
         labels[i] = ts['labels']
         seqlens[i] = ts['seqlen']
         lossmask[i] = ts['lossmask']
         pids[i] = ts['pindex']
+        aids[i] = ts['aisle_id']
+        dids[i] = ts['dept_id']
         uids[i] = user.uid
         i += 1
         if i == bs:
-          yield x, labels, seqlens, lossmask, pids, uids
+          yield x, labels, seqlens, lossmask, pids, aids, dids, uids
           i = 0
           _clear_batch_arrays()
           
@@ -174,27 +185,6 @@ class UserWrapper(object):
       return set([NONE_PRODUCTID])
     return res
 
-  # TODO: maybe these training_sequence methods should just return a 
-  # big dataframe? This would solve the problem of having to return
-  # these big tuples, and give us something for some downstream 
-  # thing to work with for scaling or otherwise transforming features.
-  # Also, for testing, it would make it easy to refer to features by name.
-  # NB: not actually used right now
-  def all_training_sequences(self, maxlen):
-    pids = self.all_pids
-    nseqs = len(pids)
-    x = np.zeros([nseqs, maxlen, self.NFEATS])
-    labels = np.zeros([nseqs, maxlen])
-    lossmask = np.zeros([nseqs, maxlen])
-    seqlens = np.zeros(nseqs) + self.seqlen
-    for i, pid in enumerate(pids):
-      # TODO: could be optimized to avoid redundant work
-      ts = self.training_sequence_for_pid(pid, maxlen)
-      x[i] = ts['x']
-      labels[i] = ts['labels']
-      lossmask[i] = ts['lossmask']
-    return x, labels, seqlens, lossmask
-
   def sample_pids(self, n):
     if n > len(self.all_pids):
       return self.all_pids
@@ -215,10 +205,6 @@ class UserWrapper(object):
     iprod = random.randint(0, len(order.products)-1)
     return order.products[iprod]
 
-  def sample_training_sequence(self, maxlen):
-    pid = self.sample_pid()
-    return self.training_sequence_for_pid(pid, maxlen)
-
   rawcols = ['dow', 'hour', 'days_since_prior',
       'previously_ordered', 'n_prev_products', 'n_prev_repeats', 'n_prev_reorders']
   def rawfeats_to_df(self, featdata):
@@ -231,7 +217,7 @@ class UserWrapper(object):
     else:
       return vectorize(df, self.user, maxlen)
 
-  def training_sequence_for_pid(self, pid, maxlen, testmode=False):
+  def training_sequence_for_pid(self, pid, maxlen, product_df=None, testmode=False):
     """Return a dict of (x, labels, seqlen, lossmask, pid)
     Where x is an ndarray, seqlen and pid are scalars, and everything else is a 1-d array
 
@@ -286,9 +272,16 @@ class UserWrapper(object):
       pids_seen.update(set(prev.products))
 
     feats = self.transform_raw_feats(x, maxlen)
-    return dict(x=feats, labels=labels, seqlen=seqlen, lossmask=lossmask,
+    res = dict(x=feats, labels=labels, seqlen=seqlen, lossmask=lossmask,
         pindex=pid-1, xraw=x
     )
+    # This is pretty cheap if we just have a global singleton, right?
+    if not product_df:
+      product_df = utils.load_product_df()
+    aid, did = product_df.loc[pid, ['aisle_id', 'department_id']]
+    res['aisle_id'] = aid-1
+    res['dept_id'] = did-1
+    res
 
 def vectorize(df, user, maxlen, features=None, nfeats=None):
   features = features or FEATURES # Default to all of them

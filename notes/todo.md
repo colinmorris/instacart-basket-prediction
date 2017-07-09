@@ -75,6 +75,9 @@ so we could even just zero out the loss for those first n timesteps.)
 - install tf from source for SSE instructions
 - look into precomputing features (or at least speeding up current code)
 - what about running this in the 'cloud'? would a nice GPU speed up training significantly?
+- one weird trick that might speed up input pipeline: make placeholders variable length
+  and do the padding in tf runtime. Seems like big bottleneck is just copying the data
+  from python runtime to tf. Most of that data is zeros because of padding to max_seq_len=100.
 
 # Misc
 - review TODOs in code
