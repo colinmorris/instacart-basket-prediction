@@ -83,9 +83,12 @@ def test_half_and_half_features(user):
   # 1 to get corresponding sequence indices. Then we *add* 1 to get the indices
   # of the orders for which these are the previous orders.
   prev_ordered_indices = [0, 3, 4] # we drop 6 because it falls off the end
+  # NB: the order of products shown in snooping.ipynb is NOT the true
+  # add to cart order.
+  prev_ordered_addtocart_order = [2, 1, 5]
   prev_ordered = np.zeros(seqlen)
-  prev_ordered[prev_ordered_indices] = 1 
-  assert (df['previously_ordered'] == prev_ordered).all()
+  prev_ordered[prev_ordered_indices] = prev_ordered_addtocart_order
+  assert (df['previously_ordered'].values == prev_ordered).all()
   
   products_per_order = [6, 5, 2, 3, 6, 5] # (last order = 4, but not used)
   assert (df['n_prev_products'] == products_per_order).all()
@@ -99,6 +102,8 @@ def test_half_and_half_features(user):
   vec = batch_helpers.vectorize(df, user.user, maxlen)
   assert vec.shape == (maxlen, feats.NFEATS)
   prev_ordered_padded = np.pad(prev_ordered, (0, maxlen-seqlen), 'constant')
+  # New 0th feature is binary yes/no was in prev order
+  prev_ordered_padded = prev_ordered_padded > 0
   assert (vec[:,0] == prev_ordered_padded).all()
 
   vec_n_prev_products = vec[:,1]
@@ -149,6 +154,18 @@ def test_half_and_half_features(user):
   days_since = np.array([2, 1, 3, 2, 1, 1])
   assert (days_scaled == days_since/30).all()
   assert days_scaled[0] > days_scaled[1]
+  
+  
+  prev_ordered_indices = [0, 3, 4] # we drop 6 because it falls off the end
+  prev_ordered_addtocart_order = [2, 1, 5]
+
+  prevfirst = feats.previously_firstordered(df, user)
+  assert prevfirst.sum() == 1
+  assert prevfirst[3] == 1
+  prev_firsthalf = feats.previously_ordered_firsthalf(df, user)
+  assert (prev_firsthalf == [1, 0, 0, 1, 0, 0]).all()
+  prev_secondhalf = feats.previously_ordered_secondhalf(df, user)
+  assert (prev_secondhalf == [0, 0, 0, 0, 1, 0]).all()
 
 
 

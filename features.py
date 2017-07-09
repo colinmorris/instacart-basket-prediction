@@ -30,7 +30,10 @@ def lookup_features(names):
   return [name_to_feat[name] for name in names]
 
 #define_passthrough_feature('days_since_prior')
-define_passthrough_feature('previously_ordered')
+#define_passthrough_feature('previously_ordered')
+@feature
+def in_previous_order(df, user):
+  return (df['previously_ordered'].values > 0)
 define_passthrough_feature('n_prev_products')
 define_passthrough_feature('n_prev_reorders')
 define_passthrough_feature('n_prev_repeats')
@@ -91,4 +94,24 @@ def days_since_last_scaled(df, user):
   days = df['days_since_prior'].values
   return days / 30
 
+@feature
+def previously_firstordered(df, user):
+  # Was the focal product in the previous order AND was it the first item added?
+  return df['previously_ordered'].values == 1
+@feature
+def previously_ordered_firsthalf(df, user):
+  # Was the focal product in the previous order AND was it the first half of items added?
+  return (
+      (df['previously_ordered'].values <= (df['n_prev_products'].values/2))
+      *
+      (df['previously_ordered'].values > 0)
+      )
+@feature
+def previously_ordered_secondhalf(df, user):
+  # Was the focal product in the previous order AND was it in the last half of items added?
+  return (
+      (df['previously_ordered'].values > (df['n_prev_products'].values/2))
+      *
+      (df['previously_ordered'].values > 0)
+      )
 NFEATS = sum(f.arity for f in FEATURES)

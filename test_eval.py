@@ -35,7 +35,7 @@ _montecarlo_nondeterministic_examples = [
     ([.9, .9, .9],      .05,      (.85, 1.0)  ), # (these ranges are pretty much eyeballed, so idk)
     ([.9, .9, .9],      .91,    (0, .2)  ),
     ([.01, .9, .9],      .8,    (.85, 1.0)  ),
-    ([.01, .9, .9],      .001,    (.6, .9)  ),
+    ([.01, .9, .9],      .001,    (.55, .9)  ),
 ]
 
 def test_expected_fscore_montecarlo():

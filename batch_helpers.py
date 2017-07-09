@@ -249,14 +249,19 @@ class UserWrapper(object):
     pids_seen = set()
     for i, prev, order in itertools.izip(range(maxlen), prevs, orders):
       ordered = pid in order.products
-      previously_ordered = int(pid in prev.products)
+      prevprods_in_order = list(prev.products)
+      try:
+        # Order in which it was added to the cart (first=1)
+        previously_ordered = prevprods_in_order.index(pid) + 1
+      except ValueError:
+        previously_ordered = 0
       labels[i] = int(ordered)
       seen_first = seen_first or previously_ordered
       # We only care about our ability to predict when a product is *re*ordered. 
       # So we zero out the loss for predicting all labels up to and including the
       # first order that has that product. (We also zero out the loss past the end
       # of the actual sequence, i.e. for the padding section)
-      lossmask[i] = int(seen_first)
+      lossmask[i] = int(bool(seen_first))
       prevprods = set(prev.products)
       if prevprev is None:
         prev_repeats = 0

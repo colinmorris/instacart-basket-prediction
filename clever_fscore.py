@@ -13,8 +13,8 @@ import time
 def efscore(probs, thresh):
   probs = np.asarray(probs)
   p_none = np.product(1-probs)
-  predict_none = p_none > thresh
   predictions = (probs >= thresh).astype(np.int8)
+  predict_none = p_none > thresh or (predictions.sum() == 0)
 
   dfa = FscoreDFA(probs, predictions, predict_none)
   dfa.fill()
