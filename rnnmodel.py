@@ -126,7 +126,7 @@ class RNNModel(object):
       lookuped = tf.tile(lookuped, [1, self.hps.max_seq_len, 1])
       input_embeddings.append(lookuped)
     if input_embeddings:
-      cell_input = tf.concat([self.input_data, *input_embeddings], 2)
+      cell_input = tf.concat([self.input_data]+input_embeddings, 2)
 
     label_shape = [hps.batch_size, hps.max_seq_len]
     self.labels = tf.placeholder(
@@ -185,7 +185,9 @@ class RNNModel(object):
       tvs = tf.trainable_variables()
       # Penalize everything except for biases
       l2able_vars = [v for v in tvs if ('bias' not in v.name and 'output_b' not in v.name)]
-      self.weight_penalty = self.hps.l2_weight * tf.nn.l2_loss(l2able_vars)
+      self.weight_penalty = tf.add_n([
+          tf.nn.l2_loss(v) 
+          for v in l2able_vars]) * self.hps.l2_weight
       self.total_cost = tf.add(self.cost, self.weight_penalty)
 
     if self.hps.is_training:
