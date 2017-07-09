@@ -11,7 +11,7 @@ import random
 
 import numpy as np
 import tensorflow as tf
-import pandas as pd
+from tensorflow.python.client import timeline
 
 import rnnmodel
 import utils
@@ -36,7 +36,7 @@ def evaluate_model(sess, model, batcher):
     nbatches += 1
   return total_cost / nbatches
 
-def batch_cost(sess, model, batch, train, lr=None):
+def batch_cost(sess, model, batch, train, rmeta=None, roptions=None, lr=None):
   """Return tuple of basic_cost, regularization_cost"""
   feed = model_helpers.feed_dict_for_batch(batch, model)
   if train:
@@ -46,11 +46,11 @@ def batch_cost(sess, model, batch, train, lr=None):
   to_fetch = [model.cost, model.weight_penalty]
   if train:
     to_fetch.append(model.train_op)
-  values = sess.run(to_fetch, feed)
+  values = sess.run(to_fetch, feed, options=roptions, run_metadata=rmeta)
   return values[:2]
     
 
-def train(sess, model, batcher, runlabel, eval_batcher, eval_model):
+def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, roptions):
   # Setup summary writer.
   summary_writer = tf.summary.FileWriter('logs/{}'.format(runlabel))
 
@@ -71,7 +71,7 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model):
   hps = model.hps
   start = time.time()
 
-  log_every = 500
+  log_every = model.hps.log_every
   train_costs = np.zeros(log_every)
   l2_costs = np.zeros(log_every)
 
@@ -87,7 +87,7 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model):
     lr = ( (hps.learning_rate - hps.min_learning_rate) *
            (hps.decay_rate)**step + hps.min_learning_rate
          )
-    bcost, bl2_cost = batch_cost(sess, model, batch, train=True, lr=lr)
+    bcost, bl2_cost = batch_cost(sess, model, batch, True, rmeta, roptions, lr=lr)
     costi = i % log_every
     train_costs[costi] = bcost
     l2_costs[costi] = bl2_cost
@@ -145,6 +145,7 @@ def main():
       help='If a run with this tag exists, then overwrite it (or maybe it makes a new run side-by-side? I make no guarantees.')
   parser.add_argument('-r', '--resume', action='store_true',
       help='Load existing checkpoint with this tag name and resume training')
+  parser.add_argument('--profile', action='store_true')
   args = parser.parse_args()
   # If -f is passed in, we'll load the original base config file, and
   # (potentially) overwrite the '_full' version with new inherited defaults.
@@ -176,6 +177,13 @@ def main():
   eval_model = RNNModel(eval_hps, reuse=True)
 
   sess = tf.InteractiveSession()
+
+  run_metadata = None
+  run_options = None
+  if args.profile:
+    run_metadata = tf.RunMetadata()
+    run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+
   if args.resume:
     tf.logging.info('Loading saved weights')
     cpkt = 'checkpoints/{}'.format(args.tag)
@@ -185,7 +193,17 @@ def main():
   tf.logging.info('Training')
   # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
   # Could be annoying in some cases.
-  train(sess, model, batcher, args.tag, eval_batcher, eval_model)
+  t0 = time.time()
+  train(sess, model, batcher, args.tag, eval_batcher, eval_model, run_metadata, run_options)
+  t1 = time.time()
+  tf.logging.info('Completed training in {:.1f}s'.format(t1-t0))
+
+  if args.profile:
+    tl = timeline.Timeline(run_metadata.step_stats)
+    ctf = tl.generate_chrome_trace_format()
+    with open('timeline.json', 'w') as f:
+      f.write(ctf)
+    print 'Wrote timeline to timeline.json'
 
 if __name__ == '__main__':
   main()
