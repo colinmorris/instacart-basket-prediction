@@ -47,6 +47,7 @@ def get_default_hparams():
       # dividing all the embeddings by 10, and multiplying all the weights
       # from the embedding to the rnn by 10? Seems I should penalize those too?
       use_recurrent_dropout=True,
+      # XXX: this is the *keep* prob
       recurrent_dropout_prob=.9,
       cell='lstm', # One of lstm, layer_norm, or hyper (all from rnn.py) or basiclstm
 
