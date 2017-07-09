@@ -36,7 +36,8 @@ def get_default_hparams():
       grad_clip=0.0, # gradient clipping. Set to falsy value to disable.
       # Did a run with weight = .0001 and that seemed too strong.
       # Mean l1 weight of embeddings was .01, max=.4. Mean l2 norm = .005 
-      embedding_l2_cost=.00001,
+      embedding_l2_cost=.00001, # XXX: deprecated
+      l2_weight=.00001,
       # TODO: not sure if above is actually doing much now that I think
       # about it? Given some overfitted model, what's stopping it from just
       # dividing all the embeddings by 10, and multiplying all the weights
@@ -161,8 +162,14 @@ class RNNModel(object):
     
     self.cost = tf.reduce_mean(loss_per_seq)
     #self.cost = tf.reduce_mean(loss)
-    if self.hps.product_embeddings:
+    if 0 and self.hps.product_embeddings:
       self.weight_penalty = self.hps.embedding_l2_cost * tf.nn.l2_loss(product_embeddings)
+      self.total_cost = tf.add(self.cost, self.weight_penalty)
+    if self.hps.l2_weight:
+      tvs = tf.trainable_variables()
+      # Penalize everything except for biases
+      l2able_vars = [v for v in tvs if ('bias' not in v.name and 'output_b' not in v.name)]
+      self.weight_penalty = self.hps.l2_weight * tf.nn.l2_loss(l2able_vars)
       self.total_cost = tf.add(self.cost, self.weight_penalty)
 
     if self.hps.is_training:
