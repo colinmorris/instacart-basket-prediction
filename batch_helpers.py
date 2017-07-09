@@ -11,11 +11,15 @@ from features import FEATURES, NFEATS
 from constants import NONE_PRODUCTID
 
 class Batcher(object):
-  def __init__(self, hps, recordpath, in_media_res=False):
+  def __init__(self, hps, recordpath, in_media_res=False, testmode=False):
+    """Test mode => we're making predictions on the (Kaggle-defined) test set.
+    The vectors we output should include the users' final orders (for which
+    we don't know the ground truth labels)."""
     self.hps = hps
     self.recordpath = recordpath
     self.batch_size = hps.batch_size
     self.nfeats = hps.nfeats
+    self.testmode = testmode
     if self.nfeats != NFEATS:
       # We're not using all the crayons in the crayon box. Either we've deliberately
       # chosen not to use some features, or we're running in 'legacy mode' (i.e. we've
@@ -102,7 +106,7 @@ class Batcher(object):
             )
 
       for pid in user_pids:
-        ts = wrapper.training_sequence_for_pid(pid, maxlen)
+        ts = wrapper.training_sequence_for_pid(pid, maxlen, testmode=self.testmode)
         x[i] = ts['x']
         labels[i] = ts['labels']
         seqlens[i] = ts['seqlen']
@@ -227,15 +231,30 @@ class UserWrapper(object):
     else:
       return vectorize(df, self.user, maxlen)
 
-  def training_sequence_for_pid(self, pid, maxlen):
-    """Return a tuple of (x, labels, seqlen, lossmask, pid)
-    Where feats is an ndarray, seqlen and pid are scalars, and everything else is a 1-d array
+  def training_sequence_for_pid(self, pid, maxlen, testmode=False):
+    """Return a dict of (x, labels, seqlen, lossmask, pid)
+    Where x is an ndarray, seqlen and pid are scalars, and everything else is a 1-d array
+
+    In test mode, include the final order (which will have unknown label)
     """
-    x = np.zeros([self.seqlen, len(self.rawcols)])
+    seqlen = self.seqlen
+    if testmode:
+      assert self.user.test
+      seqlen += 1
+    x = np.zeros([seqlen, len(self.rawcols)])
     labels = np.zeros([maxlen])
     lossmask = np.zeros([maxlen])
     # Start from second order (because of reasons)
-    prevs, orders = itertools.tee(self.user.orders)
+    # This is pretty hacky. Make a copy of the current user, and add their 
+    # "testorder" to the end of their array of normal orders.
+    user = self.user
+    if testmode:
+      user = User()
+      user.CopyFrom(self.user)
+      lastorder = user.orders.add()
+      lastorder.CopyFrom(self.user.testorder)
+      assert len(user.orders) == self.norders + 1
+    prevs, orders = itertools.tee(user.orders)
     orders.next()
     seen_first = False
     prevprev = None # The order before last
@@ -267,7 +286,7 @@ class UserWrapper(object):
       pids_seen.update(set(prev.products))
 
     feats = self.transform_raw_feats(x, maxlen)
-    return dict(x=feats, labels=labels, seqlen=self.seqlen, lossmask=lossmask,
+    return dict(x=feats, labels=labels, seqlen=seqlen, lossmask=lossmask,
         pindex=pid-1, xraw=x
     )
 

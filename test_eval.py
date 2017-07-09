@@ -5,6 +5,7 @@ import tensorflow as tf
 import pytest
 
 import fscore as fsc
+import clever_fscore as cfsc
 
 @pytest.fixture()
 def sess():
@@ -31,9 +32,9 @@ _montecarlo_deterministic_examples = [
 
 _montecarlo_nondeterministic_examples = [
     # probs,            thresh, expected_fscore range
-    ([.9, .9, .9],      .05,      (.9, 1.0)  ), # (these ranges are pretty much eyeballed, so idk)
+    ([.9, .9, .9],      .05,      (.85, 1.0)  ), # (these ranges are pretty much eyeballed, so idk)
     ([.9, .9, .9],      .91,    (0, .2)  ),
-    ([.01, .9, .9],      .8,    (.9, 1.0)  ),
+    ([.01, .9, .9],      .8,    (.85, 1.0)  ),
     ([.01, .9, .9],      .001,    (.6, .9)  ),
 ]
 
@@ -58,3 +59,21 @@ def test_exact_fscore_naive():
   ef = fsc.exact_expected_fscore_naive
   assert ef(probs, 0) == 2/3
   assert ef(probs, .26) == 3/4
+
+def test_exact_fscore_clever():
+  probs = [.25]
+  ef = cfsc.efscore
+  assert ef(probs, 0) == 2/3
+  assert ef(probs, .26) == 3/4
+
+def test_exact_fscore_agreement():
+  """Test whether the naive and 'clever' implementations of exact expected fscore
+  agree on a bunch of randomly generated examples of different sizes.
+  """
+  for nprobs in range(1, 9):
+    probs = np.random.rand(nprobs)
+    thresh = np.random.rand()
+    naive = fsc.exact_expected_fscore_naive(probs, thresh)
+    clever = cfsc.efscore(probs, thresh)
+    assert naive == pytest.approx(clever), 'Disagreement on probs {} with thresh {}'.format(probs, thresh)
+

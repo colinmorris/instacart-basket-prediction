@@ -3,6 +3,11 @@ message User {
   // test vs. train set
   optional bool test = 2;
   repeated Order orders = 3;
+
+  // Only present when test = true, this is the final order. It's notably 
+  // different from the others because we don't know the products ordered,
+  // so it's separated from the rest in the list above.
+  optional Order testorder = 4;
 }
 
 message Order {

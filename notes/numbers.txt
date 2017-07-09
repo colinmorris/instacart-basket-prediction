@@ -3,6 +3,9 @@ current split:
   test.tfrecords: 509
   train.tfrecords: 195795
   eval.tfrecords: 9905
+Kaggle-defined test set:
+  - 75k users
+  - 45,100 batches = 4,510,000 sequences
 50k products
 # of prior orders ranges from 3 to 100, inclusive
 products / order ranges from 1 to around 55. mode =5.

@@ -19,7 +19,6 @@ so we could even just zero out the loss for those first n timesteps.)
   I guess this is why it really is important to normalize by sequence length.
 
 # Evaluation
-- code to generate Kaggle submission file
 - look at some example predictions, see if there's anything to be learned there
 - add fscore to tensorboard summaries. that'd be wicked.
 - other approaches to none prediction. Threshold on expected basket size (= sum of all product probabilities)
@@ -32,13 +31,6 @@ so we could even just zero out the loss for those first n timesteps.)
   - 75%: .285
   - max: .5
 - should also give some ideas about reasonable bounds to set for candidate thresholds
-- implement exact expected fscore
-  - option 1: implement n^4 algo from paper
-  - option 2: implement naive exponential time sol'n (and apply some limit to #products when using this approach - use mc sim for others)
-  - though akkkkkkkshually, I'm not sure I can blindly copy these, because they won't account for the weird 'none' accounting in 
-    kaggle's evaluation, which could make a big difference. Possible I could incorporate it into these algos if I actually had any
-    intuition about how they worked.
-  - y'know after looking at it again and thinking about it for a while, I think I actually do get the n^4 algo
 - expected fscore as a function of threshold should have one peak and monotonically decrease in either direction away from it, right?
   so, like, some kind of straightforward hill-climbing algorithm should work?
 - worth thinking about: how confident are you that your loss fn correlates with fscore on the task?
@@ -82,6 +74,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - set up input queue (good for more than just perf reasons - also makes it easier to randomize order of instances per epoch)
 - install tf from source for SSE instructions
 - look into precomputing features (or at least speeding up current code)
+- what about running this in the 'cloud'? would a nice GPU speed up training significantly?
 
 # Misc
 - review TODOs in code

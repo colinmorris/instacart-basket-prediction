@@ -18,7 +18,7 @@ _sym_db = _symbol_database.Default()
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='insta.proto',
   package='',
-  serialized_pb=_b('\n\x0binsta.proto\"9\n\x04User\x12\x0b\n\x03uid\x18\x01 \x01(\x05\x12\x0c\n\x04test\x18\x02 \x01(\x08\x12\x16\n\x06orders\x18\x03 \x03(\x0b\x32\x06.Order\"p\n\x05Order\x12\x0f\n\x07orderid\x18\x01 \x01(\x05\x12\x0b\n\x03nth\x18\x02 \x01(\x05\x12\x0b\n\x03\x64ow\x18\x03 \x01(\x05\x12\x0c\n\x04hour\x18\x04 \x01(\x05\x12\x18\n\x10\x64\x61ys_since_prior\x18\x05 \x01(\x05\x12\x14\n\x08products\x18\x06 \x03(\x05\x42\x02\x10\x01')
+  serialized_pb=_b('\n\x0binsta.proto\"T\n\x04User\x12\x0b\n\x03uid\x18\x01 \x01(\x05\x12\x0c\n\x04test\x18\x02 \x01(\x08\x12\x16\n\x06orders\x18\x03 \x03(\x0b\x32\x06.Order\x12\x19\n\ttestorder\x18\x04 \x01(\x0b\x32\x06.Order\"p\n\x05Order\x12\x0f\n\x07orderid\x18\x01 \x01(\x05\x12\x0b\n\x03nth\x18\x02 \x01(\x05\x12\x0b\n\x03\x64ow\x18\x03 \x01(\x05\x12\x0c\n\x04hour\x18\x04 \x01(\x05\x12\x18\n\x10\x64\x61ys_since_prior\x18\x05 \x01(\x05\x12\x14\n\x08products\x18\x06 \x03(\x05\x42\x02\x10\x01')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -53,6 +53,13 @@ _USER = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='testorder', full_name='User.testorder', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -65,7 +72,7 @@ _USER = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=15,
-  serialized_end=72,
+  serialized_end=99,
 )
 
 
@@ -129,11 +136,12 @@ _ORDER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=74,
-  serialized_end=186,
+  serialized_start=101,
+  serialized_end=213,
 )
 
 _USER.fields_by_name['orders'].message_type = _ORDER
+_USER.fields_by_name['testorder'].message_type = _ORDER
 DESCRIPTOR.message_types_by_name['User'] = _USER
 DESCRIPTOR.message_types_by_name['Order'] = _ORDER
 

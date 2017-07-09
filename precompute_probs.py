@@ -66,7 +66,10 @@ def precompute_probs_for_tag(tag, args):
   # Load pretrained weights
   tf.logging.info('Loading weights')
   model_helpers.load_checkpoint_for_tag(tag, sess)
-  batcher = bh.Batcher(hps, args.recordfile)
+  testmode = args.recordfile == 'ktest.tfrecords'
+  if testmode:
+    tf.logging.info('Running in test mode')
+  batcher = bh.Batcher(hps, args.recordfile, testmode=testmode)
 
   t0 = time.time()
   probmap = get_probmap(batcher, model, sess, args.n_users)

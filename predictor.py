@@ -6,6 +6,7 @@ from scipy.special import expit
 
 from constants import NONE_PRODUCTID
 import fscore as fscore_helpers
+import clever_fscore as clever
 
 class BasePredictor(object):
 
@@ -116,13 +117,19 @@ class HybridThresholdPredictor(MonteCarloThresholdPredictor):
   """Calculate exact expected fscore for users with small number
   of total products. Use mc simulation for others.
   """
-  # Of 509 users in test set, 50 have <= 13 prods
-  MAX_PRODUCTS_FOR_EXACT = 13 # less than .5s 
+  # 100 products: .1s
+  # 200: 1s
+  # 300: 3.5s
+  # 400: 9s
+  # 500: 20s
+  # XXX: May want to increase this when generating final submission file, 
+  # if you're really patient.
+  MAX_PRODUCTS_FOR_EXACT = 300
   def evaluate_threshold(self, thresh, probs):
     if len(probs) > self.MAX_PRODUCTS_FOR_EXACT:
       return fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)
     else:
-      return fscore_helpers.exact_expected_fscore_naive(probs, thresh)
+      return clever.efscore(probs, thresh)
 
 ## Stuff below is basically deprecated
 
