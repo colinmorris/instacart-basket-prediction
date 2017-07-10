@@ -281,7 +281,7 @@ class UserWrapper(object):
         pindex=pid-1, xraw=x
     )
     if product_df is not None:
-      aid, did = product_df.loc[pid, ['aisle_id', 'department_id']]
+      aid, did = product_df.loc[pid-1, ['aisle_id', 'department_id']]
       res['aisle_id'] = aid-1
       res['dept_id'] = did-1
     return res
