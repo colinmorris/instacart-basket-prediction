@@ -14,6 +14,7 @@ from constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 def get_default_hparams():
   return HParams(
       is_training=True,
+      # 256 seems like the sweet spot for this. 512 is veeeery slow, and seems to have bad convergence
       rnn_size=256,
       batch_size=100,
       max_seq_len=100, # TODO: not sure about this
@@ -23,11 +24,11 @@ def get_default_hparams():
       feats=[f.name for f in FEATURES],
       learning_rate=0.001, # ???
       #decay_rate=0.9999,
-      decay_rate=0.99999, # set to 1 to disable lr decay
+      decay_rate=0.9999, # set to 1 to disable lr decay
       min_learning_rate=0.00001,
       save_every=5000,
       eval_every=2000,
-      log_every=1000,
+      log_every=500,
       # There are about 195k users in the dataset, so if we take on sequence
       # from each, it'd take about 2k steps to cycle through them all
       num_steps=10000,
@@ -172,12 +173,18 @@ class RNNModel(object):
     loss_per_seq = tf.realdiv(loss_per_seq, 
         tf.reduce_sum(self.lossmask, axis=1)
     )
+    # Loss on just the last element of each sequence.
+    last_order_indices = self.sequence_lengths - 1 
+    self.finetune_cost = tf.reduce_mean(
+        tf.gather(loss, last_order_indices)
+    )
     # TODO: does the fact that the mean here includes a variable number of dummy
     # values (from padding to max seq len) change anything? Need to be a bit careful.
     # Maybe need to do it in 2 steps? inner avgs. then outer avg-of-avgs?
     # Or just weight by seqlens.
     
     self.cost = tf.reduce_mean(loss_per_seq)
+    self.total_cost = self.cost
     #self.cost = tf.reduce_mean(loss)
     if 0 and self.hps.product_embeddings:
       self.weight_penalty = self.hps.embedding_l2_cost * tf.nn.l2_loss(product_embeddings)
@@ -190,6 +197,8 @@ class RNNModel(object):
           tf.nn.l2_loss(v) 
           for v in l2able_vars]) * self.hps.l2_weight
       self.total_cost = tf.add(self.cost, self.weight_penalty)
+    else:
+      self.weight_penalty = tf.constant(0)
 
     if self.hps.is_training:
         self.lr = tf.Variable(self.hps.learning_rate, trainable=False)

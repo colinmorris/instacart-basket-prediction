@@ -12,7 +12,7 @@ from constants import NONE_PRODUCTID
 import utils
 
 class Batcher(object):
-  def __init__(self, hps, recordpath, in_media_res=False, testmode=False):
+  def __init__(self, hps, recordpath, in_media_res=False, testmode=False, finetune=False):
     """Test mode => we're making predictions on the (Kaggle-defined) test set.
     The vectors we output should include the users' final orders (for which
     we don't know the ground truth labels)."""
@@ -21,6 +21,7 @@ class Batcher(object):
     self.batch_size = hps.batch_size
     self.nfeats = hps.nfeats
     self.testmode = testmode
+    self.finetune = finetune
     if self.nfeats != NFEATS:
       # We're not using all the crayons in the crayon box. Either we've deliberately
       # chosen not to use some features, or we're running in 'legacy mode' (i.e. we've
@@ -100,6 +101,9 @@ class Batcher(object):
           # (Not clear if we should do this as a matter of course, or leave it up to caller)
           self.reset_record_iterator()
           raise StopIteration
+      # In finetune mode, use only users from the 'train' set (Kaggle-defined)
+      if self.finetune and user.test:
+        continue
       wrapper = UserWrapper(user, self.feat_fixture)
       if pids_per_user == 1:
         user_pids = [wrapper.sample_pid()]
@@ -107,7 +111,9 @@ class Batcher(object):
         user_pids = wrapper.all_pids
       else:
         user_pids = wrapper.sample_pids(pids_per_user)
-        if len(user_pids) < pids_per_user:
+        # This warning is kind of spammy. But yeah, out of 10k users in 
+        # validation set, a couple dozen have only one eligible product id.
+        if 0 and len(user_pids) < pids_per_user:
           logging.warning('User {} has only {} pids (< {})'.format(
             user.uid, len(user_pids), pids_per_user)
             )
@@ -120,6 +126,11 @@ class Batcher(object):
         labels[i] = ts['labels']
         seqlens[i] = ts['seqlen']
         lossmask[i] = ts['lossmask']
+        if self.finetune:
+          final_idx = ts['seqlen'] -1
+          assert lossmask[i, final_idx] == 1
+          lossmask[i,:] = 0
+          lossmask[i,final_idx] = 1
         pids[i] = ts['pindex']
         aids[i] = ts['aisle_id']
         dids[i] = ts['dept_id']
