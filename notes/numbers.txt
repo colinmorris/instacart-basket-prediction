@@ -7,6 +7,7 @@ Kaggle-defined test set:
   - 75k users
   - 45,100 batches = 4,510,000 sequences
 50k products
+3.4m orders
 # of prior orders ranges from 3 to 100, inclusive
 products / order ranges from 1 to around 55. mode =5.
 

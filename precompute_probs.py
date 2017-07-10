@@ -20,7 +20,7 @@ def get_probmap(batcher, model, sess, userlimit):
   i = 0
   uids_seen = set()
   for batch in batches:
-    _x, _labels, seqlens, _lm, pindexs, uids = batch
+    _x, _labels, seqlens, _lm, pindexs, _aids, _dids, uids = batch
     feed = model_helpers.feed_dict_for_batch(batch, model)
     logits = sess.run(model.logits, feed)
     assert logits.shape == (bs, model.hps.max_seq_len)

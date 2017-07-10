@@ -96,7 +96,7 @@ class Batcher(object):
             # these are just dummy/padding values
             for arr in [pids, uids, seqlens]:
               arr[i:] = 0
-            yield x, labels, seqlens, lossmask, pids, uids
+            yield x, labels, seqlens, lossmask, pids, aids, dids, uids
           # (Not clear if we should do this as a matter of course, or leave it up to caller)
           self.reset_record_iterator()
           raise StopIteration

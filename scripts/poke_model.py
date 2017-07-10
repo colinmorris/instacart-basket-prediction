@@ -21,6 +21,8 @@ model = rnnmodel.RNNModel(hps)
 sess = tf.InteractiveSession()
 utils.load_checkpoint(sess, ckpt)
 
+print tf.global_variables()
+
 def lookup(varname):
   with tf.variable_scope('instarnn', reuse=True):
       var = tf.get_variable(varname)

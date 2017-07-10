@@ -35,6 +35,8 @@ so we could even just zero out the loss for those first n timesteps.)
   so, like, some kind of straightforward hill-climbing algorithm should work?
 - worth thinking about: how confident are you that your loss fn correlates with fscore on the task?
 - may want to redist some more users into the test set? Might make fscore estimates less noisy.
+- it's possible probability predictions are not calibrated/have some bias. Just for fun, worth
+  trying predictions with some fixed bias on the calculated 'optimal' threshold.
   
 # Architecture
 - lots of technical fiddly parameters to play with
@@ -126,3 +128,4 @@ so we could even just zero out the loss for those first n timesteps.)
 - I think having a 'days since last order is maxed' var was clever. I wonder
   about having a feat like that for when number of orders is maxed? i.e.
   a feature that just says whether this is order 100. Is that dumb?
+- number of aisles/depts ordered from in last order
