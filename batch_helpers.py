@@ -26,7 +26,7 @@ class Batcher(object):
       # We're not using all the crayons in the crayon box. Either we've deliberately
       # chosen not to use some features, or we're running in 'legacy mode' (i.e. we've
       # added more features since we trained this model).
-      feats = features.lookup_features(hp.feats)
+      feats = features.lookup_features(hps.feats)
       assert sum(f.arity for f in feats) == hhps.nfeats
       self.feat_fixture = (feats, hps.nfeats)
     else:
@@ -40,6 +40,9 @@ class Batcher(object):
       self.random_seek()
 
   def random_seek(self):
+    # TODO: If we wanted to make this more non-deterministic, we could probably
+    # do some math to find the exact spot to resume at, based on the restored
+    # value of global_step
     nusers = 195795
     nskipped = random.randint(0, nusers)
     for _ in range(nskipped):

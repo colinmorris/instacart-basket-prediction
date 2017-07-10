@@ -169,8 +169,8 @@ def main():
       help='tfrecords file with the users to train on (default: train.tfrecords)')
   parser.add_argument('-f', '--force', action='store_true',
       help='If a run with this tag exists, then overwrite it (or maybe it makes a new run side-by-side? I make no guarantees.')
-  parser.add_argument('-r', '--resume', action='store_true',
-      help='Load existing checkpoint with this tag name and resume training')
+  parser.add_argument('-r', '--resume', metavar='TAG',
+      help='Load existing checkpoint with the given tag name and resume training')
   parser.add_argument('--profile', action='store_true')
   parser.add_argument('--finetune', action='store_true')
   args = parser.parse_args()
@@ -183,20 +183,20 @@ def main():
   # defaults can change over time, and mess us up. This is particularly true
   # of features.
   if not hps.fully_specified:
-    assert not args.resume, "No full hp specification found for {}".format(args.tag)
+    #assert not args.resume, "No full hp specification found for {}".format(args.tag)
     hps.fully_specified = True
     full_config_path = 'configs/{}_full.json'.format(args.tag)
     with open(full_config_path, 'w') as f:
       f.write( hps.to_json() )
     print "Wrote full inherited hyperparams to {}".format(full_config_path)
   else:
-    assert args.force or args.resume, "This tag has been run before. Please specify --force or --resume"
+    assert args.force, "This tag has been run before. Please specify --force"
 
   tf.logging.info('Building model')
   model = RNNModel(hps)
   tf.logging.info('Loading batcher')
   batcher = Batcher(hps, args.recordfile, 
-      in_media_res=args.resume,
+      in_media_res=args.resume is not None,
       finetune=args.finetune
       )
 
@@ -216,7 +216,7 @@ def main():
 
   if args.resume:
     tf.logging.info('Loading saved weights')
-    cpkt = 'checkpoints/{}'.format(args.tag)
+    cpkt = 'checkpoints/{}'.format(args.resume)
     utils.load_checkpoint(sess, cpkt)
   else:
     sess.run(tf.global_variables_initializer())

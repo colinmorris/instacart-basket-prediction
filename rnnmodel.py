@@ -11,6 +11,13 @@ from batch_helpers import UserWrapper
 from features import NFEATS, FEATURES
 from constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 
+"""TODO: there are really two distinct kinds of parameters conflated here.
+1) Model parameters, which are immutable, e.g. rnn_size, feats, product_embedding_size
+2) Run parameters. We can load a model from a checkpoint, and train it some more with
+   different values from what it was previously trained with. e.g. learning_rate, decay_rate,
+   log_every, num_steps.
+Probably makes sense to store them separately.
+"""
 def get_default_hparams():
   return HParams(
       is_training=True,
