@@ -57,9 +57,9 @@ so we could even just zero out the loss for those first n timesteps.)
     - maybe log the size of gradient updates to tensorboard to see how much of a problem it is?
   - peephole connections in lstm
     - hyperlstm (see rnn.py in sketch-rnn)
-- try applying l2 loss to all weights?
 - multiple layers per cell. Learning interaction terms.
   - seems esp. important for the product embedding thing
+  - 'learning wide and deep'
 - fanciful idea: stacked RNNs
 - another crazy idea: some kind of asymmetrical loss emphasizing true positives?
   cause in terms of fscore, the 'points' per outcome look something like

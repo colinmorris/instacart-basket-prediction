@@ -13,8 +13,6 @@ def load_checkpoint(sess, checkpoint_path):
 
 
 def save_model(sess, identifier, global_step):
-  if isinstance(identifier, int):
-    identifier = str(identifier)
   model_save_path = os.path.join(CHECKPOINT_DIR, identifier)
   if not os.path.exists(model_save_path):
     os.mkdir(model_save_path)
