@@ -6,13 +6,11 @@ import time
 def expected_fscore_montecarlo(probs, thresh, ntrials):
   # TODO: Should none handling be incorporated at this level?
   probs = np.asarray(probs)
-
+  predictions = (probs >= thresh).astype(np.int8)
   p_none = np.product(1-probs)
   # TODO: should be consistent about whether threshholds are inclusive
   # doesn't really matter in practice, but can mess up tests.
-  predict_none = p_none > thresh
-
-  predictions = (probs >= thresh).astype(np.int8)
+  predict_none = p_none > thresh or predictions.sum() == 0
   fscores = np.zeros(ntrials)
   for i in range(ntrials):
     groundtruth =  (np.random.rand(len(probs)) <= probs)\

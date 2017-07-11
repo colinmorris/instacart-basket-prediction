@@ -94,24 +94,30 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
   def evaluate_threshold(self, thresh, probs):
     return fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)
 
-  def get_candidate_thresholds(self, probs):
+  def get_candidate_thresholds(self, probs, exhaustive=False):
+    if exhaustive:
+      yield -1, False
     minprob = .05
     maxprob = .5
     mindelta = .005
     lastprob = -1
     for prob in probs:
       if not (minprob <= prob <= maxprob):
+        if exhaustive:
+          yield prob, False
         continue
       delta = abs(lastprob - prob)
       if delta < mindelta:
+        if exhaustive:
+          yield prob, False
         continue
-      yield prob
+      yield (prob, True) if exhaustive else prob
       lastprob = prob
     # End on a big one. All the thresholds we've yielded so far have been
     # low enough to allow at least one product in. It could be that the 
     # optimal thresh is higher than the max product prob (i.e. the optimal
     # strategy is just to predict none)
-    yield .5
+    yield (.5, True) if exhaustive else .5
 
 class HybridThresholdPredictor(MonteCarloThresholdPredictor):
   """Calculate exact expected fscore for users with small number
