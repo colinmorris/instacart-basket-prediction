@@ -1,6 +1,7 @@
 *.pickle
 *.h5
 *.tfrecords
+*.tmp
 .ipynb_checkpoints/
 checkpoints/
 scratch/
