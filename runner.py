@@ -95,6 +95,9 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
   batches = batcher.get_batches(infinite=True)
   # TODO: does evaluating the finetune cost have a non-negligible impact 
   # on training speed?
+  # TODO: eventually should probably not bother fetching both cost and
+  # finetune_cost when --finetune flag is used. But for now it's kind
+  # of nice debugging, to make sure they match.
   train_costvars = [model.cost, model.weight_penalty, model.finetune_cost,
       model.train_op]
   for i in range(hps.num_steps):
@@ -103,8 +106,9 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
     batch = batches.next()
     tb1 = time.time()
     batch_fetch_time += (tb1 - tb0)
+    lr_exponent = i if model.hps.lr_reset else step
     lr = ( (hps.learning_rate - hps.min_learning_rate) *
-           (hps.decay_rate)**step + hps.min_learning_rate
+           (hps.decay_rate)**lr_exponent + hps.min_learning_rate
          )
     vals = batch_cost(sess, model, batch, 
         train=True, rmeta=rmeta, roptions=roptions, 

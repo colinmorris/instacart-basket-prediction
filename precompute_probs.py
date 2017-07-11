@@ -73,7 +73,8 @@ def precompute_probs_for_tag(tag, args):
 
   t0 = time.time()
   probmap = get_probmap(batcher, model, sess, args.n_users)
-  model_helpers.save_pdict_for_tag(tag, probmap)
+  suffix = None
+  model_helpers.save_pdict_for_tag(tag, probmap, args.recordfile)
   elapsed = time.time() - t0
   tf.logging.info("Finished in {:.1f}s".format(elapsed))
   sess.close()

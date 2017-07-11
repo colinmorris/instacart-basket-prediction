@@ -29,7 +29,7 @@ def main():
   def predcol(pids):
     stringify = lambda pid: 'None' if pid == -1 else str(pid)
     return ' '.join(map(stringify, pids))
-  pmap = helpers.pdict_for_tag(args.tag)
+  pmap = helpers.pdict_for_tag(args.tag, args.recordfile)
   predictor = pred.HybridThresholdPredictor(pmap, ntrials=args.mc_trials)
   for i, user in enumerate(user_iterator):
     predicted = predictor.predict_last_order(user)

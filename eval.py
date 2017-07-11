@@ -37,7 +37,7 @@ def main():
     predictors['baseline'] = pred.PreviousOrderPredictor()
 
   for tag in args.tags:
-    pmap = helpers.pdict_for_tag(tag)
+    pmap = helpers.pdict_for_tag(tag, args.recordfile)
     if args.tp:
       predictors['{}-tp'.format(tag)] = pred.ThresholdPredictor(pmap, args.thresh)
     if args.montecarlo:

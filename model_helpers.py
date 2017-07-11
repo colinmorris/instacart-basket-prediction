@@ -49,12 +49,17 @@ def hps_for_tag(tag, try_full=True, fallback_to_default=True):
 def copy_hps(hps):
   return HParams(**hps.values())
 
-def pdict_for_tag(tag):
-  path = 'pdicts/{}.pickle'.format(tag)
+def pdict_for_tag(tag, recordfile):
+  path = _path_for_pdict(tag, recordfile)
   with open(path) as f:
     return pickle.load(f)
-def save_pdict_for_tag(tag, pdict):
-  path = 'pdicts/{}.pickle'.format(tag)
+def _path_for_pdict(tag, recordfile):
+  if recordfile != 'test.tfrecords':
+    suffix = '_' + recordfile.split('.')[0]
+    tag += suffix
+  return 'pdicts/{}.pickle'.format(tag)
+def save_pdict_for_tag(tag, pdict, recordfile):
+  path = _path_for_pdict(tag, recordfile)
   with open(path, 'w') as f:
     pickle.dump(dict(pdict), f)
 

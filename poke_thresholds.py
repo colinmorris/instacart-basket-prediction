@@ -27,7 +27,7 @@ def main():
   assert len(args.tags) == 1
   tag = args.tags[0]
   print "Loading pdict"
-  pmap = helpers.pdict_for_tag(tag)
+  pmap = helpers.pdict_for_tag(tag, args.recordfile)
   predictor = pred.HybridThresholdPredictor(pmap, ntrials=args.mc_trials)
   user_iterator = iterate_wrapped_users(args.recordfile)
 

@@ -99,7 +99,12 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
       yield -1, False
     minprob = .05
     maxprob = .5
-    mindelta = .005
+    # Not worth the time savings to skip any threshes in between.
+    # A small threshold difference can have a surprisingly large
+    # effect on E[f]. One example I've personally witnessed:
+    # E[f; thresh=.106] = .42
+    # E[f; thresh=.107] = .47
+    mindelta = 0
     lastprob = -1
     for prob in probs:
       if not (minprob <= prob <= maxprob):
@@ -107,7 +112,7 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
           yield prob, False
         continue
       delta = abs(lastprob - prob)
-      if delta < mindelta:
+      if delta <= mindelta:
         if exhaustive:
           yield prob, False
         continue
@@ -117,7 +122,10 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
     # low enough to allow at least one product in. It could be that the 
     # optimal thresh is higher than the max product prob (i.e. the optimal
     # strategy is just to predict none)
-    yield (.5, True) if exhaustive else .5
+    if exhaustive:
+      yield (1.01, True)
+    else:
+      yield .5
 
 class HybridThresholdPredictor(MonteCarloThresholdPredictor):
   """Calculate exact expected fscore for users with small number

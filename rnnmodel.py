@@ -29,13 +29,23 @@ def get_default_hparams():
       # some "features" that correspond to 2+ numbers, e.g. onehot day of week
       nfeats=NFEATS,
       feats=[f.name for f in FEATURES],
+      # Note that the learning rate used for training is a fn of the initial
+      # value, the decay/min, and the current *global_step*. So if you start
+      # train from an existing checkpoint, the learning rate will not start
+      # at the value below. Unless you change the param under it.
       learning_rate=0.001, # ???
+      # If True, start learning rate schedule from the above number, and calculate
+      # the decay wrt steps taken in the current run (and *not* global_step). Only
+      # affects runs resumed from a checkpoint.
+      lr_reset=False, 
       #decay_rate=0.9999,
       decay_rate=0.9999, # set to 1 to disable lr decay
       min_learning_rate=0.00001,
       save_every=5000,
+      # TODO: I'd kind of like to be able to do eval a little more frequently at
+      # the beginning, because loss is changing more then?
       eval_every=2000,
-      log_every=500,
+      log_every=200,
       # There are about 195k users in the dataset, so if we take on sequence
       # from each, it'd take about 2k steps to cycle through them all
       num_steps=10000,
@@ -182,13 +192,11 @@ class RNNModel(object):
     )
     # Loss on just the last element of each sequence.
     last_order_indices = self.sequence_lengths - 1 
+    r = tf.range(self.hps.batch_size)
+    finetune_indices = tf.stack([r, last_order_indices], axis=1)
     self.finetune_cost = tf.reduce_mean(
-        tf.gather(loss, last_order_indices)
+        tf.gather_nd(loss, finetune_indices)
     )
-    # TODO: does the fact that the mean here includes a variable number of dummy
-    # values (from padding to max seq len) change anything? Need to be a bit careful.
-    # Maybe need to do it in 2 steps? inner avgs. then outer avg-of-avgs?
-    # Or just weight by seqlens.
     
     self.cost = tf.reduce_mean(loss_per_seq)
     self.total_cost = self.cost

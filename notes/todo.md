@@ -71,6 +71,7 @@ so we could even just zero out the loss for those first n timesteps.)
 
 # Testing
 - add tests for some of the batching helper stuff
+- more tests are always good
 
 # Perf
 - set up input queue (good for more than just perf reasons - also makes it easier to randomize order of instances per epoch)
@@ -106,13 +107,10 @@ so we could even just zero out the loss for those first n timesteps.)
   in the total number of training sequences?
 
 # Bugfixes
-- randomize batcher starting point when resuming training
 - fix double log lines with runner.py
 - remove user arg from features. not used.
 
 # Features
-- add to cart order
-- aisle/department (embeddings?)
 - more investigation into feature transformations
    - try one-hot encoding for dow, hour
    - normalization. subtract mean, divide by std.
