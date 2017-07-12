@@ -68,6 +68,7 @@ so we could even just zero out the loss for those first n timesteps.)
     term I'm looking for, but I forget it) probability estimates, then our methods
     for fscore optimization sort of go out the window. Would probably have to move
     to some static threshold?
+- but yeah, worth trying different loss fns
 
 # Testing
 - add tests for some of the batching helper stuff
@@ -76,6 +77,11 @@ so we could even just zero out the loss for those first n timesteps.)
 # Perf
 - set up input queue (good for more than just perf reasons - also makes it easier to randomize order of instances per epoch)
 - look into precomputing features (or at least speeding up current code)
+  - one thing that makes this tricky is that there's a lot of redundancy in separately
+    storing the training sequences for each of a user's n products, because they share
+    like 90% of their DNA. Most feats are not product-specific.
+  - it would be cool if I could use the tf input pipeline stuff using a custom
+    protobuf format (not Examples or SequenceExamples)
 - what about running this in the 'cloud'? would a nice GPU speed up training significantly?
 - one weird trick that might speed up input pipeline: make placeholders variable length
   and do the padding in tf runtime. Seems like big bottleneck is just copying the data
@@ -104,6 +110,9 @@ so we could even just zero out the loss for those first n timesteps.)
   and this product only ordered once (not incl. final order), and it wasn't in any
   of the last 6 orders, exclude it? Would this kind of thing put a significant dent
   in the total number of training sequences?
+- try out some 'tips and tricks' for squeezing last few % out of model:
+  - averaging the last few weight updates
+  - ensembling best models
 
 # Bugfixes
 - fix double log lines with runner.py
