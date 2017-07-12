@@ -75,7 +75,6 @@ so we could even just zero out the loss for those first n timesteps.)
 
 # Perf
 - set up input queue (good for more than just perf reasons - also makes it easier to randomize order of instances per epoch)
-- install tf from source for SSE instructions
 - look into precomputing features (or at least speeding up current code)
 - what about running this in the 'cloud'? would a nice GPU speed up training significantly?
 - one weird trick that might speed up input pipeline: make placeholders variable length

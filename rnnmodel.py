@@ -45,7 +45,7 @@ def get_default_hparams():
       # TODO: I'd kind of like to be able to do eval a little more frequently at
       # the beginning, because loss is changing more then?
       eval_every=2000,
-      log_every=200,
+      log_every=500,
       # There are about 195k users in the dataset, so if we take on sequence
       # from each, it'd take about 2k steps to cycle through them all
       num_steps=10000,
