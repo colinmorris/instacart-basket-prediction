@@ -90,6 +90,7 @@ class RNNModel(object):
     if hps.is_training:
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
 
+    cell_kwargs = dict(forget_bias=1.0)
     # TODO: later look at LSTMCell, which enables peephole + projection layer
     # Also, this looks superficially interesting: 
     #   https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/TimeFreqLSTMCell
@@ -103,13 +104,19 @@ class RNNModel(object):
       cellfn = rnn.LayerNormLSTMCell
     elif hps.cell == 'hyper':
       cellfn = rnn.HyperLSTMCell
+    elif hps.cell == 'peephole':
+      cellfn = tf.nn.rnn_cell.LSTMCell
+      cell_kwargs['use_peepholes'] = True
+
     else:
       assert False, 'please choose a *respectable* cell type'
-    cell_kwargs = dict(forget_bias=1.0)
-    if hps.cell != 'basiclstm':
+    if hps.cell not in ('basiclstm', 'peephole'):
       cell_kwargs['use_recurrent_dropout'] = hps.use_recurrent_dropout
       cell_kwargs['dropout_keep_prob'] = hps.recurrent_dropout_prob
     self.cell = cellfn(hps.rnn_size, **cell_kwargs)
+    if hps.cell in ('basiclstm', 'peephole'):
+      self.cell = tf.nn.rnn_cell.DropoutWrapper(
+          self.cell, state_keep_prob=hps.recurrent_dropout_prob)
 
     self.sequence_lengths = tf.placeholder(
         dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",

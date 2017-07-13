@@ -87,6 +87,37 @@ so we could even just zero out the loss for those first n timesteps.)
   and do the padding in tf runtime. Seems like big bottleneck is just copying the data
   from python runtime to tf. Most of that data is zeros because of padding to max_seq_len=100.
 
+# Bugfixes
+- fix double log lines with runner.py
+- remove user arg from features. not used.
+
+# Features
+- more investigation into feature transformations
+   - try one-hot encoding for dow, hour
+   - normalization. subtract mean, divide by std.
+    - subtle/interesting question: calculate the mean over all (user, pid) sequences, or 
+      reweight so each user contributes equally?
+    - also, like, to what degree does this really help if you have adam learning 
+      different learning rates per variable? and if you're doing batch norm too?
+- feature selection experiments
+- more features that are theoretically computable from the existing inputs, but
+  seem useful nudging the model toward/making it easier for the model to use it
+    - total days since focal prod was ordered
+    - n orders since last focal order
+- I think having a 'days since last order is maxed' var was clever. I wonder
+  about having a feat like that for when number of orders is maxed? i.e.
+  a feature that just says whether this is order 100. Is that dumb?
+- number of aisles/depts ordered from in last order
+
+# T.F. bugs/prs
+- clarify input_fn shape 
+- actual MetricSpec e2e example
+- documentation of default metrics
+  - also metrics={} doesn't do what it says in estimator.py
+- docs on these args just plain wrong: https://www.tensorflow.org/api_docs/python/tf/contrib/learn/DNNLinearCombinedClassifier#predict_proba
+- calling DNNLinearCombinedClassifier.fit with steps='100' causes a weird error msg:
+  ufunc 'add' did not contain a loop with
+
 # Misc
 - review TODOs in code
 - check on kaggle discussions
@@ -113,25 +144,17 @@ so we could even just zero out the loss for those first n timesteps.)
 - try out some 'tips and tricks' for squeezing last few % out of model:
   - averaging the last few weight updates
   - ensembling best models
-
-# Bugfixes
-- fix double log lines with runner.py
-- remove user arg from features. not used.
-
-# Features
-- more investigation into feature transformations
-   - try one-hot encoding for dow, hour
-   - normalization. subtract mean, divide by std.
-    - subtle/interesting question: calculate the mean over all (user, pid) sequences, or 
-      reweight so each user contributes equally?
-    - also, like, to what degree does this really help if you have adam learning 
-      different learning rates per variable? and if you're doing batch norm too?
-- feature selection experiments
-- more features that are theoretically computable from the existing inputs, but
-  seem useful nudging the model toward/making it easier for the model to use it
-    - total days since focal prod was ordered
-    - n orders since last focal order
-- I think having a 'days since last order is maxed' var was clever. I wonder
-  about having a feat like that for when number of orders is maxed? i.e.
-  a feature that just says whether this is order 100. Is that dumb?
-- number of aisles/depts ordered from in last order
+- it's interesting how closely the different models track one another in terms of
+  metrics during training, esp. training loss, where they consistently follow a
+  very specific pattern of spikes. Presumably this is because we call random.seed(1337)
+  during the first run through the validation data, at which point every model sees
+  the same sequence of user/product pairs.
+    - It'd be interesting to add a call to random.seed() after each validation step,
+    just to confirm that this breaks the symmetry.
+    - It's kind of nice that this removes an element of randomness when comparing
+    models.
+- Try some completely different LR schedules.
+  - reduce by a constant at each step
+  - no min lr
+  - train at a constant lr for a while until validation loss stops going down, then
+    drop lr and repeat.

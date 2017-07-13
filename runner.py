@@ -47,6 +47,9 @@ def evaluate_model(sess, model, batcher):
     total_cost += cost
     total_finetune_cost += ft_cost
     nbatches += 1
+
+  # May or may not want to re-seed at this point. 
+  #random.seed()
   return total_cost / nbatches, total_finetune_cost / nbatches
 
 # TODO: yeah, this is a dumb leaky abstraction.
