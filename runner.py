@@ -70,6 +70,18 @@ def batch_cost(sess, model, batch, train, costvars=None,
 def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, roptions):
   # Setup summary writer.
   summary_writer = tf.summary.FileWriter('logs/{}'.format(runlabel))
+  step = None
+
+  def write_tagged_value(tag, value):
+    summ = tf.summary.Summary()
+    summ.value.add(tag=tag, simple_value=float(value))
+    summary_writer.add_summary(summ, step)
+  def write_values(groupname, summary_dict):
+    summ = tf.summary.Summary()
+    for tag, value in summary_dict.iteritems():
+      fulltag = os.path.join(groupname, tag) # sue me
+      summ.value.add(tag=fulltag, simple_value=float(value))
+    summary_writer.add_summary(summ, step)
 
   # Calculate trainable params.
   t_vars = tf.trainable_variables()
@@ -79,22 +91,19 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
     count_t_vars += num_param
     tf.logging.info('%s %s %i', var.name, str(var.get_shape()), num_param)
   tf.logging.info('Total trainable variables %i.', count_t_vars)
-  model_summ = tf.summary.Summary()
-  model_summ.value.add(
-      tag='Num_Trainable_Params', simple_value=float(count_t_vars))
-  summary_writer.add_summary(model_summ, 0)
+  write_tagged_value('Misc/Num_Trainable_Params', count_t_vars)
   summary_writer.flush()
   
   hps = model.hps
   start = time.time()
 
   log_every = model.hps.log_every
+  # Some training stats to accumulate and report every few hundred batches.
   train_costs = np.zeros(log_every)
   train_ft_costs = np.zeros(log_every)
   l2_costs = np.zeros(log_every)
 
   batch_fetch_time = 0
-  eval_time = 0
   batches = batcher.get_batches(infinite=True)
   # TODO: does evaluating the finetune cost have a non-negligible impact 
   # on training speed?
@@ -103,6 +112,8 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
   # of nice debugging, to make sure they match.
   train_costvars = [model.cost, model.weight_penalty, model.finetune_cost,
       model.train_op]
+  # >0 if we're resuming from a checkpoint
+  start_step = sess.run(model.global_step)
   for i in range(hps.num_steps):
     step = sess.run(model.global_step)
     tb0 = time.time()
@@ -127,29 +138,25 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
       l2_cost = l2_costs.mean()
       ft_cost = train_ft_costs.mean()
       end = time.time()
-      time_taken = (end - start) - eval_time
+      time_taken = (end - start)
 
-      misc_summ = tf.summary.Summary()
-      misc_summ.value.add(tag='Learning_Rate', simple_value=lr)
-      cost_summ = tf.summary.Summary()
-      cost_summ.value.add(tag='Basic_Train_Cost', simple_value=float(cost))
-      cost_summ.value.add(tag='Finetune_Train_Cost', simple_value=float(ft_cost))
-      cost_summ.value.add(tag='Weight_Penalty', simple_value=float(l2_cost))
-      cost_summ.value.add(tag='Total_Train_Cost', simple_value=float(cost+l2_cost))
-      time_summ = tf.summary.Summary()
-      time_summ.value.add(tag='Time_Taken_Train', simple_value=float(time_taken))
-      time_summ.value.add(tag='Time_Taken_Batchfetch', simple_value=batch_fetch_time)
+      misc_summ = {'Learning_Rate': lr}
+      write_values('Misc', misc_summ)
+      time_summ = {'Time_Taken_Train': time_taken/log_every, 
+          'Time_Taken_Batchfetch': batch_fetch_time/log_every, }
+      write_values('Timing', time_summ)
+      loss_summ = {'Basic_Loss': cost, 'Finetune_Loss': ft_cost, 'Weight_Penalty': l2_cost,
+          'Total_Cost': cost+l2_cost }
+      write_values('Loss/Train', loss_summ)
+      summary_writer.flush()
+
       batch_fetch_time = 0
 
-      output_format = ('step: %d, cost: %.4f, train_time_taken: %.3f, lr: %.5f')
-      output_values = (step, cost, time_taken, lr)
+      output_format = ('step: %d/%d, cost: %.4f, train_time_taken: %.3f, lr: %.5f')
+      output_values = (step, start_step+hps.num_steps, cost, time_taken, lr)
       output_log = output_format % output_values
       tf.logging.info(output_log)
 
-      summary_writer.add_summary(cost_summ, step)
-      summary_writer.add_summary(time_summ, step)
-      summary_writer.add_summary(misc_summ, step)
-      summary_writer.flush()
       start = time.time()
     if (i+1) % hps.save_every == 0 or i == (hps.num_steps - 1):
       utils.save_model(sess, runlabel, step)
@@ -158,14 +165,14 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
       eval_cost, ft_cost = evaluate_model(sess, eval_model, eval_batcher)
       t1 = time.time()
       eval_time = t1 - t0
+      # Cheat the clock on total training time, so it doesn't count time spent 
+      # on the validation set
+      start += eval_time
       tf.logging.info('Evaluation loss={:.4f} (took {:.1f}s)'.format(eval_cost, eval_time))
-      eval_summ = tf.summary.Summary()
-      eval_summ.value.add(tag='Eval_Cost', simple_value=eval_cost)
-      eval_summ.value.add(tag='Eval_Finetune_Cost', simple_value=ft_cost)
-      eval_summ.value.add(tag='Eval_Time', simple_value=eval_time)
-      summary_writer.add_summary(eval_summ, step)
+      write_tagged_value('Timing/Validation', eval_time)
+      validation_summ = {'Loss': eval_cost, 'Finetune_Loss': ft_cost}
+      write_values('Loss/Validation', validation_summ)
       summary_writer.flush()
-      eval_time = 0
 
 
 def main():
