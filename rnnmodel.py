@@ -83,6 +83,8 @@ def get_default_hparams():
       # Embeddings for aisle and department (22 depts, 135 aisles in dataset)
       # Set to 0 to disable these embeddings.
       aisle_embedding_size=8,
+      # TODO: Since (afair) there's a 1:1 mapping from aisle to dept, and there
+      # are only 135 distinct aisles, maybe dept embeddings are overkill.
       dept_embedding_size=4,
       # gradient clipping. Set to falsy value to disable. Experiments so far
       # have been unsuccessful. Might end up being important for fine-tuning

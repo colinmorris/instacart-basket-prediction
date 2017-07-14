@@ -153,9 +153,28 @@ so we could even just zero out the loss for those first n timesteps.)
     just to confirm that this breaks the symmetry.
     - It's kind of nice that this removes an element of randomness when comparing
     models.
+  - XXX: Hey, now that I think of it, isn't it kind of crazy that the training costs
+    shown in TensorBoard are so noisy, even when each point is averaged over,
+    say, 200 steps = 2k sequences? I'm not sure whether this suggests that there's
+    a lot of variance in the dataset wrt difficulty of individual training sequences,
+    or.... maybe it just looks noisy because after the first 1,000 or so steps, the
+    model is learning really slowly, and so the range of losses is pretty tight, and
+    Tensorboard just zooms in on a tiny segment of the y-axis rather than starting at
+    0, and so it looks really noisy, in the same way that a billiard ball looks really
+    rough through an electron microscope. That's a depressing thought.
 - Try some completely different LR schedules.
   - reduce by a constant at each step
   - no min lr
   - train at a constant lr for a while until validation loss stops going down, then
     drop lr and repeat.
 - Add extra L2 penalty to product weights? Or add an L1 term?
+- tf.feature_column stuff is kinda cool. Maybe could use feature_column.input_layer as rnn input,
+  (making it easy to add stuff like embeddings, crossed columns, bucketized, etc.)
+- at some point you should collate list of lessons learned from this project. 'Cause you're
+  sure as shit not getting that prize money.
+  - but, no, really, definitely tons of things I would have done differently if 
+    I were starting this again e.g. 
+      - clear separation between model config and run config
+      - importance of getting the input pipeline right, not using feed_dict
+        for big inputs, or doing a lot of work in python land to generate each batch
+      - I kind of understand variable_scope/name_scope now
