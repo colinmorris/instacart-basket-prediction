@@ -158,3 +158,4 @@ so we could even just zero out the loss for those first n timesteps.)
   - no min lr
   - train at a constant lr for a while until validation loss stops going down, then
     drop lr and repeat.
+- Add extra L2 penalty to product weights? Or add an L1 term?
