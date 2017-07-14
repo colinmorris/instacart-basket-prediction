@@ -181,6 +181,7 @@ def main():
   parser.add_argument('--profile', action='store_true')
   parser.add_argument('--finetune', action='store_true')
   args = parser.parse_args()
+  # TODO: semantics of -f, -r, and base/_full config files have become muddled
   # If -f is passed in, we'll load the original base config file, and
   # (potentially) overwrite the '_full' version with new inherited defaults.
   hps = model_helpers.hps_for_tag(args.tag, try_full=(not args.force),
