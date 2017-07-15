@@ -1,6 +1,8 @@
 """
 To enable the embedding visualization stuff in TensorBoard, run this and then copy
 the contents of the checkpoint dir for your model to the corresponding log dir.
+# TODO: would be cool to add some more metadata so that e.g. you could colour
+  the products by aisle/dept in the embedding viz.
 """
 
 import tensorflow as tf
