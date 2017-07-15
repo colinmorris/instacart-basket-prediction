@@ -124,6 +124,7 @@ class RNNModel(object):
 
   def __init__(self, hyperparams, reuse=False):
     self.hps = hyperparams
+    self.summaries = []
     with tf.variable_scope('instarnn', reuse=reuse):
       self.build_model()
 
@@ -178,9 +179,13 @@ class RNNModel(object):
     input_embeddings = []
     for (name, size, n_values) in embedding_dat:
       if size == 0:
+        tf.logging.info('Skipping embeddings for {}'.format(name))
         continue
       embeddings = tf.get_variable('{}_embeddings'.format(name),
           [n_values, size])
+      self.add_summary(
+          tf.summary.histogram('Embeddings/{}_norm'.format(name), tf.norm(embeddings, axis=1))
+          )
       idname = '{}_ids'.format(name)
       input_ids = tf.placeholder(
         dtype=tf.int32, shape=[self.hps.batch_size], name=idname)
@@ -228,6 +233,10 @@ class RNNModel(object):
     logits = tf.nn.xw_plus_b(output, output_w, output_b)
     logits = tf.reshape(logits, label_shape)
     self.logits = logits
+    # The logits that were actually relevant to prediction/loss
+    boolmask = tf.cast(self.lossmask, tf.bool)
+    used_logits = tf.boolean_mask(self.logits, boolmask)
+    self.add_summary( tf.summary.histogram('Logits', used_logits) )
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels, logits=logits)
     # apply loss mask
     loss = tf.multiply(loss, self.lossmask)
@@ -279,3 +288,10 @@ class RNNModel(object):
                   self.total_cost,
                   self.global_step,
           )
+
+  def add_summary(self, summ):
+    self.summaries.append(summ)
+
+  def merged_summary(self):
+    return tf.summary.merge(self.summaries)
+

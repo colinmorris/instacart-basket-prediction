@@ -46,3 +46,10 @@ Calculated over 4810 predictions for 509 test users
   median = 4
   75% = 8
   max = 81
+
+Some timing stats:
+- 1s/batch for training (batch_size=100)
+- About 25% of that time is spent computing the input vectors 
+  - (Also, some large but unknown % is spent copying data from python runtime to tf runtime)
+- 110s to calculate validation loss (so calculating this every 1.5k batches, means it 
+  accounts for around 5-10% of training time)

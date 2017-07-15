@@ -71,6 +71,7 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
   # Setup summary writer.
   summary_writer = tf.summary.FileWriter('logs/{}'.format(runlabel))
   step = None
+  summary_op = model.merged_summary()
 
   def write_tagged_value(tag, value):
     summ = tf.summary.Summary()
@@ -148,6 +149,11 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
       loss_summ = {'Basic_Loss': cost, 'Finetune_Loss': ft_cost, 'Weight_Penalty': l2_cost,
           'Total_Cost': cost+l2_cost }
       write_values('Loss/Train', loss_summ)
+      
+      feed = model_helpers.feed_dict_for_batch(batch, model)
+      summ = sess.run(summary_op, feed_dict=feed)
+      summary_writer.add_summary(summ, step)
+
       summary_writer.flush()
 
       batch_fetch_time = 0
@@ -156,6 +162,7 @@ def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, ropti
       output_values = (step, start_step+hps.num_steps, cost, time_taken, lr)
       output_log = output_format % output_values
       tf.logging.info(output_log)
+
 
       start = time.time()
     if (i+1) % hps.save_every == 0 or i == (hps.num_steps - 1):
@@ -210,6 +217,7 @@ def main():
   tf.logging.info('Building model')
   model = RNNModel(hps)
   tf.logging.info('Loading batcher')
+  # TODO: random.seed based on global step
   batcher = Batcher(hps, args.recordfile, 
       in_media_res=args.resume is not None,
       finetune=args.finetune
