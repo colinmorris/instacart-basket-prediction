@@ -44,6 +44,7 @@ def get_probmap(batcher, model, sess, userlimit):
   return pmap
 
 def main():
+  tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('tags', metavar='tag', nargs='+')
   parser.add_argument('--recordfile', default='test.tfrecords', 

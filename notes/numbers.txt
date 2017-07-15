@@ -53,3 +53,4 @@ Some timing stats:
   - (Also, some large but unknown % is spent copying data from python runtime to tf runtime)
 - 110s to calculate validation loss (so calculating this every 1.5k batches, means it 
   accounts for around 5-10% of training time)
+- eval.py: 20 min on 509 users
