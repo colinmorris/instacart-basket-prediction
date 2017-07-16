@@ -117,6 +117,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - docs on these args just plain wrong: https://www.tensorflow.org/api_docs/python/tf/contrib/learn/DNNLinearCombinedClassifier#predict_proba
 - calling DNNLinearCombinedClassifier.fit with steps='100' causes a weird error msg:
   ufunc 'add' did not contain a loop with
+- stuff like trainable_weights not implemented for DropoutWrapper
 
 # Misc
 - review TODOs in code
@@ -178,3 +179,18 @@ so we could even just zero out the loss for those first n timesteps.)
       - importance of getting the input pipeline right, not using feed_dict
         for big inputs, or doing a lot of work in python land to generate each batch
       - I kind of understand variable_scope/name_scope now
+- try other optimizers?
+  - in particular, not sure how well Adam plays with the sparse embedding
+  stuff. Seems like RMSProp/Adagrad might work better?
+  - I guess one thing to try would be separate optimizers for embedding 
+  weights vs. the others? Which sounds hella complicated, but this guy
+  apparently does it: https://github.com/tensorflow/tensorflow/issues/464#issuecomment-165171770
+  - LazyAdamOptimizer
+  - could also experiment with optimizer params (like Adam's epsilon)
+- log adam momenta/velocities in tb:
+    `optimizer.get_slot(my_var, 'm'/'v')`
+- experiment with forget_bias
+- log forgettitude in tensorboard. This seems to be sadly difficult, but I think it
+  could give a lot of insight.
+- log time spent on 'log_every' iterations, to see how much extra they cost 
+  (fetching a bunch of summary vars)

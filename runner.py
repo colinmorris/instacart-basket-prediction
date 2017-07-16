@@ -67,9 +67,9 @@ def batch_cost(sess, model, batch, train, costvars=None,
   return values
     
 
-def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, roptions):
+def train(sess, model, batcher, runlabel, eval_batcher, eval_model, rmeta, roptions, logdir):
   # Setup summary writer.
-  summary_writer = tf.summary.FileWriter('logs/{}'.format(runlabel))
+  summary_writer = tf.summary.FileWriter('{}/{}'.format(logdir, runlabel))
   step = None
   summary_op = model.merged_summary()
 
@@ -194,6 +194,7 @@ def main():
       help='Load existing checkpoint with the given tag name and resume training')
   parser.add_argument('--profile', action='store_true')
   parser.add_argument('--finetune', action='store_true')
+  parser.add_argument('--logdir', default='logs')
   args = parser.parse_args()
   # TODO: semantics of -f, -r, and base/_full config files have become muddled
   # If -f is passed in, we'll load the original base config file, and
@@ -247,7 +248,7 @@ def main():
   # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
   # Could be annoying in some cases.
   t0 = time.time()
-  train(sess, model, batcher, args.tag, eval_batcher, eval_model, run_metadata, run_options)
+  train(sess, model, batcher, args.tag, eval_batcher, eval_model, run_metadata, run_options, args.logdir)
   t1 = time.time()
   tf.logging.info('Completed training in {:.1f}s'.format(t1-t0))
 

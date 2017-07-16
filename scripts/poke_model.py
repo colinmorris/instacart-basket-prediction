@@ -36,8 +36,8 @@ emb = lookup('product_embeddings')
 # In our case, the first ~20 (as of jul2 model) are the feature-features,
 # followed by product embedding weigths (32-dim embeddings in jul2), then
 # 128 weights on the prev state.
-lstm_weights = lookup('rnn/basic_lstm_cell/weights')
-print emb.shape
+#lstm_weights = lookup('rnn/basic_lstm_cell/weights')
+#print emb.shape
 
 #emb[:10]
 

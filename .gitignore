@@ -8,6 +8,7 @@ scratch/
 .cache/
 logs/
 old_logs/
+testlogs/
 dat/
 configs/
 results/

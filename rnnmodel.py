@@ -69,6 +69,8 @@ def get_default_hparams():
       # with frequency <= ~200 leads to some unpleasantly spiky graphs in
       # Tensorboard. (I know it has smoothing, but I prefer that to be off when
       # looking at eval_cost, and you can't tune it per variable. :()
+      # (Actually, it's no longer true that this has no additional cost, since
+      # we now fetch histogram summaries at this interval)
       log_every=500,
       # There are about 195k users in the dataset, so if we take one sequence
       # from each, it'd take about 2k steps to cycle through them all (with batch_size=100). 
@@ -110,6 +112,8 @@ def get_default_hparams():
       #  - peephole was mediocre, but at least no slower. (Part of the reason
       #    for its worseness might be lack of ortho init)
       cell='lstm', 
+      # One of {Adam, LazyAdam}
+      optimizer='Adam',
 
       fully_specified=False, # Used for config file bookkeeping
   )
@@ -184,7 +188,7 @@ class RNNModel(object):
       embeddings = tf.get_variable('{}_embeddings'.format(name),
           [n_values, size])
       self.add_summary(
-          tf.summary.histogram('Embeddings/{}_norm'.format(name), tf.norm(embeddings, axis=1))
+          'Embeddings/{}_norm'.format(name), tf.norm(embeddings, axis=1)
           )
       idname = '{}_ids'.format(name)
       input_ids = tf.placeholder(
@@ -224,6 +228,7 @@ class RNNModel(object):
             initial_state=self.initial_state,
             dtype=tf.float32,
     )
+    # TODO: would like to log forgettitude, but this seems quite tricky. :(
 
     with tf.variable_scope('RNN'):
       output_w = tf.get_variable('output_w', [self.hps.rnn_size, 1])
@@ -236,7 +241,7 @@ class RNNModel(object):
     # The logits that were actually relevant to prediction/loss
     boolmask = tf.cast(self.lossmask, tf.bool)
     used_logits = tf.boolean_mask(self.logits, boolmask)
-    self.add_summary( tf.summary.histogram('Logits', used_logits) )
+    self.add_summary( 'Logits', used_logits )
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels, logits=logits)
     # apply loss mask
     loss = tf.multiply(loss, self.lossmask)
@@ -275,7 +280,14 @@ class RNNModel(object):
 
     if self.hps.is_training:
         self.lr = tf.Variable(self.hps.learning_rate, trainable=False)
-        optimizer = tf.train.AdamOptimizer(self.lr)
+        if self.hps.optimizer == 'Adam':
+          optimizer_fn = tf.train.AdamOptimizer
+        elif self.hps.optimizer == 'LazyAdam':
+          optimizer_fn = tf.contrib.opt.LazyAdamOptimizer
+        else:
+          assert False, "Don't know about {} optimizer".format(self.hps.optimizer)
+        self.optimizer = optimizer_fn(self.lr)
+        optimizer = self.optimizer
         if self.hps.grad_clip:
           gvs = optimizer.compute_gradients(self.total_cost)
           g = self.hps.grad_clip
@@ -288,9 +300,45 @@ class RNNModel(object):
                   self.total_cost,
                   self.global_step,
           )
+        # Log the size of gradient updates to tensorboard
+        gradient_varnames = ['RNN/output_w', 'dept_embeddings', 'aisle_embeddings']
+        # TODO: how to handle product embeddings? Updates should be v. sparse.
+        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+          gradient_vars = [tf.get_variable(vname) for vname in gradient_varnames]
+          grads = optimizer.compute_gradients(self.total_cost, var_list=gradient_vars)
+          for (grad, var) in grads:
+            colidx = var.name.rfind(':')
+            basename = var.name[ len('instarnn/') : colidx ]
+            summ_name ='Gradients/{}'.format(basename)
+            self.add_summary(summ_name, grad)
 
-  def add_summary(self, summ):
-    self.summaries.append(summ)
+          if self.hps.cell != 'lstm':
+            tf.logging.warn("Histogram logging not implemented for cell {}".format(self.hps.cell))
+            return
+          cellvars = [tf.get_variable('rnn/LSTMCell/'+v) 
+            for v in ['W_xh', 'W_hh', 'bias']
+            ]
+          # TODO: Ideally we could go even further and cut up the xh gradients by
+          # feature (family). That'd be siiiiiiiick.
+          cellgrads = optimizer.compute_gradients(self.total_cost, var_list=cellvars)
+          for (grad, var) in cellgrads:
+            colidx = var.name.rfind(':')
+            parenidx = var.name.rfind('/')
+            basename = var.name[parenidx+1:colidx]
+            bygate = tf.split(grad, 4, axis=0 if basename == 'bias' else 1)
+            gates = ['input_gate', 'newh_gate', 'forget_gate', 'output_gate']
+            for (subgrads, gatename) in zip(bygate, gates):
+              summname = 'Gradients/LSTMCell/{}/{}'.format(basename, gatename)
+              self.add_summary(summname, subgrads)
+
+
+
+  def add_summary(self, name, tensor):
+    # Without this, all histogram summaries get plopped under the same "instarn"
+    # tag group.
+    with tf.name_scope(None):
+      summ = tf.summary.histogram(name, tensor)
+      self.summaries.append(summ)
 
   def merged_summary(self):
     return tf.summary.merge(self.summaries)

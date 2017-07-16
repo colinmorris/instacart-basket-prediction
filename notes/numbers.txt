@@ -54,3 +54,6 @@ Some timing stats:
 - 110s to calculate validation loss (so calculating this every 1.5k batches, means it 
   accounts for around 5-10% of training time)
 - eval.py: 20 min on 509 users
+  - which is pretty slow. worth profiling. Maybe have a 'lazy mode' that cuts a few corners
+    for big speedups (e.g. in terms of trying fewer thresholds)
+      - also maaaaybe worth considering trying to turn O(n^4) E[f] algo into O(n^3)
