@@ -1,4 +1,5 @@
 import argparse
+import functools
 import tensorflow as tf
 import numpy as np
 from scipy.special import expit
@@ -27,6 +28,28 @@ def sort_fds(fds):
   for name, derivs in sorted(fds.items(), key=sortkey):
     print '{}\t{}'.format(name, derivs)
 
+def alternate_reality(featname, newvalue, order_idx, model, session, batcher, pid):
+  seqidx = order_idx - 1
+  batch = batcher.batch_for_pid(pid)
+  _x, _labels, seqlens, _lm, pindexs, _aids, _dids, uids = batch
+  feed = model_helpers.feed_dict_for_batch(batch, model)
+  real_logits = sess.run(model.logits, feed)
+
+  a, b = get_featslice(featname)
+  before = _x[0, seqidx, a:b]
+  if (b-a) == 1:
+    assert not isinstance(newvalue, np.ndarray)
+    assert before != newvalue, "Feature {} already had value {}".format(featname, newvalue)
+  else:
+    assert len(newvalue) == b-a
+    assert not (before == newvalue).all()
+  _x[0, seqidx, a:b] = newvalue
+  feed = model_helpers.feed_dict_for_batch(batch, model)
+  alternate_logits = sess.run(model.logits, feed)
+
+  return real_logits[0][seqidx], alternate_logits[0][seqidx]
+
+
 # Make a copy of test user, alter some field, and re-run predictions?
 # Would take care of multiple derived feats (e.g. DoW onehot + sincos)
 def feat_deriv(order_idx, model, session, batcher, pid):
@@ -35,7 +58,7 @@ def feat_deriv(order_idx, model, session, batcher, pid):
   batch = batcher.batch_for_pid(pid)
   _x, _labels, seqlens, _lm, pindexs, _aids, _dids, uids = batch
   feed = model_helpers.feed_dict_for_batch(batch, model)
-  y = model.logits[seqidx]
+  y = model.logits[0, seqidx]
   x = model.input_data
   grad_op = tf.gradients(y, x)
   # Okay, so we're doing a lot of redundant work here I guess
@@ -75,4 +98,18 @@ if __name__ == '__main__':
 
   fds, logit = explore_derivs()
   sort_fds(fds)
+
+  MILK = 19348
+  alt = functools.partial(alternate_reality, order_idx=1, model=model,
+      session=sess, batcher=batcher, pid=MILK)
+  def b_and_a(feat, val):
+    before, after = alt(feat, val)
+    print 'Setting {} to {}'.format(feat, val)
+    delta = after - before
+    print 'Logits: {:.2f} -> {:.2f} ({}{:.2f})'.format(before, after,
+        ('+' if delta >= 0 else ''), delta
+        )
+    print 'Prob: {:.3f} -> {:.3f}'.format(expit(before), expit(after))
+  b_and_a('same_day', 1)
+  b_and_a('days_since_is_maxed', 1)
 
