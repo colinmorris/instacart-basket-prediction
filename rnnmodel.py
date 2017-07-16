@@ -305,6 +305,9 @@ class RNNModel(object):
         # TODO: how to handle product embeddings? Updates should be v. sparse.
         with tf.variable_scope(tf.get_variable_scope(), reuse=True):
           gradient_vars = [tf.get_variable(vname) for vname in gradient_varnames]
+          # I think compute_gradients shares its implementation with the base Optimizer
+          # (i.e. these are the 'raw' gradients, and not the actual updates computed
+          # by Adam with momentum etc.)
           grads = optimizer.compute_gradients(self.total_cost, var_list=gradient_vars)
           for (grad, var) in grads:
             colidx = var.name.rfind(':')

@@ -152,6 +152,25 @@ def iterate_wrapped_users(recordpath):
     user.ParseFromString(record)
     yield UserWrapper(user)
 
+class TestBatcher(object):
+  def __init__(self, hps):
+    self.hps = hps
+    u = User()
+    with open('testuser.pb') as f:
+      u.ParseFromString(f.read())
+    self.user = UserWrapper(u)
+    self.product_df = utils.load_product_df()
+
+  def batch_for_pid(self, pid):
+    ts = self.user.training_sequence_for_pid(pid, self.hps.max_seq_len, self.product_df)
+    for k, v in ts.iteritems():
+      if isinstance(v, np.ndarray):
+        ts[k] = np.expand_dims(v, axis=0)
+      elif isinstance(v, int):
+        ts[k] = np.array([v])
+    return (ts['x'], ts['labels'], ts['seqlen'], ts['lossmask'],
+        ts['pindex'], ts['aisle_id'], ts['dept_id'], [self.user.uid])
+
 class UserWrapper(object):
   """Wrapper around User protobuf objs.
   """
