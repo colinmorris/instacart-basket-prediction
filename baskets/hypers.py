@@ -1,11 +1,16 @@
 import os
 import time
 import logging
+from enum import IntEnum
 
 from tensorflow.contrib.training import HParams
 
 from baskets.features import NFEATS, FEATURES
 from baskets import common
+
+# TODO: Write a subroutine to validate hps when loaded?
+
+Mode = Enum('Mode', 'training inference eval')
 
 """TODO: there are really two distinct kinds of parameters conflated here.
 1) Model parameters, which are immutable, e.g. rnn_size, feats, product_embedding_size
@@ -16,6 +21,9 @@ Probably makes sense to store them separately.
 """
 def get_default_hparams():
   return HParams(
+      # One of {training, inference, eval}
+      mode=Mode.training,
+      # TODO: deprecate me
       is_training=True,
       # 256 seems like the sweet spot for this. More powerful than 128.
       # 512 is veeeery slow, and seems to have bad convergence

@@ -9,11 +9,14 @@ from baskets.constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 
 class RNNModel(object):
 
-  def __init__(self, hyperparams, reuse=False):
+  def __init__(self, hyperparams, input_vars=None, reuse=False):
+    """input_vars, if provided, should be a dict mapping name to input tensors
+    (presumably coming from some queue or something), to use instead of placeholders.
+    """
     self.hps = hyperparams
     self.summaries = []
     with tf.variable_scope('instarnn', reuse=reuse):
-      self.build_model()
+      self.build_model(input_vars)
 
   def _build_cell(self):
     cell_kwargs = dict(forget_bias=1.0)
@@ -42,25 +45,30 @@ class RNNModel(object):
       cell = tf.nn.rnn_cell.DropoutWrapper(cell, state_keep_prob=self.hps.recurrent_dropout_prob)
     return cell
 
-  def build_model(self):
-    hps = self.hps
-    if hps.is_training:
-      self.global_step = tf.Variable(0, name='global_step', trainable=False)
-    self.cell = self._build_cell()
+  def _build_placeholder_inputs(self):
     self.sequence_lengths = tf.placeholder(
         dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",
     )
     self.input_data = tf.placeholder(
         dtype=tf.float32,
-        shape=[hps.batch_size, hps.max_seq_len, hps.nfeats],
+        shape=[self.hps.batch_size, None, self.hps.nfeats],
         name="input",
     )
-    cell_input = self.input_data
+    self.max_seq_len = tf.shape(self.input_data)[1]
+    label_shape = [self.hps.batch_size, self.max_seq_len]
+    self.labels = tf.placeholder(
+            # TODO: idk about this dtype stuff
+            dtype=tf.float32, shape=label_shape, name="labels",
+    )
+    self.lossmask = tf.placeholder(
+        dtype=tf.float32, shape=label_shape, name='lossmask',
+    )
 
+  def _build_embedding_inputs(self):
     embedding_dat = [
-        ('product', hps.product_embedding_size, N_PRODUCTS),
-        ('aisle', hps.aisle_embedding_size, N_AISLES),
-        ('dept', hps.dept_embedding_size, N_DEPARTMENTS),
+        ('product', self.hps.product_embedding_size, N_PRODUCTS),
+        ('aisle', self.hps.aisle_embedding_size, N_AISLES),
+        ('dept', self.hps.dept_embedding_size, N_DEPARTMENTS),
     ]
     input_embeddings = []
     for (name, size, n_values) in embedding_dat:
@@ -73,6 +81,7 @@ class RNNModel(object):
           'Embeddings/{}_norm'.format(name), tf.norm(embeddings, axis=1)
           )
       idname = '{}_ids'.format(name)
+      # XXX: non-placeholder case
       input_ids = tf.placeholder(
         dtype=tf.int32, shape=[self.hps.batch_size], name=idname)
       setattr(self, idname, input_ids)
@@ -82,23 +91,28 @@ class RNNModel(object):
           max_norm=None, # TODO: experiment with this param
       )
       lookuped = tf.reshape(lookuped, [self.hps.batch_size, 1, size])
-      lookuped = tf.tile(lookuped, [1, self.hps.max_seq_len, 1])
+      lookuped = tf.tile(lookuped, [1, self.max_seq_len, 1])
       input_embeddings.append(lookuped)
-    if input_embeddings:
-      cell_input = tf.concat([self.input_data]+input_embeddings, 2)
+    return input_embeddings
 
-    label_shape = [hps.batch_size, hps.max_seq_len]
-    self.labels = tf.placeholder(
-            # TODO: idk about this dtype stuff
-            dtype=tf.float32, shape=label_shape, name="labels",
-    )
-    self.lossmask = tf.placeholder(
-        dtype=tf.float32, shape=label_shape, name='lossmask',
-    )
+  def build_model(self, inputs):
+    hps = self.hps
+    if self.hps.is_training:
+      self.global_step = tf.Variable(0, name='global_step', trainable=False)
+    self.cell = self._build_cell()
+    if not inputs:
+      self._build_placeholder_inputs()
+    else:
+      raise NotImplemented
+    self.max_seq_len = tf.shape(self.input_data)[1]
+    cell_input = self.input_data
 
-    self.initial_state = self.cell.zero_state(batch_size=hps.batch_size,
+    embedding_inputs = self._build_embedding_inputs()
+    if embedding_inputs:
+      cell_input = tf.concat([self.input_data]+embedding_inputs, 2)
+
+    initial_state = self.cell.zero_state(batch_size=self.hps.batch_size,
             dtype=tf.float32)
-    
     output, last_state = tf.nn.dynamic_rnn(
             self.cell, 
             cell_input,
@@ -107,16 +121,15 @@ class RNNModel(object):
             # happens if it isn't provided. Probably just the zero state,
             # so this isn't necessary. But whatever.
             # yeah, source says zeros. But TODO should prooobably be documented?
-            initial_state=self.initial_state,
+            initial_state=initial_state,
             dtype=tf.float32,
     )
     # TODO: would like to log forgettitude, but this seems quite tricky. :(
-
     with tf.variable_scope('RNN'):
       output_w = tf.get_variable('output_w', [self.hps.rnn_size, 1])
       output_b = tf.get_variable('output_b', [1])
     
-    output = tf.reshape(output, [-1, hps.rnn_size])
+    output = tf.reshape(output, [-1, self.hps.rnn_size])
     logits = tf.nn.xw_plus_b(output, output_w, output_b)
     logits = tf.reshape(logits, label_shape)
     self.logits = logits
@@ -145,7 +158,6 @@ class RNNModel(object):
     
     self.cost = tf.reduce_mean(loss_per_seq)
     self.total_cost = self.cost
-    #self.cost = tf.reduce_mean(loss)
     if self.hps.l2_weight:
       tvs = tf.trainable_variables()
       # Penalize everything except for biases
