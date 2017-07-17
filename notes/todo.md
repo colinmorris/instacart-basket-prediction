@@ -35,6 +35,8 @@ so we could even just zero out the loss for those first n timesteps.)
   so, like, some kind of straightforward hill-climbing algorithm should work?
 - worth thinking about: how confident are you that your loss fn correlates with fscore on the task?
 - may want to redist some more users into the test set? Might make fscore estimates less noisy.
+  - a simple way of padding n test users would be to include predictions for penultimate orders (or even further back)
+  - could also use validation set. I don't think there's much risk I've overfitted to that at this point. Main problem is just that generating predictions is pretty darn slow right now.
 - it's possible probability predictions are not calibrated/have some bias. Just for fun, worth
   trying predictions with some fixed bias on the calculated 'optimal' threshold.
   
