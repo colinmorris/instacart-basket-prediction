@@ -5,12 +5,12 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from insta_pb2 import User
-import features
-from features import FEATURES, NFEATS
-from constants import NONE_PRODUCTID
-import utils
-import common
+from baskets.insta_pb2 import User
+from baskets import features
+from baskets.features import FEATURES, NFEATS
+from baskets.constants import NONE_PRODUCTID
+from baskets import utils
+from baskets import common
 
 class Batcher(object):
   def __init__(self, hps, recordpath, in_media_res=False, testmode=False, finetune=False):

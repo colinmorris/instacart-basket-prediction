@@ -2,9 +2,9 @@ import pickle
 import logging
 import os
 
-import rnnmodel
-import utils
-import common
+from baskets import rnnmodel
+from baskets import utils
+from baskets import common
 
 def feed_dict_for_batch(batch, model):
   """where batch is a thing returned by a Batcher"""

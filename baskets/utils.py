@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 
-import common
-from common import CHECKPOINT_DIR
+from baskets import common
+from baskets.common import CHECKPOINT_DIR
 
 def load_checkpoint(sess, checkpoint_path):
   saver = tf.train.Saver(tf.global_variables())

@@ -4,9 +4,9 @@ import numpy as np
 import logging
 import pickle
 
-import constants
-from results import OrderResults, Results
-from predictor import BasePredictor
+from baskets import constants
+from baskets.results import OrderResults, Results
+from baskets.predictor import BasePredictor
 
 class Evaluator(object):
 

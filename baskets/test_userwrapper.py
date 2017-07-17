@@ -6,11 +6,11 @@ import os
 import numpy as np
 import numpy.testing as npt
 
-from insta_pb2 import User
-import batch_helpers
-from batch_helpers import UserWrapper
-import features as feats
-import common
+from baskets.insta_pb2 import User
+from baskets import batch_helpers
+from baskets.batch_helpers import UserWrapper
+from baskets import features as feats
+from baskets import common
 
 TEST_UID = 2455
 userinfo = dict(

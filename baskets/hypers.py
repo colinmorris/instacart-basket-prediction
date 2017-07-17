@@ -1,7 +1,9 @@
+import os
+import logging
 
 from tensorflow.contrib.training import HParams
 
-from features import NFEATS, FEATURES
+from baskets.features import NFEATS, FEATURES
 
 """TODO: there are really two distinct kinds of parameters conflated here.
 1) Model parameters, which are immutable, e.g. rnn_size, feats, product_embedding_size
@@ -114,7 +116,7 @@ class NoConfigException(Exception):
   pass
 
 def hps_for_tag(tag, try_full=True, fallback_to_default=True):
-  hps = rnnmodel.get_default_hparams()
+  hps = get_default_hparams()
   config_path = 'configs/{}.json'.format(tag)
   if try_full:
     full_config_path = 'configs/{}_full.json'.format(tag)

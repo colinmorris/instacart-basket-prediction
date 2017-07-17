@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from baskets import rnn
-from constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
+from baskets.constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 
 class RNNModel(object):
 

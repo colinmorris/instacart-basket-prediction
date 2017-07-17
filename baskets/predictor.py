@@ -4,9 +4,9 @@ import tensorflow as tf
 
 from scipy.special import expit
 
-from constants import NONE_PRODUCTID
-import fscore as fscore_helpers
-import clever_fscore as clever
+from baskets.constants import NONE_PRODUCTID
+import baskets.fscore as fscore_helpers
+import baskets.clever_fscore as clever
 
 class BasePredictor(object):
 
