@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from basket_db import BasketDB
-from insta_pb2 import User, Order
+from baskets.insta_pb2 import User, Order
 
 USER_LIMIT = 0
 LOAD_CACHED = 1
