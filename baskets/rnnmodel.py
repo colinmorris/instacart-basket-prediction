@@ -15,39 +15,38 @@ class RNNModel(object):
     with tf.variable_scope('instarnn', reuse=reuse):
       self.build_model()
 
+  def _build_cell(self):
+    cell_kwargs = dict(forget_bias=1.0)
+    # this looks superficially interesting: 
+    #   https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/TimeFreqLSTMCell
+    if self.hps.cell == 'lstm':
+      cellfn = rnn.LSTMCell
+    elif self.hps.cell == 'basiclstm':
+      cellfn = tf.nn.rnn_cell.BasicLSTMCell
+      if self.hps.use_recurrent_dropout:
+        tf.logging.warning('Dropout not implemented for cell type basiclstm')
+    elif self.hps.cell == 'layer_norm':
+      cellfn = rnn.LayerNormLSTMCell
+    elif self.hps.cell == 'hyper':
+      cellfn = rnn.HyperLSTMCell
+    elif self.hps.cell == 'peephole':
+      cellfn = tf.nn.rnn_cell.LSTMCell
+      cell_kwargs['use_peepholes'] = True
+    else:
+      assert False, 'please choose a *respectable* cell type'
+    if self.hps.cell not in ('basiclstm', 'peephole'):
+      cell_kwargs['use_recurrent_dropout'] = self.hps.use_recurrent_dropout
+      cell_kwargs['dropout_keep_prob'] = self.hps.recurrent_dropout_prob
+    cell = cellfn(self.hps.rnn_size, **cell_kwargs)
+    if self.hps.cell in ('basiclstm', 'peephole'):
+      cell = tf.nn.rnn_cell.DropoutWrapper(cell, state_keep_prob=self.hps.recurrent_dropout_prob)
+    return cell
+
   def build_model(self):
     hps = self.hps
     if hps.is_training:
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
-
-    cell_kwargs = dict(forget_bias=1.0)
-    # TODO: later look at LSTMCell, which enables peephole + projection layer
-    # Also, this looks superficially interesting: 
-    #   https://www.tensorflow.org/api_docs/python/tf/contrib/rnn/TimeFreqLSTMCell
-    if hps.cell == 'lstm':
-      cellfn = rnn.LSTMCell
-    elif hps.cell == 'basiclstm':
-      cellfn = tf.nn.rnn_cell.BasicLSTMCell
-      if hps.use_recurrent_dropout:
-        tf.logging.warning('Dropout not implemented for cell type basiclstm')
-    elif hps.cell == 'layer_norm':
-      cellfn = rnn.LayerNormLSTMCell
-    elif hps.cell == 'hyper':
-      cellfn = rnn.HyperLSTMCell
-    elif hps.cell == 'peephole':
-      cellfn = tf.nn.rnn_cell.LSTMCell
-      cell_kwargs['use_peepholes'] = True
-
-    else:
-      assert False, 'please choose a *respectable* cell type'
-    if hps.cell not in ('basiclstm', 'peephole'):
-      cell_kwargs['use_recurrent_dropout'] = hps.use_recurrent_dropout
-      cell_kwargs['dropout_keep_prob'] = hps.recurrent_dropout_prob
-    self.cell = cellfn(hps.rnn_size, **cell_kwargs)
-    if hps.cell in ('basiclstm', 'peephole'):
-      self.cell = tf.nn.rnn_cell.DropoutWrapper(
-          self.cell, state_keep_prob=hps.recurrent_dropout_prob)
-
+    self.cell = self._build_cell()
     self.sequence_lengths = tf.placeholder(
         dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",
     )
