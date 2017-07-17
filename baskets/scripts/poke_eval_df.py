@@ -10,6 +10,7 @@ import utils
 import evaluator
 from batch_helpers import iterate_wrapped_users, UserWrapper
 from insta_pb2 import User
+import hypers
 
 def _get_df(user, predictor):
   prods = user.all_pids
@@ -25,7 +26,7 @@ def _get_df(user, predictor):
 
 
 def get_eval_df(checkpoint_path="checkpoints/jul1", config='jul1.json'):
-  hps = rnnmodel.get_toy_hparams()
+  hps = hypers.get_default_hparams()
   if config:
     with open(config) as f:
       hps.parse_json(f.read())

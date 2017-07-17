@@ -1,8 +1,11 @@
+"""Calculates fscore on a given set of users using predictions generated according
+to some model's predictions.
+"""
 import time
 import argparse
 import numpy as np
 
-import model_helpers as helpers
+import common
 import predictor as pred
 import rnnmodel
 import evaluator
@@ -37,13 +40,12 @@ def main():
     predictors['baseline'] = pred.PreviousOrderPredictor()
 
   for tag in args.tags:
-    pmap = helpers.pdict_for_tag(tag, args.recordfile)
+    pmap = common.pdict_for_tag(tag, args.recordfile)
     if args.tp:
       predictors['{}-tp'.format(tag)] = pred.ThresholdPredictor(pmap, args.thresh)
     if args.montecarlo:
       predictors['{}-mc'.format(tag)] = \
           pred.HybridThresholdPredictor(pmap, ntrials=args.mc_trials, save=args.save)
-          #pred.MonteCarloThresholdPredictor(pmap, ntrials=args.mc_trials)
 
   assert predictors
 

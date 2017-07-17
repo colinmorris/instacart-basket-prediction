@@ -2,10 +2,9 @@ import pickle
 import logging
 import os
 
-from tensorflow.contrib.training import HParams
-
 import rnnmodel
 import utils
+import common
 
 def feed_dict_for_batch(batch, model):
   """where batch is a thing returned by a Batcher"""
@@ -23,45 +22,6 @@ def feed_dict_for_batch(batch, model):
   if model.hps.dept_embedding_size:
     feed[model.dept_ids] = dids
   return feed
-
-class NoConfigException(Exception):
-  pass
-
-def hps_for_tag(tag, try_full=True, fallback_to_default=True):
-  hps = rnnmodel.get_default_hparams()
-  config_path = 'configs/{}.json'.format(tag)
-  if try_full:
-    full_config_path = 'configs/{}_full.json'.format(tag)
-    if os.path.exists(full_config_path):
-      with open(full_config_path) as f:
-        hps.parse_json(f.read())
-      return hps
-  if os.path.exists(config_path):
-    with open(config_path) as f:
-      hps.parse_json(f.read())
-  else:
-    if fallback_to_default:
-      logging.warn('No config file found for tag {}. Using default hps.'.format(tag))
-    else:
-      raise NoConfigException
-  return hps
-
-def copy_hps(hps):
-  return HParams(**hps.values())
-
-def pdict_for_tag(tag, recordfile):
-  path = _path_for_pdict(tag, recordfile)
-  with open(path) as f:
-    return pickle.load(f)
-def _path_for_pdict(tag, recordfile):
-  if recordfile != 'test.tfrecords':
-    suffix = '_' + recordfile.split('.')[0]
-    tag += suffix
-  return 'pdicts/{}.pickle'.format(tag)
-def save_pdict_for_tag(tag, pdict, recordfile):
-  path = _path_for_pdict(tag, recordfile)
-  with open(path, 'w') as f:
-    pickle.dump(dict(pdict), f)
 
 def load_checkpoint_for_tag(tag, sess):
   cpkt_path = 'checkpoints/{}'.format(tag)

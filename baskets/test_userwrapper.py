@@ -2,6 +2,7 @@ from __future__ import division
 
 import pytest
 import math
+import os
 import numpy as np
 import numpy.testing as npt
 
@@ -9,6 +10,7 @@ from insta_pb2 import User
 import batch_helpers
 from batch_helpers import UserWrapper
 import features as feats
+import common
 
 TEST_UID = 2455
 userinfo = dict(
@@ -29,7 +31,8 @@ HHID = 27086 # pid for half-and-half
 @pytest.fixture(scope='module')
 def user_pb():
   u = User()
-  with open('testuser.pb') as f:
+  testuser_path = os.path.join(common.DATA_DIR, 'testuser.pb')
+  with open(testuser_path) as f:
     u.ParseFromString(f.read())
   return u
 

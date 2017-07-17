@@ -1,15 +1,14 @@
-
 import time
 import csv
 import argparse
 import numpy as np
 
-import model_helpers as helpers
+import common
 import batch_helpers
 import predictor as pred
 
 def main():
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(description="Generate a Kaggle submission file")
   parser.add_argument('tag')
   parser.add_argument('--recordfile', default='ktest.tfrecords', 
       help='tfrecords file with the users to make predictions on (default: ktest.tfrecords)')
@@ -29,7 +28,7 @@ def main():
   def predcol(pids):
     stringify = lambda pid: 'None' if pid == -1 else str(pid)
     return ' '.join(map(stringify, pids))
-  pmap = helpers.pdict_for_tag(args.tag, args.recordfile)
+  pmap = common.pdict_for_tag(args.tag, args.recordfile)
   predictor = pred.HybridThresholdPredictor(pmap, ntrials=args.mc_trials)
   for i, user in enumerate(user_iterator):
     predicted = predictor.predict_last_order(user)

@@ -16,6 +16,7 @@ from tensorflow.python.client import timeline
 import rnnmodel
 import utils
 import model_helpers
+import hypers
 from rnnmodel import RNNModel
 from batch_helpers import Batcher
 
@@ -199,7 +200,7 @@ def main():
   # TODO: semantics of -f, -r, and base/_full config files have become muddled
   # If -f is passed in, we'll load the original base config file, and
   # (potentially) overwrite the '_full' version with new inherited defaults.
-  hps = model_helpers.hps_for_tag(args.tag, try_full=(not args.force),
+  hps = hypers.hps_for_tag(args.tag, try_full=(not args.force),
       fallback_to_default=False)
 
   # Write out the full hps, including the ones inherited from defaults. Because
@@ -224,7 +225,7 @@ def main():
       finetune=args.finetune
       )
 
-  eval_hps = model_helpers.copy_hps(hps)
+  eval_hps = hypers.copy_hps(hps)
   eval_hps.use_recurrent_dropout = False
   eval_recordfname = 'eval.tfrecords'
   eval_batcher = Batcher(eval_hps, eval_recordfname, finetune=args.finetune)

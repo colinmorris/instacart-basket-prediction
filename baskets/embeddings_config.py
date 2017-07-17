@@ -10,6 +10,8 @@ from tensorflow.contrib.tensorboard.plugins import projector
 import csv
 import sys
 
+from baskets import common
+
 tag = sys.argv[1]
 
 EMBS = [
@@ -19,8 +21,8 @@ EMBS = [
 ]
 
 def copy_embedding_metadata(name, csv_fname):
-  f_csv = open('dat/'+csv_fname)
-  fout = open('logs/{}/{}.tsv'.format(tag, name), 'w')
+  f_csv = open(common.csv_path(csv_fname))
+  fout = open('{}/{}/{}.tsv'.format(common.LOG_DIR, tag, name), 'w')
   reader = csv.reader(f_csv)
   reader.next() # Skip header
   for row in reader:
@@ -37,5 +39,5 @@ for (name, csv_name) in EMBS:
   emb.tensor_name = 'instarnn/{}_embeddings'.format(name)
   emb.metadata_path = '{}.tsv'.format(name)
 
-summ_writer = tf.summary.FileWriter('logs/{}'.format(tag))
+summ_writer = tf.summary.FileWriter(common.logdir_for_tag(tag))
 projector.visualize_embeddings(summ_writer, config)

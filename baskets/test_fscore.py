@@ -4,8 +4,8 @@ import numpy as np
 import tensorflow as tf
 import pytest
 
-import fscore as fsc
-import clever_fscore as cfsc
+import baskets.fscore as fsc
+import baskets.clever_fscore as cfsc
 
 @pytest.fixture()
 def sess():

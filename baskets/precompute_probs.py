@@ -9,6 +9,7 @@ from collections import defaultdict
 
 import rnnmodel
 import model_helpers
+import common
 import batch_helpers as bh
 
 def get_probmap(batcher, model, sess, userlimit):
@@ -74,8 +75,7 @@ def precompute_probs_for_tag(tag, args):
 
   t0 = time.time()
   probmap = get_probmap(batcher, model, sess, args.n_users)
-  suffix = None
-  model_helpers.save_pdict_for_tag(tag, probmap, args.recordfile)
+  common.save_pdict_for_tag(tag, probmap, args.recordfile)
   elapsed = time.time() - t0
   tf.logging.info("Finished in {:.1f}s".format(elapsed))
   sess.close()
