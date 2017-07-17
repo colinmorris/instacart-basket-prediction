@@ -41,6 +41,7 @@ so we could even just zero out the loss for those first n timesteps.)
   trying predictions with some fixed bias on the calculated 'optimal' threshold.
 - when measuring loss on validation set, would be interesting to compare micro vs.
   macro-averaged (i.e. avg. over all users vs. average of average per user)
+- compare train vs. validation loss (how have you not thought to look at this yet?)
   
 # Architecture
 - lots of technical fiddly parameters to play with
