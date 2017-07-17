@@ -8,6 +8,7 @@ ROOT = os.path.realpath(os.path.join(_thisdir, '..'))
 DATA_DIR = os.path.join(ROOT, 'dat')
 PDICT_DIR = os.path.join(DATA_DIR, 'pdicts')
 USER_PB_DIR = os.path.join(DATA_DIR, 'user_pbs')
+VECTOR_DIR = os.path.join(DATA_DIR, 'vectors')
 
 CONFIG_DIR = os.path.join(ROOT, 'configs')
 
@@ -20,6 +21,15 @@ def resolve_recordpath(recordpath):
     # Hope you know what you're doing
     return recordpath
   return os.path.join(USER_PB_DIR, recordpath)
+
+def resolve_vector_recordpath(recordpath):
+  if '/' in recordpath:
+    # Hope you know what you're doing
+    return recordpath
+  ext = '.tfrecords'
+  if not recordpath.endswith(ext):
+    recordpath += ext
+  return os.path.join(VECTOR_DIR, recordpath)
 
 def logdir_for_tag(tag):
   return os.path.join(LOG_DIR, tag)

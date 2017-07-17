@@ -11,6 +11,7 @@ from baskets import batch_helpers
 from baskets.batch_helpers import UserWrapper
 from baskets import features as feats
 from baskets import common
+from baskets.test_helpers import user
 
 TEST_UID = 2455
 userinfo = dict(
@@ -27,19 +28,6 @@ userinfo = dict(
       47630, 26209],
 )
 HHID = 27086 # pid for half-and-half
-
-@pytest.fixture(scope='module')
-def user_pb():
-  u = User()
-  testuser_path = os.path.join(common.DATA_DIR, 'testuser.pb')
-  with open(testuser_path) as f:
-    u.ParseFromString(f.read())
-  return u
-
-@pytest.fixture()
-def user(user_pb):
-  return UserWrapper(user_pb)
-
 
 def test_userwrapper_props(user):
   assert user.norders == userinfo['norders']
