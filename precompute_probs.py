@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 import os
 import argparse
-import time
 import pickle
 import tensorflow as tf
 import numpy as np
 from scipy.special import expit
 from collections import defaultdict
 
-import rnnmodel
-import model_helpers
-import common
-import batch_helpers as bh
+from baskets import rnnmodel
+from baskets import model_helpers
+from baskets import common
+from baskets import batch_helpers as bh
+from baskets.time_me import time_me
 
 def get_probmap(batcher, model, sess, userlimit):
   # {uid -> {pid -> prob}}
@@ -57,7 +57,8 @@ def main():
 
   for tag in args.tags:
     tf.logging.info('Computing probs for tag {}'.format(tag))
-    precompute_probs_for_tag(tag, args)
+    with time_me('Computed probs for {}'.format(tag)):
+      precompute_probs_for_tag(tag, args)
 
 def precompute_probs_for_tag(tag, args):
   hps = model_helpers.hps_for_tag(tag)
@@ -74,13 +75,11 @@ def precompute_probs_for_tag(tag, args):
     tf.logging.info('Running in test mode')
   batcher = bh.Batcher(hps, args.recordfile, testmode=testmode)
 
-  t0 = time.time()
   probmap = get_probmap(batcher, model, sess, args.n_users)
   common.save_pdict_for_tag(tag, probmap, args.recordfile)
-  elapsed = time.time() - t0
-  tf.logging.info("Finished in {:.1f}s".format(elapsed))
   sess.close()
   tf.reset_default_graph()
 
 if __name__ == '__main__':
-  main()
+  with time_me():
+    main()
