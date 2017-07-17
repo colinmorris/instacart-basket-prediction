@@ -29,7 +29,7 @@ The pipeline begins with the data files provided by Kaggle (orders.csv, order_pr
 
 ## Training a model
 
-`runner.py` trains a model, given a config file. It saves checkpoints and tensorboard logging to the `checkpoints` and `logs` subdirectories, respectively.
+`train.py` trains a model, given a config file. It saves checkpoints and tensorboard logging to the `checkpoints` and `logs` subdirectories, respectively.
 
 ## Evaluating the model
 
