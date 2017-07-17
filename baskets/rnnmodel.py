@@ -4,7 +4,7 @@ from __future__ import absolute_import, division
 import numpy as np
 import tensorflow as tf
 
-import rnn
+from baskets import rnn
 from constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 
 class RNNModel(object):

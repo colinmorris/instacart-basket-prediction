@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 
-CHECKPOINT_DIR = 'checkpoints'
+import common
+from common import CHECKPOINT_DIR
 
 def load_checkpoint(sess, checkpoint_path):
   saver = tf.train.Saver(tf.global_variables())
@@ -12,8 +13,8 @@ def load_checkpoint(sess, checkpoint_path):
   saver.restore(sess, ckpt.model_checkpoint_path)
 
 
-def save_model(sess, identifier, global_step):
-  model_save_path = os.path.join(CHECKPOINT_DIR, identifier)
+def save_model(sess, tag, global_step):
+  model_save_path = os.path.join(CHECKPOINT_DIR, tag)
   if not os.path.exists(model_save_path):
     os.mkdir(model_save_path)
   saver = tf.train.Saver(tf.global_variables())
@@ -26,7 +27,8 @@ _product_df = None
 def load_product_df():
   global _product_df
   if _product_df is None:
-    _product_df =  pd.read_csv('dat/products.csv',
+    path = common.csv_path('products.csv')
+    _product_df =  pd.read_csv(path,
         dtype={'product_id': np.int32, 'aisle_id': np.int32, 'department_id': np.int8},
         usecols=['product_id', 'aisle_id', 'department_id'],
         )

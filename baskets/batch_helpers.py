@@ -10,6 +10,7 @@ import features
 from features import FEATURES, NFEATS
 from constants import NONE_PRODUCTID
 import utils
+import common
 
 class Batcher(object):
   def __init__(self, hps, recordpath, in_media_res=False, testmode=False, finetune=False):
@@ -17,7 +18,7 @@ class Batcher(object):
     The vectors we output should include the users' final orders (for which
     we don't know the ground truth labels)."""
     self.hps = hps
-    self.recordpath = recordpath
+    self.recordpath = common.resolve_recordpath(recordpath)
     self.batch_size = hps.batch_size
     self.nfeats = hps.nfeats
     self.testmode = testmode
@@ -36,7 +37,8 @@ class Batcher(object):
       self.product_df = utils.load_product_df()
     self.reset_record_iterator()
     if in_media_res:
-      assert recordpath == 'train.tfrecords', "Don't know how many records in {}".format(recordpath)
+      assert recordpath.endswith('train.tfrecords'), \
+        "Don't know how many records in {}".format(recordpath)
       self.random_seek()
 
   def random_seek(self):
@@ -146,6 +148,7 @@ class Batcher(object):
           
 
 def iterate_wrapped_users(recordpath):
+  recordpath = common.resolve_recordpath(recordpath)
   records = tf.python_io.tf_record_iterator(recordpath)
   for record in records:
     user = User()

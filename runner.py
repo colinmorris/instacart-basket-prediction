@@ -14,12 +14,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.client import timeline
 
-import rnnmodel
-import utils
-import model_helpers
-import hypers
-from rnnmodel import RNNModel
-from batch_helpers import Batcher
+from baskets import rnnmodel
+from baskets import utils
+from baskets import model_helpers
+from baskets import hypers
+from baskets.rnnmodel import RNNModel
+from baskets.batch_helpers import Batcher
 
 
 EVAL_PIDS_PER_USER = 2
