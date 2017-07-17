@@ -19,12 +19,14 @@ def main():
   # TODO: minor(?) memory optimization: don't need to load ops
 
   if LOAD_CACHED:
+    # (I can't find any code that actually computes+caches these. Guess it was a one-off)
     uid_to_oids = pd.read_pickle('uid_to_oids.pickle')
     oid_to_pids = pd.read_pickle('oid_to_pids.pickle')
   else:
     ops = db.ops
     uid_to_oids = orders.groupby('user_id')['order_id'].apply(list)
-    oid_to_pids = ops.groupby('order_id')['product_id'].apply(list)
+    oid_to_pids = ops.sort_values(['order_id', 'add_to_cart_order'])\
+        .groupby('order_id')['product_id'].apply(list)
   print "Done lookups"
 
   writer = tf.python_io.TFRecordWriter('users.tfrecords')
@@ -35,13 +37,13 @@ def main():
     # Orders ordered chronologically. Fuck the English language btw.
     ordered_orders = orders.loc[oids].sort_values('order_number')
     for oid, orow in ordered_orders.iterrows():
-      if orow.eval_set == 'test':
+      test = orow.eval_set == 'test'
+      if test:
         user.test = True
-        # Skip any orders in the test set, since we don't have 
-        # ground truth labels for them.
-        # TODO: Maybe these should be written to a different file?
-        continue
-      order = user.orders.add()
+        order = user.testorder
+        #order = Order()
+      else:
+        order = user.orders.add()
       order.orderid = oid
       order.nth = orow.order_number
       order.dow = orow.order_dow
@@ -49,10 +51,13 @@ def main():
       days = orow.days_since_prior_order
       if not pd.isnull(days):
         order.days_since_prior = int(days)
-      try:
+      # If this is a test order, products gets left empty. We don't
+      # know which products are in this order.
+      if test:
+        #user.testorder = order
+        pass
+      else:
         order.products.extend(oid_to_pids.loc[oid])
-      except KeyError:
-        assert MINI
 
     writer.write(user.SerializeToString())
     if uid == TEST_UID:
