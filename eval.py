@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Calculates fscore on a given set of users using predictions generated according
 to some model's predictions.
 """

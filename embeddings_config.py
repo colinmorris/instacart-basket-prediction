@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 To enable the embedding visualization stuff in TensorBoard, run this and then copy
 the contents of the checkpoint dir for your model to the corresponding log dir.
