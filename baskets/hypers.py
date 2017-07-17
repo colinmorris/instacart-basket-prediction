@@ -73,8 +73,6 @@ def get_default_hparams():
       # (Though, because of how sampling is done, probably at least like
       # 75% of the data would still be unseen by the model after that many steps.)
       num_steps=10000,
-      # TODO: If I remove keys from here, will it break anything? idts.
-      product_embeddings=True, # XXX: deprecated. Set size to 0 instead.
       product_embedding_size=32,
       # Embeddings for aisle and department (22 depts, 135 aisles in dataset)
       # Set to 0 to disable these embeddings.
@@ -87,10 +85,7 @@ def get_default_hparams():
       # (because of sparse training signal, more potential for vanishing/
       # exploding gradients?)
       grad_clip=0.0, 
-      # Did a run with weight = .0001 and that seemed too strong.
-      # Mean l1 weight of embeddings was .01, max=.4. Mean l2 norm = .005 
-      embedding_l2_cost=.00001, # XXX: deprecated
-      # Scaling factor for L2 penalty applied to all trainable weights (minus biases).
+      # Scaling factor for L2 penalty applied to all trainable weights (save biases).
       l2_weight=.00001,
       # Dropout. This seems to help a fair bit!
       use_recurrent_dropout=True,

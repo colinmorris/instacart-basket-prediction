@@ -147,9 +147,6 @@ class RNNModel(object):
     self.cost = tf.reduce_mean(loss_per_seq)
     self.total_cost = self.cost
     #self.cost = tf.reduce_mean(loss)
-    if 0 and self.hps.product_embeddings:
-      self.weight_penalty = self.hps.embedding_l2_cost * tf.nn.l2_loss(product_embeddings)
-      self.total_cost = tf.add(self.cost, self.weight_penalty)
     if self.hps.l2_weight:
       tvs = tf.trainable_variables()
       # Penalize everything except for biases
