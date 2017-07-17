@@ -173,18 +173,3 @@ class TestBatcher(object):
     return (ts['x'], ts['labels'], ts['seqlen'], ts['lossmask'],
         ts['pindex'], ts['aisle_id'], ts['dept_id'], [self.user.uid])
 
-
-def vectorize(df, user, maxlen, features=None, nfeats=None):
-  features = features or FEATURES # Default to all of them
-  nfeats = nfeats or NFEATS
-  res = np.zeros([maxlen, nfeats])
-  i = 0
-  seqlen = len(df) 
-  for feat in features:
-    featvals = feat.fn(df, user)
-    if feat.arity == 1:
-      res[:seqlen,i] = featvals
-    else:
-      res[:seqlen,i:i+feat.arity] = featvals
-    i += feat.arity
-  return res

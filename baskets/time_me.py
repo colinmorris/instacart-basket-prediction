@@ -7,5 +7,5 @@ def time_me(what_i_did='Finished'):
   t0 = time.time()
   yield
   t1 = time.time()
-  msg = '{} in {:.1f}s'.format(t1-t0)
+  msg = '{} in {:.1f}s'.format(what_i_did, t1-t0)
   tf.logging.info(msg)

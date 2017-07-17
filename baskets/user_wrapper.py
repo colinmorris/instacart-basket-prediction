@@ -4,6 +4,7 @@ import numpy as np
 import itertools
 
 from baskets.insta_pb2 import User
+from baskets.features import FEATURES, NFEATS
 
 class UserWrapper(object):
   """Wrapper around User protobuf objs.
@@ -152,3 +153,18 @@ class UserWrapper(object):
       res['aisle_id'] = aid-1
       res['dept_id'] = did-1
     return res
+
+def vectorize(df, user, maxlen, features=None, nfeats=None):
+  features = features or FEATURES # Default to all of them
+  nfeats = nfeats or NFEATS
+  res = np.zeros([maxlen, nfeats])
+  i = 0
+  seqlen = len(df) 
+  for feat in features:
+    featvals = feat.fn(df, user)
+    if feat.arity == 1:
+      res[:seqlen,i] = featvals
+    else:
+      res[:seqlen,i:i+feat.arity] = featvals
+    i += feat.arity
+  return res

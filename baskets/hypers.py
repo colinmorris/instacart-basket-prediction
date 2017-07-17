@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 
 from tensorflow.contrib.training import HParams
