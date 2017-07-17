@@ -39,6 +39,8 @@ so we could even just zero out the loss for those first n timesteps.)
   - could also use validation set. I don't think there's much risk I've overfitted to that at this point. Main problem is just that generating predictions is pretty darn slow right now.
 - it's possible probability predictions are not calibrated/have some bias. Just for fun, worth
   trying predictions with some fixed bias on the calculated 'optimal' threshold.
+- when measuring loss on validation set, would be interesting to compare micro vs.
+  macro-averaged (i.e. avg. over all users vs. average of average per user)
   
 # Architecture
 - lots of technical fiddly parameters to play with
