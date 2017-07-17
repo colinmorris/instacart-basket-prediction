@@ -2,7 +2,7 @@
 """
 import os
 
-ROOT = os.path.realpath('../..')
+ROOT = os.path.realpath('..')
 
 DATA_DIR = os.path.join(ROOT, 'dat')
 PDICT_DIR = os.path.join(DATA_DIR, 'pdicts')

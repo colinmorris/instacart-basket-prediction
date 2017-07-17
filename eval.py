@@ -5,11 +5,11 @@ import time
 import argparse
 import numpy as np
 
-import common
-import predictor as pred
-import rnnmodel
-import evaluator
-from batch_helpers import iterate_wrapped_users
+from baskets import common
+from baskets import predictor as pred
+from baskets import rnnmodel
+from baskets import evaluator
+from baskets.batch_helpers import iterate_wrapped_users
 
 def main():
   parser = argparse.ArgumentParser()
