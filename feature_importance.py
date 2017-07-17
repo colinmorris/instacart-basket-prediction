@@ -5,10 +5,7 @@ import tensorflow as tf
 import numpy as np
 from scipy.special import expit
 
-import model_helpers
-import batch_helpers
-import rnnmodel
-import features
+from baskets import model_helpers, batch_helpers, rnnmodel, features, common, hypers
 
 def get_featslice(featname):
   start = 0
@@ -82,7 +79,7 @@ if __name__ == '__main__':
   parser.add_argument('tag')
   args = parser.parse_args()
   
-  hps = model_helpers.hps_for_tag(args.tag)
+  hps = hypers.hps_for_tag(args.tag)
   hps.is_training = False
   hps.use_recurrent_dropout = False
   hps.batch_size = 1
@@ -91,7 +88,7 @@ if __name__ == '__main__':
   sess = tf.InteractiveSession()
   # Load pretrained weights
   tf.logging.info('Loading weights')
-  model_helpers.load_checkpoint_for_tag(args.tag, sess)
+  utils.load_checkpoint_for_tag(args.tag, sess)
 
   def explore_derivs(order=1, pid=19348):
     fds, logits = feat_deriv(order, model, sess, batcher, pid)

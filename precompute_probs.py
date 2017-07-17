@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from baskets import rnnmodel
 from baskets import model_helpers
+from baskets import utils
 from baskets import common
 from baskets import batch_helpers as bh
 from baskets.time_me import time_me
@@ -69,7 +70,7 @@ def precompute_probs_for_tag(tag, args):
   sess = tf.InteractiveSession()
   # Load pretrained weights
   tf.logging.info('Loading weights')
-  model_helpers.load_checkpoint_for_tag(tag, sess)
+  utils.load_checkpoint_for_tag(tag, sess)
   testmode = args.recordfile == 'ktest.tfrecords'
   if testmode:
     tf.logging.info('Running in test mode')

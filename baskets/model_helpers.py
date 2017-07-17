@@ -23,6 +23,3 @@ def feed_dict_for_batch(batch, model):
     feed[model.dept_ids] = dids
   return feed
 
-def load_checkpoint_for_tag(tag, sess):
-  cpkt_path = '{}/{}'.format(common.CHECKPOINT_PATH, tag)
-  utils.load_checkpoint(sess, cpkt_path)

@@ -4,6 +4,7 @@ import logging
 from tensorflow.contrib.training import HParams
 
 from baskets.features import NFEATS, FEATURES
+from baskets import common
 
 """TODO: there are really two distinct kinds of parameters conflated here.
 1) Model parameters, which are immutable, e.g. rnn_size, feats, product_embedding_size
@@ -107,27 +108,26 @@ def get_default_hparams():
       fully_specified=False, # Used for config file bookkeeping
   )
 
-class NoConfigException(Exception):
-  pass
-
-def hps_for_tag(tag, try_full=True, fallback_to_default=True):
+def hps_for_tag(tag, save_full=False):
   hps = get_default_hparams()
-  config_path = 'configs/{}.json'.format(tag)
-  if try_full:
-    full_config_path = 'configs/{}_full.json'.format(tag)
-    if os.path.exists(full_config_path):
-      with open(full_config_path) as f:
-        hps.parse_json(f.read())
-      return hps
-  if os.path.exists(config_path):
-    with open(config_path) as f:
-      hps.parse_json(f.read())
-  else:
-    if fallback_to_default:
-      logging.warn('No config file found for tag {}. Using default hps.'.format(tag))
-    else:
-      raise NoConfigException
+  config_path = '{}/{}.json'.format(common.CONFIG_DIR, tag)
+  with open(config_path) as f:
+    hps.parse_json(f.read())
+  if save_full:
+    full_hps = copy_hps(hps)
+    full_hps.fully_specified = True
+    basename = '{}_{}.json'.format(tag, int(time.time()))
+    full_path = os.path.join(common.CONFIG_DIR, 'full', basename)
+    with open(full_path, 'w') as f:
+      f.write(hps.to_json())
   return hps
+
+def as_eval(hps):
+  eval_hps = copy_hps(hps)
+  eval_hps.is_training = False
+  eval_hps.use_recurrent_dropout = False
+  return eval_hps
+
 
 def copy_hps(hps):
   return HParams(**hps.values())

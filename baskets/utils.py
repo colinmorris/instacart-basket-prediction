@@ -4,7 +4,10 @@ import numpy as np
 import tensorflow as tf
 
 from baskets import common
-from baskets.common import CHECKPOINT_DIR
+
+def load_checkpoint_for_tag(tag, sess):
+  cpkt_path = '{}/{}'.format(common.CHECKPOINT_DIR, tag)
+  load_checkpoint(sess, cpkt_path)
 
 def load_checkpoint(sess, checkpoint_path):
   saver = tf.train.Saver(tf.global_variables())
@@ -14,7 +17,7 @@ def load_checkpoint(sess, checkpoint_path):
 
 
 def save_model(sess, tag, global_step):
-  model_save_path = os.path.join(CHECKPOINT_DIR, tag)
+  model_save_path = os.path.join(common.CHECKPOINT_DIR, tag)
   if not os.path.exists(model_save_path):
     os.mkdir(model_save_path)
   saver = tf.train.Saver(tf.global_variables())

@@ -20,6 +20,7 @@ from baskets import model_helpers
 from baskets import hypers
 from baskets.rnnmodel import RNNModel
 from baskets.batch_helpers import Batcher
+from baskets.time_me import time_me
 
 
 EVAL_PIDS_PER_USER = 2
@@ -190,33 +191,14 @@ def main():
   parser.add_argument('tag')
   parser.add_argument('--recordfile', default='train.tfrecords', 
       help='tfrecords file with the users to train on (default: train.tfrecords)')
-  parser.add_argument('-f', '--force', action='store_true',
-      help='If a run with this tag exists, then overwrite it (or maybe it makes a new run side-by-side? I make no guarantees.')
   parser.add_argument('-r', '--resume', metavar='TAG',
       help='Load existing checkpoint with the given tag name and resume training')
   parser.add_argument('--profile', action='store_true')
   parser.add_argument('--finetune', action='store_true')
   parser.add_argument('--logdir', default='logs')
   args = parser.parse_args()
-  # TODO: semantics of -f, -r, and base/_full config files have become muddled
-  # If -f is passed in, we'll load the original base config file, and
-  # (potentially) overwrite the '_full' version with new inherited defaults.
-  hps = hypers.hps_for_tag(args.tag, try_full=(not args.force),
-      fallback_to_default=False)
 
-  # Write out the full hps, including the ones inherited from defaults. Because
-  # defaults can change over time, and mess us up. This is particularly true
-  # of features.
-  if not hps.fully_specified:
-    #assert not args.resume, "No full hp specification found for {}".format(args.tag)
-    hps.fully_specified = True
-    full_config_path = 'configs/{}_full.json'.format(args.tag)
-    with open(full_config_path, 'w') as f:
-      f.write( hps.to_json() )
-    print "Wrote full inherited hyperparams to {}".format(full_config_path)
-  else:
-    assert args.force, "This tag has been run before. Please specify --force"
-
+  hps = hypers.hps_for_tag(args.tag, save_full=True)
   tf.logging.info('Building model')
   model = RNNModel(hps)
   tf.logging.info('Loading batcher')
@@ -226,8 +208,7 @@ def main():
       finetune=args.finetune
       )
 
-  eval_hps = hypers.copy_hps(hps)
-  eval_hps.use_recurrent_dropout = False
+  eval_hps = hypers.as_eval(hps)
   eval_recordfname = 'eval.tfrecords'
   eval_batcher = Batcher(eval_hps, eval_recordfname, finetune=args.finetune)
   eval_model = RNNModel(eval_hps, reuse=True)
@@ -236,23 +217,20 @@ def main():
 
   run_metadata = None
   run_options = None
+  # TODO: I'll probably never try this again because reading the trace is slow af
   if args.profile:
     run_metadata = tf.RunMetadata()
     run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
 
   if args.resume:
     tf.logging.info('Loading saved weights')
-    cpkt = 'checkpoints/{}'.format(args.resume)
-    utils.load_checkpoint(sess, cpkt)
+    utils.load_checkpoint_for_tag(args.tag, sess)
   else:
     sess.run(tf.global_variables_initializer())
-  tf.logging.info('Training')
-  # TODO: maybe catch KeyboardInterrupt and save model before bailing? 
-  # Could be annoying in some cases.
-  t0 = time.time()
-  train(sess, model, batcher, args.tag, eval_batcher, eval_model, run_metadata, run_options, args.logdir)
-  t1 = time.time()
-  tf.logging.info('Completed training in {:.1f}s'.format(t1-t0))
+
+  with time_me("Completed training"):
+    train(sess, model, batcher, args.tag, eval_batcher, eval_model, 
+        run_metadata, run_options, args.logdir)
 
   if args.profile:
     tl = timeline.Timeline(run_metadata.step_stats)
