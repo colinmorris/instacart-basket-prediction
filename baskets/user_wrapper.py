@@ -27,8 +27,16 @@ class UserWrapper(object):
     return len(self.user.orders)
 
   @property
+  def nprods(self):
+    return len(self.all_pids)
+
+  @property
   def seqlen(self):
     return len(self.user.orders) - 1
+
+  @property
+  def istest(self):
+    return self.user.test
 
   @property
   def all_pids(self):
