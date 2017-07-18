@@ -130,7 +130,7 @@ def hps_for_tag(tag, save_full=False):
 
 def as_eval(hps):
   eval_hps = copy_hps(hps)
-  eval_hps.is_training = False
+  eval_hps.mode = Mode.eval
   eval_hps.use_recurrent_dropout = False
   return eval_hps
 

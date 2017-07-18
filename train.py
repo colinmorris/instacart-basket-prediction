@@ -23,7 +23,6 @@ from baskets.time_me import time_me
 from baskets.dataset import BasketDataset
 
 
-EVAL_PIDS_PER_USER = 2
 def evaluate_model(sess, model):
   # Start a fresh pass through the validation data
   sess.run(model.dataset.new_epoch_op())

@@ -16,6 +16,7 @@ class RNNModel(object):
     self.hps = hyperparams
     self.dataset = dataset
     self.summaries = []
+    self.batch_size = -1
     input_vars = dataset.model_input_dict()
     with tf.variable_scope('instarnn', reuse=reuse):
       self.build_model(input_vars)
@@ -94,7 +95,7 @@ class RNNModel(object):
           input_ids,
           max_norm=None, # TODO: experiment with this param
       )
-      lookuped = tf.reshape(lookuped, [self.hps.batch_size, 1, size])
+      lookuped = tf.reshape(lookuped, [self.batch_size, 1, size])
       lookuped = tf.tile(lookuped, [1, self.max_seq_len, 1])
       input_embeddings.append(lookuped)
     return input_embeddings
@@ -108,7 +109,8 @@ class RNNModel(object):
     # we're not using placeholders. But just lazily minimizing code changes.
     self.input_data = input_vars['features']
     self.max_seq_len = tf.shape(self.input_data)[1]
-    label_shape = [self.hps.batch_size, self.max_seq_len]
+    self.batch_size = tf.shape(self.input_data)[0]
+    label_shape = [self.batch_size, self.max_seq_len]
     # TODO: Some of these vars aren't needed depending on mode
     self.labels = input_vars['labels']
     self.lossmask = input_vars['lossmask']
@@ -121,7 +123,7 @@ class RNNModel(object):
     if embedding_inputs:
       cell_input = tf.concat([self.input_data]+embedding_inputs, 2)
 
-    initial_state = self.cell.zero_state(batch_size=self.hps.batch_size,
+    initial_state = self.cell.zero_state(batch_size=self.batch_size,
             dtype=tf.float32)
     output, last_state = tf.nn.dynamic_rnn(
             self.cell, 
@@ -160,7 +162,7 @@ class RNNModel(object):
     )
     # Loss on just the last element of each sequence.
     last_order_indices = self.sequence_lengths - 1 
-    r = tf.range(self.hps.batch_size)
+    r = tf.range(self.batch_size)
     finetune_indices = tf.stack([r, last_order_indices], axis=1)
     self.finetune_cost = tf.reduce_mean(
         tf.gather_nd(loss, finetune_indices)
