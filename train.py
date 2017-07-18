@@ -122,6 +122,11 @@ def train(sess, model, runlabel, eval_model, logdir):
       summary_writer.add_summary(summ, step)
       summary_writer.flush()
 
+      uid = model.dataset.model_input_dict()['uid']
+      unique_uids = tf.size(tf.unique(uid)[0])
+      nunique = sess.run(unique_uids)
+      print "{} unique uids in batch".format(nunique)
+
       output_format = ('step: %d/%d, cost: %.4f, train_time_taken: %.3f, lr: %.5f')
       output_values = (step, start_step+hps.num_steps, cost, time_taken, lr)
       output_log = output_format % output_values
@@ -129,7 +134,8 @@ def train(sess, model, runlabel, eval_model, logdir):
       start = time.time()
     if (i+1) % hps.save_every == 0 or i == (hps.num_steps - 1):
       utils.save_model(sess, runlabel, step)
-    if (i+1) % hps.eval_every == 0:  
+    if (i+1) % hps.eval_every == 0:
+      tf.logging.info("Calculating validation loss")
       t0 = time.time()
       eval_cost, ft_cost = evaluate_model(sess, eval_model)
       t1 = time.time()

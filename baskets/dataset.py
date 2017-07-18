@@ -7,7 +7,9 @@ from baskets.feature_spec import FeatureSpec
 # TODO: some big centralized master record of these fields with all the tabular
 # fields you could want (shape, dtype, which modes it's used in, context vs. sequence,
 # etc.)
-INPUT_KEYS = {'pid', 'aisleid', 'deptid', 'features', 'lossmask', 'labels', 'seqlen'}
+INPUT_KEYS = {'pid', 'aisleid', 'deptid', 'features', 'lossmask', 'labels', 'seqlen',
+    'uid',
+    }
 
 context_fields = [
     'pid', 'aisleid', 'deptid', 'uid', 'weight',
@@ -115,12 +117,16 @@ class BasketDataset(DatasetWrapper):
       else:
         assert False, "Don't know what to do with field {}".format(field)
       padded_shapes.append(shape)
-    self.dataset = transformed.dataset.padded_batch(hps.batch_size, padded_shapes)
+    self.dataset = transformed.dataset
     # TODO: does the order of calls to batch/repeat matter? in docs they do repeat first
     if hps.mode == Mode.training:
+      # NB: VERY IMPORTANT to shufle before batching. Glad I caught that.
+      self.dataset = self.dataset.shuffle(buffer_size=10000)
+      self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
       self.dataset = self.dataset.repeat()
       self.iterator = self.dataset.make_one_shot_iterator()
     else:
+      self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
       self.dataset = self.dataset.repeat(1)
       self.iterator = self.dataset.make_initializable_iterator()
     self.next_element = self.iterator.get_next() 

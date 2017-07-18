@@ -123,6 +123,8 @@ so we could even just zero out the loss for those first n timesteps.)
   ufunc 'add' did not contain a loop with
 - stuff like trainable_weights not implemented for DropoutWrapper
 - tf.contrib.Dataset map docs: "A function mapping a nested structure of tensors (having shapes and types defined by self.output_shapes and self.output_types) to another nested structure of tensors.". Not clear what a nested structure is. (Was surprised a dictionary isn't one.)
+- dataset docs should maybe mention when order matters in terms of chaining 
+  calls on a dataset. doing .batch() before .shuffle() seems like a big gotcha.
 
 # Misc
 - review TODOs in code
@@ -201,3 +203,6 @@ so we could even just zero out the loss for those first n timesteps.)
   (fetching a bunch of summary vars)
 - currently logging raw gradients. Should be logging gradient *updates* (i.e. taking
   into account learning rate, momentum etc.). Also ratio of weights:updates.
+- maybe as a nice little pragmatic thing, don't write logs/checkpoints if num_steps is 
+  less than, say, 100? Since that basically always means I'm just testing something.
+  (Though I guess sometimes the thing I'm testing is logging)
