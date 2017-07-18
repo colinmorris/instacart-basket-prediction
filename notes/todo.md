@@ -122,6 +122,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - calling DNNLinearCombinedClassifier.fit with steps='100' causes a weird error msg:
   ufunc 'add' did not contain a loop with
 - stuff like trainable_weights not implemented for DropoutWrapper
+- tf.contrib.Dataset map docs: "A function mapping a nested structure of tensors (having shapes and types defined by self.output_shapes and self.output_types) to another nested structure of tensors.". Not clear what a nested structure is. (Was surprised a dictionary isn't one.)
 
 # Misc
 - review TODOs in code
@@ -198,3 +199,5 @@ so we could even just zero out the loss for those first n timesteps.)
   could give a lot of insight.
 - log time spent on 'log_every' iterations, to see how much extra they cost 
   (fetching a bunch of summary vars)
+- currently logging raw gradients. Should be logging gradient *updates* (i.e. taking
+  into account learning rate, momentum etc.). Also ratio of weights:updates.

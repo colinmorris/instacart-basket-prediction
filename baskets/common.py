@@ -20,6 +20,9 @@ def resolve_recordpath(recordpath):
   if '/' in recordpath:
     # Hope you know what you're doing
     return recordpath
+  ext = '.tfrecords'
+  if not recordpath.endswith(ext):
+    recordpath += ext
   return os.path.join(USER_PB_DIR, recordpath)
 
 def resolve_vector_recordpath(recordpath):

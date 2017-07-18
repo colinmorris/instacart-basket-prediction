@@ -9,12 +9,14 @@ from baskets.constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 
 class RNNModel(object):
 
-  def __init__(self, hyperparams, input_vars=None, reuse=False):
-    """input_vars, if provided, should be a dict mapping name to input tensors
+  def __init__(self, hyperparams, dataset, reuse=False):
+    """input_vars should be a dict mapping name to input tensors
     (presumably coming from some queue or something), to use instead of placeholders.
     """
     self.hps = hyperparams
+    self.dataset = dataset
     self.summaries = []
+    input_vars = dataset.model_input_dict()
     with tf.variable_scope('instarnn', reuse=reuse):
       self.build_model(input_vars)
 
@@ -45,6 +47,7 @@ class RNNModel(object):
       cell = tf.nn.rnn_cell.DropoutWrapper(cell, state_keep_prob=self.hps.recurrent_dropout_prob)
     return cell
 
+  # XXX: No!
   def _build_placeholder_inputs(self):
     self.sequence_lengths = tf.placeholder(
         dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",
@@ -64,14 +67,14 @@ class RNNModel(object):
         dtype=tf.float32, shape=label_shape, name='lossmask',
     )
 
-  def _build_embedding_inputs(self):
+  def _build_embedding_inputs(self, input_vars):
     embedding_dat = [
-        ('product', self.hps.product_embedding_size, N_PRODUCTS),
-        ('aisle', self.hps.aisle_embedding_size, N_AISLES),
-        ('dept', self.hps.dept_embedding_size, N_DEPARTMENTS),
+        ('pid', 'product', self.hps.product_embedding_size, N_PRODUCTS),
+        ('aisleid', 'aisle', self.hps.aisle_embedding_size, N_AISLES),
+        ('deptid', 'dept', self.hps.dept_embedding_size, N_DEPARTMENTS),
     ]
     input_embeddings = []
-    for (name, size, n_values) in embedding_dat:
+    for (input_key, name, size, n_values) in embedding_dat:
       if size == 0:
         tf.logging.info('Skipping embeddings for {}'.format(name))
         continue
@@ -81,10 +84,11 @@ class RNNModel(object):
           'Embeddings/{}_norm'.format(name), tf.norm(embeddings, axis=1)
           )
       idname = '{}_ids'.format(name)
-      # XXX: non-placeholder case
-      input_ids = tf.placeholder(
-        dtype=tf.int32, shape=[self.hps.batch_size], name=idname)
-      setattr(self, idname, input_ids)
+      # TODO: Maybe everything would be simpler if the model just received
+      # a monolithic input tensor, which included the already-looked-up
+      # embeddings? 
+      input_ids = input_vars[input_key] 
+      #setattr(self, idname, input_ids)
       lookuped = tf.nn.embedding_lookup(
           embeddings,
           input_ids,
@@ -95,19 +99,25 @@ class RNNModel(object):
       input_embeddings.append(lookuped)
     return input_embeddings
 
-  def build_model(self, inputs):
+  def build_model(self, input_vars):
     hps = self.hps
     if self.hps.is_training:
       self.global_step = tf.Variable(0, name='global_step', trainable=False)
     self.cell = self._build_cell()
-    if not inputs:
-      self._build_placeholder_inputs()
-    else:
-      raise NotImplemented
+    # TODO: don't really need to attach all these inputs to self anymore now that
+    # we're not using placeholders. But just lazily minimizing code changes.
+    self.input_data = input_vars['features']
+    self.max_seq_len = tf.shape(self.input_data)[1]
+    label_shape = [self.hps.batch_size, self.max_seq_len]
+    # TODO: Some of these vars aren't needed depending on mode
+    self.labels = input_vars['labels']
+    self.lossmask = input_vars['lossmask']
+    self.sequence_lengths = input_vars['seqlen']
+
     self.max_seq_len = tf.shape(self.input_data)[1]
     cell_input = self.input_data
 
-    embedding_inputs = self._build_embedding_inputs()
+    embedding_inputs = self._build_embedding_inputs(input_vars)
     if embedding_inputs:
       cell_input = tf.concat([self.input_data]+embedding_inputs, 2)
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import division
 import argparse
 import random
@@ -7,14 +8,16 @@ import numpy as np
 import tensorflow as tf
 
 
-from baskets.batch_helpers import iterate_wrapped_users
+from baskets.user_wrapper import iterate_wrapped_users
 from baskets.insta_pb2 import User
-from baskets import common, utils
+from baskets import common, utils, data_fields
 from baskets.time_me import time_me
 
 context_fields = [
     'pid', 'aisleid', 'deptid', 'uid', 'weight',
 ]
+# 0 if not in previous order, otherwise order in which it was added to the 
+# cart (starting from 1)
 raw_feats = ['previously_ordered',]
 generic_raw_feats = ['days_since_prior', 'dow', 'hour',
       'n_prev_products',] 
@@ -23,7 +26,6 @@ generic_raw_feats = ['days_since_prior', 'dow', 'hour',
 #'n_prev_repeats', 'n_prev_reorders']
 sequence_fields = ['lossmask', 'labels', ] # + raw_feats
 
-# TODO: unit test me
 def _seq_data(user, pids):
   """Return a tuple of (generic, product-specific) dicts
   The former's values have shape (seqlen), the latter has shape (npids, seqlen)
@@ -49,13 +51,13 @@ def _seq_data(user, pids):
       gfs['dow'][seqidx] = order.dow
       gfs['hour'][seqidx] = order.hour
     # Product specific feats
-    for pid in ordered:
+    for (cart_index, pid) in enumerate(ordered):
       try:
         j = pid_to_ix[pid]
       except KeyError:
         continue
       if i < user.seqlen:
-        prev_ordered[j, i] = 1
+        prev_ordered[j, i] = cart_index+1
       if i > 0:
         labels[j, seqidx] = 1
 
@@ -64,7 +66,7 @@ def _seq_data(user, pids):
   # There's probably a clever non-loopy way to do this.
   for j, first in enumerate(first_occurences):
     lossmask[j, first:] = 1
-  pidfeats = dict(labels=labels, lossmask=lossmask, prev_ordered=prev_ordered)
+  pidfeats = dict(labels=labels, lossmask=lossmask, previously_ordered=prev_ordered)
   return gfs, pidfeats
 
 
@@ -86,7 +88,11 @@ def get_user_sequence_examples(user, product_df, testmode, max_prods):
   pids = random.sample(user.all_pids, nprods)
   genericfeats, prodfeats = _seq_data(user, pids)
   # Generic sequence features
-  base_seqdict = {name: intseqfeat(featarray) for name, featarray in genericfeats.iteritems()} 
+  def to_seq_feat(tup):
+    name, featarray = tup
+    seqfn = floatseqfeat if data_fields.FIELD_LOOKUP[name].dtype == float else intseqfeat
+    return name, seqfn(featarray)
+  base_seqdict = dict(map(to_seq_feat, genericfeats.items()))
   for pidx, pid in enumerate(pids):
     # Context features (those that don't scale with seqlen)
     ctx_dict = base_context.copy()
@@ -96,8 +102,8 @@ def get_user_sequence_examples(user, product_df, testmode, max_prods):
     context = tf.train.Features(feature=ctx_dict)
     # Sequence features
     seqdict = base_seqdict.copy()
-    product_seqdict = {name: intseqfeat(featarray[pidx]) 
-        for name, featarray in prodfeats.iteritems()}
+    product_seqdict = dict(to_seq_feat( (name, featarray[pidx]) )
+        for name, featarray in prodfeats.iteritems())
     seqdict.update(product_seqdict)
     feature_lists = tf.train.FeatureLists(feature_list = seqdict)
     example = tf.train.SequenceExample(
@@ -133,6 +139,8 @@ def main():
   tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('user_records_file')
+  parser.add_argument('--out', help='Name to use for saved tfrecords file.\
+      Defaults to a name based on input tfrecords file.')
   parser.add_argument('--test-mode', action='store_true', 
       help='Include final "testorder" in sequences, and only vectorize test users.')
   parser.add_argument('-n', '--n-users', type=int, 
@@ -144,7 +152,7 @@ def main():
   if args.test_mode:
     raise NotImplemented("Sorry, come back later.")
 
-  outpath = common.resolve_vector_recordpath(args.user_records_file)
+  outpath = common.resolve_vector_recordpath(args.out or args.user_records_file)
   tf.logging.info("Writing vectors to {}".format(outpath))
   writer = tf.python_io.TFRecordWriter(outpath)
   product_df = utils.load_product_df()

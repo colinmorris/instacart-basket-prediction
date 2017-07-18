@@ -2,9 +2,10 @@ import random
 import pandas as pd
 import numpy as np
 import itertools
+import tensorflow as tf
 
 from baskets.insta_pb2 import User
-from baskets.features import FEATURES, NFEATS
+from baskets import common
 
 class UserWrapper(object):
   """Wrapper around User protobuf objs.
@@ -176,3 +177,11 @@ def vectorize(df, user, maxlen, features=None, nfeats=None):
       res[:seqlen,i:i+feat.arity] = featvals
     i += feat.arity
   return res
+
+def iterate_wrapped_users(recordpath):
+  recordpath = common.resolve_recordpath(recordpath)
+  records = tf.python_io.tf_record_iterator(recordpath)
+  for record in records:
+    user = User()
+    user.ParseFromString(record)
+    yield UserWrapper(user)

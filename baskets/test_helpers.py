@@ -1,5 +1,6 @@
 import os
 import pytest
+import tensorflow as tf
 
 from baskets.insta_pb2 import User
 from baskets import common
@@ -16,3 +17,7 @@ def user_pb():
 @pytest.fixture()
 def user(user_pb):
   return UserWrapper(user_pb)
+
+@pytest.fixture()
+def sess():
+  return tf.InteractiveSession()

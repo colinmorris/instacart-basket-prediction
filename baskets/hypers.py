@@ -5,12 +5,12 @@ from enum import IntEnum
 
 from tensorflow.contrib.training import HParams
 
-from baskets.features import NFEATS, FEATURES
+from baskets.feature_spec import FeatureSpec
 from baskets import common
 
 # TODO: Write a subroutine to validate hps when loaded?
 
-Mode = Enum('Mode', 'training inference eval')
+Mode = IntEnum('Mode', 'training inference eval')
 
 """TODO: there are really two distinct kinds of parameters conflated here.
 1) Model parameters, which are immutable, e.g. rnn_size, feats, product_embedding_size
@@ -35,10 +35,7 @@ def get_default_hparams():
       # TODO: Should really be doing some kind of dynamic padding - where we
       # pad each batch to the length of its longest sequence.
       max_seq_len=100,
-      # More correctly, the dimensionality of the feature space (there are 
-      # some "features" that correspond to 2+ numbers, e.g. onehot day of week
-      nfeats=NFEATS,
-      feats=[f.name for f in FEATURES],
+      features=FeatureSpec.default_spec().names,
       # Note that the learning rate used for training is a fn of the initial
       # value, the decay/min, and the current *global_step*. So if you start
       # train from an existing checkpoint, the learning rate will not start
