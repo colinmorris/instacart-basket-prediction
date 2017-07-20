@@ -7,8 +7,8 @@ import numpy as np
 from scipy.special import expit
 from collections import defaultdict
 
-from baskets import rnnmodel
 from baskets import utils, common, hypers, rnnmodel
+from baskets.dataset import BasketDataset
 from baskets.time_me import time_me
 
 def get_probmap(model, sess, userlimit):

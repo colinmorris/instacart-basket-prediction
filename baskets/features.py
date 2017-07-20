@@ -7,7 +7,7 @@ _raw_feats = ['previously_ordered', 'days_since_prior', 'dow', 'hour',
       'n_prev_products', ]
       #'n_prev_repeats', 'n_prev_reorders']
 
-Feature = namedtuple('Feature', 'name arity fn')
+Feature = namedtuple('Feature', 'name arity fn binary')
 
 ALL_FEATURES = []
 FEAT_LOOKUP = {}
@@ -24,7 +24,8 @@ def _normalize_feat_output(output_tensor, arity, name):
     output_tensor = tf.cast(output_tensor, tf.float32)
   return output_tensor
 
-def feature(arity=1, name=None, keys=None):
+def feature(arity=1, name=None, keys=None, binary=False):
+  assert isinstance(arity, int)
   def decorator(featfn):
     argnames = keys or featfn.func_code.co_varnames
     def wrapped(dataset):
@@ -33,7 +34,7 @@ def feature(arity=1, name=None, keys=None):
       return _normalize_feat_output(res, arity, name)
 
     featname = name or featfn.__name__
-    feat = Feature(featname, arity, wrapped)
+    feat = Feature(featname, arity, wrapped, binary)
     ALL_FEATURES.append(feat)
     assert featname not in FEAT_LOOKUP
     FEAT_LOOKUP[featname] = feat
@@ -55,36 +56,36 @@ def define_bucketized_feature(key, boundaries):
   name = key + '_bucketized'
   boundaries = map(float, boundaries)
   nbuckets = len(boundaries) + 1
-  @feature(arity=nbuckets, name=name, keys=[key])
+  @feature(arity=nbuckets, name=name, keys=[key], binary=True)
   def _innerfeat(val):
     bucket_indices = math_ops._bucketize(val, boundaries=boundaries)
     return tf.one_hot(bucket_indices, depth=nbuckets, axis=0)
 
 def define_onehot_feature(key, depth):
-  @feature(arity=depth, name=key+'_onehot', keys=[key])
+  @feature(arity=depth, name=key+'_onehot', keys=[key], binary=True)
   def _innerfeat(val):
     return tf.one_hot(tf.cast(val, tf.int64), depth, axis=0)
 
 define_onehot_feature('dow', 7)
 #define_onehot_feature('hour', 24)
 
-hour_buckets = [6, 9, 14, 20,]
+hour_buckets = [7, 10, 13, 16, 20,]
 define_bucketized_feature('hour', hour_buckets)
 
-@feature
+@feature(binary=True)
 def in_previous_order(previously_ordered):
-  return tf.min(previously_ordered, 1)
+  return tf.minimum(previously_ordered, 1)
 
-@feature
+@feature()
 def in_previous_order_normalized_cart_order(previously_ordered, n_prev_products):
   return previously_ordered / n_prev_products
 
 if 0:
-  @feature
+  @feature(binary=True)
   def days_since_prior_is_maxed(days_since_prior):
     return days_since_prior == 30.0
 
-  @feature
+  @feature(binary=True)
   def sameday(days_since_prior):
     return days_since_prior == 0.0
 else:
