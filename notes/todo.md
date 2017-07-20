@@ -206,3 +206,5 @@ so we could even just zero out the loss for those first n timesteps.)
 - maybe as a nice little pragmatic thing, don't write logs/checkpoints if num_steps is 
   less than, say, 100? Since that basically always means I'm just testing something.
   (Though I guess sometimes the thing I'm testing is logging)
+- train some baseline rnn models with very limited features (e.g. just the label
+  for the previous order)
