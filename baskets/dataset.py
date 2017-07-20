@@ -120,6 +120,7 @@ class BasketDataset(DatasetWrapper):
         assert False, "Don't know what to do with field {}".format(field)
       padded_shapes.append(shape)
     self.dataset = transformed.dataset
+    self.feature_spec = transformed.feat_spec
     # TODO: does the order of calls to batch/repeat matter? in docs they do repeat first
     if hps.mode == Mode.training:
       # NB: VERY IMPORTANT to shufle before batching. Glad I caught that.

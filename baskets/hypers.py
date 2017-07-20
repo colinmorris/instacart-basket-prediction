@@ -36,6 +36,8 @@ def get_default_hparams():
       # pad each batch to the length of its longest sequence.
       max_seq_len=100,
       features=FeatureSpec.default_spec().names,
+      # Whether to subtract mean and divide by stdev for features
+      normalize_features=False,
       # Note that the learning rate used for training is a fn of the initial
       # value, the decay/min, and the current *global_step*. So if you start
       # train from an existing checkpoint, the learning rate will not start
