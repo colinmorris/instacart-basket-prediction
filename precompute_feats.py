@@ -77,7 +77,8 @@ def write_user_vectors(user, writer, product_df, testmode, max_prods):
 
 def get_user_sequence_examples(user, product_df, testmode, max_prods):
   assert not testmode
-  assert max_prods, "You should set a limit for now..."
+  if max_prods is None:
+    max_prods = float('inf')
   nprods = min(max_prods, user.nprods)
   weight = 1 / nprods
   # Generic context features
@@ -97,7 +98,7 @@ def get_user_sequence_examples(user, product_df, testmode, max_prods):
   for pidx, pid in enumerate(pids):
     # Context features (those that don't scale with seqlen)
     ctx_dict = base_context.copy()
-    aisleid, deptid = product_df.loc[pid, ['aisle_id', 'department_id']]
+    aisleid, deptid = product_df.loc[pid-1, ['aisle_id', 'department_id']]
     product_ctx = dict(pid=intfeat(pid), aisleid=intfeat(aisleid), deptid=intfeat(deptid))
     ctx_dict.update(product_ctx)
     context = tf.train.Features(feature=ctx_dict)
@@ -146,8 +147,8 @@ def main():
       help='Include final "testorder" in sequences, and only vectorize test users.')
   parser.add_argument('-n', '--n-users', type=int, 
       help='limit on number of users vectorized (default: none)')
-  parser.add_argument('--max-prods', type=int, default=5,
-      help='Max number of products to take per user (default: 5)')
+  parser.add_argument('--max-prods', type=int, default=None,
+      help='Max number of products to take per user (default: no limit)')
   args = parser.parse_args()
 
   if args.test_mode:

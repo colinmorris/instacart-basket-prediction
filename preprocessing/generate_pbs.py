@@ -1,10 +1,11 @@
+#!/usr/bin/env python
 import pickle
 import time
 import tensorflow as tf
 import numpy as np
 import pandas as pd
 
-from basket_db import BasketDB
+from baskets.basket_db import BasketDB
 from baskets.insta_pb2 import User, Order
 
 USER_LIMIT = 0

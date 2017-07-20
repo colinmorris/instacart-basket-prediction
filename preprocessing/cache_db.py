@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from basket_db import BasketDB
 import time
 

@@ -35,7 +35,7 @@ class RawDataset(DatasetWrapper):
   _mode_to_default_recordname = {
       Mode.training: 'train.tfrecords',
       Mode.inference: 'test.tfrecords',
-      Mode.eval: 'eval.tfrecords',}
+      Mode.eval: 'validation.tfrecords',}
 
   def __init__(self, hps, fname=None):
     self.hps = hps
