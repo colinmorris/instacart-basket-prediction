@@ -8,42 +8,33 @@ from scipy.special import expit
 from collections import defaultdict
 
 from baskets import rnnmodel
-from baskets import model_helpers
-from baskets import utils
-from baskets import common
-from baskets import batch_helpers as bh
+from baskets import utils, common, hypers, rnnmodel
 from baskets.time_me import time_me
 
-def get_probmap(batcher, model, sess, userlimit):
-  # {uid -> {pid -> prob}}
+def get_probmap(model, sess, userlimit):
+  """{uid -> {pid -> prob}}"""
+  # Start a fresh pass through the validation data
+  sess.run(model.dataset.new_epoch_op())
   pmap = defaultdict(dict)
-  batches = batcher.get_batches(pids_per_user=-1, infinite=False,
-      allow_smaller_final_batch=True)
-  bs = model.hps.batch_size
   i = 0
   uids_seen = set()
-  for batch in batches:
-    _x, _labels, seqlens, _lm, pindexs, _aids, _dids, uids = batch
-    feed = model_helpers.feed_dict_for_batch(batch, model)
-    logits = sess.run(model.logits, feed)
-    assert logits.shape == (bs, model.hps.max_seq_len)
-    final_logits = logits[np.arange(bs),seqlens-1]
+  to_fetch = [model.lastorder_logits, model.dataset['uid'], model.dataset['pid']]
+  while 1:
+    try:
+      final_logits, uids, pindexs = sess.run(to_fetch)
+    except tf.errors.OutOfRangeError:
+      break
     final_probs = expit(final_logits)
-    skipped = 0
     for uid, pindex, prob in zip(uids, pindexs, final_probs):
-      if uid == pindex == 0:
-        skipped += 1
-        continue
       pid = pindex+1
       pmap[uid][pid] = prob
-    if skipped:
-      print "Skipped {} elements of batch".format(skipped)
 
     i += 1
-    uids_seen.update(set(uids))
-    if userlimit and len(uids_seen) >= userlimit:
-      break
-  print "Computed probabilities for {} users in {} batches".format(len(pmap), i)
+    if userlimit:
+      uids_seen.update(set(uids))
+      if len(uids_seen) >= userlimit:
+        break
+  tf.logging.info("Computed probabilities for {} users in {} batches".format(len(pmap), i))
   return pmap
 
 def main():
@@ -62,21 +53,16 @@ def main():
       precompute_probs_for_tag(tag, args)
 
 def precompute_probs_for_tag(tag, args):
-  hps = model_helpers.hps_for_tag(tag)
-  hps.is_training = False
-  hps.use_recurrent_dropout = False
+  hps = hypers.hps_for_tag(tag, mode=hypers.Mode.inference)
   tf.logging.info('Creating model')
-  model = rnnmodel.RNNModel(hps)
+  dat = BasketDataset(hps, args.recordfile)
+  model = rnnmodel.RNNModel(hps, dat)
   sess = tf.InteractiveSession()
   # Load pretrained weights
   tf.logging.info('Loading weights')
   utils.load_checkpoint_for_tag(tag, sess)
-  testmode = args.recordfile == 'ktest.tfrecords'
-  if testmode:
-    tf.logging.info('Running in test mode')
-  batcher = bh.Batcher(hps, args.recordfile, testmode=testmode)
-
-  probmap = get_probmap(batcher, model, sess, args.n_users)
+  # TODO: deal with 'test mode'
+  probmap = get_probmap(model, sess, args.n_users)
   common.save_pdict_for_tag(tag, probmap, args.recordfile)
   sess.close()
   tf.reset_default_graph()

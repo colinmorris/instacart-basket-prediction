@@ -10,9 +10,6 @@ from baskets.constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 class RNNModel(object):
 
   def __init__(self, hyperparams, dataset, reuse=False):
-    """input_vars should be a dict mapping name to input tensors
-    (presumably coming from some queue or something), to use instead of placeholders.
-    """
     self.hps = hyperparams
     self.dataset = dataset
     self.summaries = []
@@ -48,26 +45,6 @@ class RNNModel(object):
       cell = tf.nn.rnn_cell.DropoutWrapper(cell, state_keep_prob=self.hps.recurrent_dropout_prob)
     return cell
 
-  # XXX: No!
-  def _build_placeholder_inputs(self):
-    self.sequence_lengths = tf.placeholder(
-        dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",
-    )
-    self.input_data = tf.placeholder(
-        dtype=tf.float32,
-        shape=[self.hps.batch_size, None, self.hps.nfeats],
-        name="input",
-    )
-    self.max_seq_len = tf.shape(self.input_data)[1]
-    label_shape = [self.hps.batch_size, self.max_seq_len]
-    self.labels = tf.placeholder(
-            # TODO: idk about this dtype stuff
-            dtype=tf.float32, shape=label_shape, name="labels",
-    )
-    self.lossmask = tf.placeholder(
-        dtype=tf.float32, shape=label_shape, name='lossmask',
-    )
-
   def _build_embedding_inputs(self, input_vars):
     embedding_dat = [
         ('pid', 'product', self.hps.product_embedding_size, N_PRODUCTS),
@@ -88,7 +65,7 @@ class RNNModel(object):
       # TODO: Maybe everything would be simpler if the model just received
       # a monolithic input tensor, which included the already-looked-up
       # embeddings? 
-      input_ids = input_vars[input_key] 
+      input_ids = input_vars[input_key] - 1 # go from 1-indexing to 0-indexing
       #setattr(self, idname, input_ids)
       lookuped = tf.nn.embedding_lookup(
           embeddings,
@@ -167,6 +144,7 @@ class RNNModel(object):
     self.finetune_cost = tf.reduce_mean(
         tf.gather_nd(loss, finetune_indices)
     )
+    self.lastorder_logits = tf.gather_nd(logits, finetune_indices)
     
     self.cost = tf.reduce_mean(loss_per_seq)
     self.total_cost = self.cost

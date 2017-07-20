@@ -7,6 +7,8 @@ from baskets.feature_spec import FeatureSpec
 # TODO: some big centralized master record of these fields with all the tabular
 # fields you could want (shape, dtype, which modes it's used in, context vs. sequence,
 # etc.)
+
+
 INPUT_KEYS = {'pid', 'aisleid', 'deptid', 'features', 'lossmask', 'labels', 'seqlen',
     'uid',
     }
@@ -144,6 +146,9 @@ class BasketDataset(DatasetWrapper):
 
   def model_input_dict(self):
     return self.dictify(self.next_element)
+
+  def __getitem__(self, varname):
+    return self.model_input_dict()[varname]
 
 
 

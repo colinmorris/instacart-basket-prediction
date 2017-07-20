@@ -13,6 +13,7 @@ from baskets.insta_pb2 import User
 from baskets import common, utils, data_fields
 from baskets.time_me import time_me
 
+# id fields are as defined by Kaggle (i.e. starting from 1, not 0)
 context_fields = [
     'pid', 'aisleid', 'deptid', 'uid', 'weight',
 ]

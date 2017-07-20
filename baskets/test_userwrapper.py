@@ -7,11 +7,10 @@ import numpy as np
 import numpy.testing as npt
 
 from baskets.insta_pb2 import User
-from baskets import batch_helpers
-from baskets.batch_helpers import UserWrapper
+from baskets.user_wrapper import UserWrapper
 from baskets import features as feats
 from baskets import common
-from baskets.test_helpers import user
+from baskets.test_helpers import user, user_pb
 
 TEST_UID = 2455
 userinfo = dict(
@@ -37,7 +36,9 @@ def test_userwrapper_props(user):
   assert len(theirprods) == len(trainable_prods)
   assert theirprods == trainable_prods
 
-def test_half_and_half_trainseq(user):
+# TODO: the below tests are for since-replaced vectorization code. Need to write corresponding
+# tests for new vectorization pipeline.
+def former_test_half_and_half_trainseq(user):
   maxlen = 100
   ts = user.training_sequence_for_pid(HHID, maxlen)
   assert ts['pindex'] == HHID-1 # Translated from 1-indexing to 0-indexing
@@ -54,7 +55,7 @@ def test_half_and_half_trainseq(user):
   assert (lossmask[seqlen:] == 0).all()
   assert (lossmask[:seqlen] == 1).all()
 
-def test_half_and_half_features(user):
+def former_test_half_and_half_features(user):
   maxlen = 100
   ts = user.training_sequence_for_pid(HHID, maxlen)
   seqlen = ts['seqlen']

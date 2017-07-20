@@ -114,11 +114,17 @@ def get_default_hparams():
       fully_specified=False, # Used for config file bookkeeping
   )
 
-def hps_for_tag(tag, save_full=False):
+def hps_for_tag(tag, save_full=False, mode=None):
+  """mode is an optional override for whatever's defined in the config file
+  for the mode field"""
   hps = get_default_hparams()
   config_path = '{}/{}.json'.format(common.CONFIG_DIR, tag)
   with open(config_path) as f:
     hps.parse_json(f.read())
+  mode = hps.mode or mode
+  if mode != Mode.training:
+    # (For now assuming eval and inference are the same)
+    hps = as_eval(hps)
   if save_full:
     full_hps = copy_hps(hps)
     full_hps.fully_specified = True

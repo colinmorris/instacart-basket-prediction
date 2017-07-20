@@ -6,7 +6,7 @@ from baskets.insta_pb2 import User
 from baskets import common
 from baskets.user_wrapper import UserWrapper
 
-@pytest.fixture(scope='module')
+@pytest.fixture()
 def user_pb():
   u = User()
   testuser_path = os.path.join(common.DATA_DIR, 'testuser.pb')
