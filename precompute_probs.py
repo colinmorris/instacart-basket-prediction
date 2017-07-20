@@ -20,12 +20,11 @@ def get_probmap(model, sess, userlimit):
   to_fetch = [model.lastorder_logits, model.dataset['uid'], model.dataset['pid']]
   while 1:
     try:
-      final_logits, uids, pindexs = sess.run(to_fetch)
+      final_logits, uids, pids = sess.run(to_fetch)
     except tf.errors.OutOfRangeError:
       break
     final_probs = expit(final_logits)
-    for uid, pindex, prob in zip(uids, pindexs, final_probs):
-      pid = pindex+1
+    for uid, pid, prob in zip(uids, pids, final_probs):
       pmap[uid][pid] = prob
 
     i += 1
