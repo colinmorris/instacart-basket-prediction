@@ -72,8 +72,11 @@ def _seq_data(user, pids):
 
 
 def write_user_vectors(user, writer, product_df, testmode, max_prods):
+  n = 0
   for example in get_user_sequence_examples(user, product_df, testmode, max_prods):
     writer.write(example.SerializeToString())
+    n += 1
+  return n
 
 def get_user_sequence_examples(user, product_df, testmode, max_prods):
   assert not testmode
@@ -161,11 +164,12 @@ def main():
   i = 0
   nseqs = 0
   for user in iterate_wrapped_users(args.user_records_file):
-    write_user_vectors(user, writer, product_df, args.test_mode, args.max_prods)
+    nseqs += write_user_vectors(user, writer, product_df, args.test_mode, args.max_prods)
     i += 1
-    nseqs += len(user.all_pids)
     if args.n_users and i >= args.n_users:
       break
+    if (i % 10000) == 0:
+      print "i={}... ".format(i)
   print "Wrote {} sequences for {} users".format(nseqs, i)
 
 if __name__ == '__main__':
