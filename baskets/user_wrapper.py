@@ -5,7 +5,7 @@ import itertools
 import tensorflow as tf
 
 from baskets.insta_pb2 import User
-from baskets import common
+from baskets import common, constants
 
 class UserWrapper(object):
   """Wrapper around User protobuf objs.
@@ -59,7 +59,7 @@ class UserWrapper(object):
     # Special case: if predictable prods is empty, return a single dummy
     # product id representing "none" (to be consistent with kaggle's scoring method)
     if not res:
-      return set([NONE_PRODUCTID])
+      return set([constants.NONE_PRODUCTID])
     return res
 
   def sample_pids(self, n):
@@ -81,6 +81,8 @@ class UserWrapper(object):
     order = self.user.orders[iorder]
     iprod = random.randint(0, len(order.products)-1)
     return order.products[iprod]
+
+  # TODO: clear out dusty old methods
 
   rawcols = ['dow', 'hour', 'days_since_prior',
       'previously_ordered', 'n_prev_products', 'n_prev_repeats', 'n_prev_reorders']

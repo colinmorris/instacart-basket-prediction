@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 import argparse
-import pickle
 import tensorflow as tf
 import numpy as np
 from scipy.special import expit
@@ -62,6 +61,7 @@ def precompute_probs_for_tag(tag, args):
   tf.logging.info('Loading weights')
   utils.load_checkpoint_for_tag(tag, sess)
   # TODO: deal with 'test mode'
+  tf.logging.info('Calculating probabilities')
   probmap = get_probmap(model, sess, args.n_users)
   common.save_pdict_for_tag(tag, probmap, args.recordfile)
   sess.close()

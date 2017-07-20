@@ -1,6 +1,7 @@
 """A bunch of helpers, so far all having to do with finding the paths for things.
 """
 import os
+import pickle
 
 _thisdir = os.path.dirname(__file__)
 ROOT = os.path.realpath(os.path.join(_thisdir, '..'))

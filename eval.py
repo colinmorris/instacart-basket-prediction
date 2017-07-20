@@ -2,7 +2,6 @@
 """Calculates fscore on a given set of users using predictions generated according
 to some model's predictions.
 """
-import time
 import argparse
 import numpy as np
 
@@ -10,7 +9,8 @@ from baskets import common
 from baskets import predictor as pred
 from baskets import rnnmodel
 from baskets import evaluator
-from baskets.batch_helpers import iterate_wrapped_users
+from baskets.user_wrapper import iterate_wrapped_users
+from baskets.time_me import time_me
 
 def main():
   parser = argparse.ArgumentParser()
@@ -32,10 +32,9 @@ def main():
   parser.add_argument('--no-mc', action='store_false', dest='montecarlo',
       help='Don\'t run a monte-carlo thresh predictor per tag')
   parser.add_argument('--save', action='store_true', help='Serialize predictions to a file')
+  parser.add_argument('--quick', action='store_true', help='Cut some corners')
   args = parser.parse_args()
   
-  t0 = time.time()
-
   predictors = {}
   if args.baseline:
     predictors['baseline'] = pred.PreviousOrderPredictor()
@@ -46,7 +45,11 @@ def main():
       predictors['{}-tp'.format(tag)] = pred.ThresholdPredictor(pmap, args.thresh)
     if args.montecarlo:
       predictors['{}-mc'.format(tag)] = \
-          pred.HybridThresholdPredictor(pmap, ntrials=args.mc_trials, save=args.save)
+          pred.HybridThresholdPredictor(pmap, 
+              ntrials=args.mc_trials, 
+              save=args.save,
+              optimization_level=(0 if args.quick else 10)
+              )
 
   assert predictors
 
@@ -55,8 +58,6 @@ def main():
   # TODO: would be real nice to use tensorboard to look at dist. of
   # probabilities/logits/fscores/precisions stuff like that
   results = judge.evaluate(predictors, limit=args.n_users, save=args.save)
-  t1 = time.time()
-  print "Finished evaluation in {:.1f}s".format(t1-t0)
 
   for pname, res in results.iteritems():
     print '{}:'.format(pname)
@@ -64,4 +65,5 @@ def main():
     print df.mean()
   
 if __name__ == '__main__':
-  main()
+  with time_me('Finished evaluation'):
+    main()

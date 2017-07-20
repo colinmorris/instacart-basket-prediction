@@ -123,7 +123,7 @@ def hps_for_tag(tag, save_full=False, mode=None):
   config_path = '{}/{}.json'.format(common.CONFIG_DIR, tag)
   with open(config_path) as f:
     hps.parse_json(f.read())
-  mode = hps.mode or mode
+  mode = mode or hps.mode
   if mode != Mode.training:
     # (For now assuming eval and inference are the same)
     hps = as_eval(hps)

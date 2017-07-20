@@ -1,3 +1,4 @@
+from __future__ import division
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -55,10 +56,11 @@ class ThresholdPredictor(ProbabilisticPredictor):
 
 class MonteCarloThresholdPredictor(ProbabilisticPredictor):
 
-  def __init__(self, probmap, ntrials, save=False):
+  def __init__(self, probmap, ntrials, save=False, optimization_level=10):
     super(MonteCarloThresholdPredictor, self).__init__(probmap)
     self.ntrials = ntrials
     self.save = save
+    self.optimization_level = optimization_level
     self.history = []
 
   def predict_order_from_probs(self, pid_to_prob):
@@ -104,7 +106,7 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
     # effect on E[f]. One example I've personally witnessed:
     # E[f; thresh=.106] = .42
     # E[f; thresh=.107] = .47
-    mindelta = 0
+    mindelta = .005 if self.optimization_level == 0 else 0
     lastprob = -1
     for prob in probs:
       if not (minprob <= prob <= maxprob):
@@ -139,8 +141,14 @@ class HybridThresholdPredictor(MonteCarloThresholdPredictor):
   # XXX: May want to increase this when generating final submission file, 
   # if you're really patient.
   MAX_PRODUCTS_FOR_EXACT = 300
+
+  @property
+  def too_many_products(self):
+    return self.MAX_PRODUCTS_FOR_EXACT / 3 if self.optimization_level == 0 else\
+        self.MAX_PRODUCTS_FOR_EXACT
+
   def evaluate_threshold(self, thresh, probs):
-    if len(probs) > self.MAX_PRODUCTS_FOR_EXACT:
+    if len(probs) > self.too_many_products:
       return fscore_helpers.expected_fscore_montecarlo(probs, thresh, self.ntrials)
     else:
       return clever.efscore(probs, thresh)
