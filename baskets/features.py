@@ -50,13 +50,15 @@ _passthrough_keys = ['days_since_prior', 'n_prev_products']
 for k in _passthrough_keys:
   define_passthrough_feature(k)
 
-def define_bucketized_feature(key, buckets):
+# boundaries=[0, 1, 2] leads to buckets (-inf, 0), [0, 1), [1, 2), [2, inf)
+def define_bucketized_feature(key, boundaries):
   name = key + '_bucketized'
-  buckets = map(float, buckets)
-  @feature(arity=len(buckets), name=name, keys=[key])
+  boundaries = map(float, boundaries)
+  nbuckets = len(boundaries) + 1
+  @feature(arity=nbuckets, name=name, keys=[key])
   def _innerfeat(val):
-    bucket_indices = math_ops._bucketize(val, boundaries=buckets)
-    return tf.one_hot(bucket_indices, depth=len(buckets), axis=0)
+    bucket_indices = math_ops._bucketize(val, boundaries=boundaries)
+    return tf.one_hot(bucket_indices, depth=nbuckets, axis=0)
 
 def define_onehot_feature(key, depth):
   @feature(arity=depth, name=key+'_onehot', keys=[key])
@@ -66,7 +68,8 @@ def define_onehot_feature(key, depth):
 define_onehot_feature('dow', 7)
 #define_onehot_feature('hour', 24)
 
-define_bucketized_feature('hour', [6, 9, 14, 20,])
+hour_buckets = [6, 9, 14, 20,]
+define_bucketized_feature('hour', hour_buckets)
 
 @feature
 def in_previous_order(previously_ordered):
@@ -76,12 +79,15 @@ def in_previous_order(previously_ordered):
 def in_previous_order_normalized_cart_order(previously_ordered, n_prev_products):
   return previously_ordered / n_prev_products
 
-@feature
-def days_since_prior_is_maxed(days_since_prior):
-  return days_since_prior == 30.0
+if 0:
+  @feature
+  def days_since_prior_is_maxed(days_since_prior):
+    return days_since_prior == 30.0
 
-@feature
-def sameday(days_since_prior):
-  return days_since_prior == 0.0
+  @feature
+  def sameday(days_since_prior):
+    return days_since_prior == 0.0
+else:
+  days_since_prior_buckets = [2, 3, 5, 7, 10, 15, 20, 30]
+  define_bucketized_feature('days_since_prior', days_since_prior_buckets)
 
-# TODO: Mooooore features.
