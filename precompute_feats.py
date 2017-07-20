@@ -153,6 +153,7 @@ def main():
   parser.add_argument('--max-prods', type=int, default=None,
       help='Max number of products to take per user (default: no limit)')
   args = parser.parse_args()
+  random.seed(1337)
 
   if args.test_mode:
     raise NotImplemented("Sorry, come back later.")
