@@ -14,10 +14,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.client import timeline
 
-from baskets import rnnmodel
-from baskets import utils
-from baskets import model_helpers
-from baskets import hypers
+from baskets import rnnmodel, utils, hypers
 from baskets.rnnmodel import RNNModel
 from baskets.time_me import time_me
 from baskets.dataset import BasketDataset
