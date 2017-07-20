@@ -60,3 +60,6 @@ Some timing stats:
       - also maaaaybe worth considering trying to turn O(n^4) E[f] algo into O(n^3)
 - caching lookups (oid_to_pids etc.): 800s
 - generating user pbs: 20min
+- precomputing vectors: 
+  - 95s for 9905 users, using prod limit of 5
+  - 30min for train set set (196k users) with prodlim of 5 

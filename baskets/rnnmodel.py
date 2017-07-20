@@ -9,11 +9,14 @@ from baskets.constants import N_PRODUCTS, N_AISLES, N_DEPARTMENTS
 
 class RNNModel(object):
 
-  def __init__(self, hyperparams, reuse=False):
+  def __init__(self, hyperparams, dataset, reuse=False):
     self.hps = hyperparams
+    self.dataset = dataset
     self.summaries = []
+    self.batch_size = -1
+    input_vars = dataset.model_input_dict()
     with tf.variable_scope('instarnn', reuse=reuse):
-      self.build_model()
+      self.build_model(input_vars)
 
   def _build_cell(self):
     cell_kwargs = dict(forget_bias=1.0)
@@ -42,28 +45,14 @@ class RNNModel(object):
       cell = tf.nn.rnn_cell.DropoutWrapper(cell, state_keep_prob=self.hps.recurrent_dropout_prob)
     return cell
 
-  def build_model(self):
-    hps = self.hps
-    if hps.is_training:
-      self.global_step = tf.Variable(0, name='global_step', trainable=False)
-    self.cell = self._build_cell()
-    self.sequence_lengths = tf.placeholder(
-        dtype=tf.int32, shape=[self.hps.batch_size], name="seqlengths",
-    )
-    self.input_data = tf.placeholder(
-        dtype=tf.float32,
-        shape=[hps.batch_size, hps.max_seq_len, hps.nfeats],
-        name="input",
-    )
-    cell_input = self.input_data
-
+  def _build_embedding_inputs(self, input_vars):
     embedding_dat = [
-        ('product', hps.product_embedding_size, N_PRODUCTS),
-        ('aisle', hps.aisle_embedding_size, N_AISLES),
-        ('dept', hps.dept_embedding_size, N_DEPARTMENTS),
+        ('pid', 'product', self.hps.product_embedding_size, N_PRODUCTS),
+        ('aisleid', 'aisle', self.hps.aisle_embedding_size, N_AISLES),
+        ('deptid', 'dept', self.hps.dept_embedding_size, N_DEPARTMENTS),
     ]
     input_embeddings = []
-    for (name, size, n_values) in embedding_dat:
+    for (input_key, name, size, n_values) in embedding_dat:
       if size == 0:
         tf.logging.info('Skipping embeddings for {}'.format(name))
         continue
@@ -73,32 +62,46 @@ class RNNModel(object):
           'Embeddings/{}_norm'.format(name), tf.norm(embeddings, axis=1)
           )
       idname = '{}_ids'.format(name)
-      input_ids = tf.placeholder(
-        dtype=tf.int32, shape=[self.hps.batch_size], name=idname)
-      setattr(self, idname, input_ids)
+      # TODO: Maybe everything would be simpler if the model just received
+      # a monolithic input tensor, which included the already-looked-up
+      # embeddings? 
+      input_ids = input_vars[input_key] - 1 # go from 1-indexing to 0-indexing
+      #setattr(self, idname, input_ids)
       lookuped = tf.nn.embedding_lookup(
           embeddings,
           input_ids,
           max_norm=None, # TODO: experiment with this param
       )
-      lookuped = tf.reshape(lookuped, [self.hps.batch_size, 1, size])
-      lookuped = tf.tile(lookuped, [1, self.hps.max_seq_len, 1])
+      lookuped = tf.reshape(lookuped, [self.batch_size, 1, size])
+      lookuped = tf.tile(lookuped, [1, self.max_seq_len, 1])
       input_embeddings.append(lookuped)
-    if input_embeddings:
-      cell_input = tf.concat([self.input_data]+input_embeddings, 2)
+    return input_embeddings
 
-    label_shape = [hps.batch_size, hps.max_seq_len]
-    self.labels = tf.placeholder(
-            # TODO: idk about this dtype stuff
-            dtype=tf.float32, shape=label_shape, name="labels",
-    )
-    self.lossmask = tf.placeholder(
-        dtype=tf.float32, shape=label_shape, name='lossmask',
-    )
+  def build_model(self, input_vars):
+    hps = self.hps
+    if self.hps.is_training:
+      self.global_step = tf.Variable(0, name='global_step', trainable=False)
+    self.cell = self._build_cell()
+    # TODO: don't really need to attach all these inputs to self anymore now that
+    # we're not using placeholders. But just lazily minimizing code changes.
+    self.input_data = input_vars['features']
+    self.max_seq_len = tf.shape(self.input_data)[1]
+    self.batch_size = tf.shape(self.input_data)[0]
+    label_shape = [self.batch_size, self.max_seq_len]
+    # TODO: Some of these vars aren't needed depending on mode
+    self.labels = input_vars['labels']
+    self.lossmask = input_vars['lossmask']
+    self.sequence_lengths = input_vars['seqlen']
 
-    self.initial_state = self.cell.zero_state(batch_size=hps.batch_size,
+    self.max_seq_len = tf.shape(self.input_data)[1]
+    cell_input = self.input_data
+
+    embedding_inputs = self._build_embedding_inputs(input_vars)
+    if embedding_inputs:
+      cell_input = tf.concat([self.input_data]+embedding_inputs, 2)
+
+    initial_state = self.cell.zero_state(batch_size=self.batch_size,
             dtype=tf.float32)
-    
     output, last_state = tf.nn.dynamic_rnn(
             self.cell, 
             cell_input,
@@ -107,16 +110,15 @@ class RNNModel(object):
             # happens if it isn't provided. Probably just the zero state,
             # so this isn't necessary. But whatever.
             # yeah, source says zeros. But TODO should prooobably be documented?
-            initial_state=self.initial_state,
+            initial_state=initial_state,
             dtype=tf.float32,
     )
     # TODO: would like to log forgettitude, but this seems quite tricky. :(
-
     with tf.variable_scope('RNN'):
       output_w = tf.get_variable('output_w', [self.hps.rnn_size, 1])
       output_b = tf.get_variable('output_b', [1])
     
-    output = tf.reshape(output, [-1, hps.rnn_size])
+    output = tf.reshape(output, [-1, self.hps.rnn_size])
     logits = tf.nn.xw_plus_b(output, output_w, output_b)
     logits = tf.reshape(logits, label_shape)
     self.logits = logits
@@ -137,15 +139,15 @@ class RNNModel(object):
     )
     # Loss on just the last element of each sequence.
     last_order_indices = self.sequence_lengths - 1 
-    r = tf.range(self.hps.batch_size)
+    r = tf.range(self.batch_size)
     finetune_indices = tf.stack([r, last_order_indices], axis=1)
     self.finetune_cost = tf.reduce_mean(
         tf.gather_nd(loss, finetune_indices)
     )
+    self.lastorder_logits = tf.gather_nd(logits, finetune_indices)
     
     self.cost = tf.reduce_mean(loss_per_seq)
     self.total_cost = self.cost
-    #self.cost = tf.reduce_mean(loss)
     if self.hps.l2_weight:
       tvs = tf.trainable_variables()
       # Penalize everything except for biases

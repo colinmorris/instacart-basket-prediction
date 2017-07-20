@@ -6,10 +6,8 @@ import pytest
 
 import baskets.fscore as fsc
 import baskets.clever_fscore as cfsc
+from baskets.test_helpers import sess
 
-@pytest.fixture()
-def sess():
-  return tf.InteractiveSession()
 
 _fscore_examples = [
     # predicted, actual, fscore

@@ -1,22 +1,39 @@
+#!/usr/bin/env python
 import tensorflow as tf
 import argparse
 import random
-from insta_pb2 import User
+from collections import defaultdict
 
-def random_traintest_split(records, prefix, test_frac=.05):
-  train = tf.python_io.TFRecordWriter('{}train.tfrecords'.format(prefix))
-  test = tf.python_io.TFRecordWriter('{}test.tfrecords'.format(prefix))
-  ntrain = ntest = 0
+from baskets.insta_pb2 import User
+from baskets import common
+
+SPLIT_CONFIG = [
+    ('train', .95),
+    ('test', .01),
+    ('validation', .04),
+]
+
+def random_traintest_split(records):
+  out_dir = common.USER_PB_DIR
+  writers = {
+      foldname: tf.python_io.TFRecordWriter('{}/{}.tfrecords'.format(out_dir, foldname))
+      for (foldname, _frac) in SPLIT_CONFIG
+      }
+  per_fold = defaultdict(int)
   for record in records:
-    if random.random() < test_frac:
-      test.write(record)
-      ntest += 1
+    x = random.random()
+    acc = 0
+    for (fold, frac) in SPLIT_CONFIG:
+      acc += frac
+      if x < acc:
+        writers[fold].write(record)
+        per_fold[fold] += 1
+        break
     else:
-      train.write(record)
-      ntrain += 1
-  print "Wrote {} records to train file and {} to test".format(ntrain, ntest)
-  train.close()
-  test.close()
+      assert False, "this should be unreachable (acc={})".format(acc)
+  print "Wrote records with dist: {}".format(per_fold)
+  for writer in writers.values():
+    writer.close()
 
 def save_testusers(records):
   """Save the kaggle-defined test set users to their own tfrecords file."""
@@ -36,14 +53,19 @@ def save_testusers(records):
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('-r', '--record-file', default='users.tfrecords')
-  parser.add_argument('--frac', type=float, default=.05, help='Test fraction (default=.05)')
-  parser.add_argument('--prefix', default='', help='Prefix for generated train/test tfrecords files')
+  parser.add_argument('--traintest', action='store_true')
+  parser.add_argument('--ktest', action='store_true')
   args = parser.parse_args()
+  random.seed(1337)
 
-  record_iterator = tf.python_io.tf_record_iterator(args.record_file)
+  recordpath = common.resolve_recordpath(args.record_file)
+  record_iterator = tf.python_io.tf_record_iterator(recordpath)
 
-  assert False, "uncomment one of the below modes"
-  #random_traintest_split(record_iterator, args.prefix, args.frac)
-  #save_testusers(record_iterator)
+  if args.traintest:
+    random_traintest_split(record_iterator)
+  elif args.ktest:
+    save_testusers(record_iterator)
+  else:
+    assert False, "nothing to do here"
 
 main()

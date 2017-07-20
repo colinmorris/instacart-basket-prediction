@@ -1,117 +1,94 @@
 from __future__ import division
-
-import math
-import numpy as np
+import tensorflow as tf
+from tensorflow.python.ops import math_ops
 from collections import namedtuple
 
-Feature = namedtuple('feature', 'name arity fn')
+_raw_feats = ['previously_ordered', 'days_since_prior', 'dow', 'hour',
+      'n_prev_products', ]
+      #'n_prev_repeats', 'n_prev_reorders']
 
-FEATURES = []
+Feature = namedtuple('Feature', 'name arity fn binary')
 
-def feature(fn):
-  f = Feature(fn.__name__, 1, fn)
-  FEATURES.append(f)
-  return fn
+ALL_FEATURES = []
+FEAT_LOOKUP = {}
 
-def feature_with_arity(n):
-  def inner_decorator(fn):
-    f = Feature(fn.__name__, n, fn)
-    FEATURES.append(f)
-    return fn
-  return inner_decorator
+def _normalize_feat_output(output_tensor, arity, name):
+  rank = len(output_tensor.shape)
+  if rank == 1:
+    output_tensor = tf.expand_dims(output_tensor, 0)
+  shape = output_tensor.shape
+  assert shape[0] == arity, "Expected shape of {} to be ({}, ?), but was {}".format(name, arity, shape)
+  rank = len(shape)
+  assert rank == 2, "Expected rank 2, got {}".format(rank)
+  if output_tensor.dtype != tf.float32:
+    output_tensor = tf.cast(output_tensor, tf.float32)
+  return output_tensor
 
-def define_passthrough_feature(colname):
-  fn = lambda df, user: df[colname].values
-  f = Feature(colname, 1, fn)
-  FEATURES.append(f)
+def feature(arity=1, name=None, keys=None, binary=False):
+  assert isinstance(arity, int)
+  def decorator(featfn):
+    argnames = keys or featfn.func_code.co_varnames
+    def wrapped(dataset):
+      args = [dataset[arg] for arg in argnames]
+      res = featfn(*args)
+      return _normalize_feat_output(res, arity, name)
 
-def lookup_features(names):
-  name_to_feat = {f.name: f for f in FEATURES}
-  return [name_to_feat[name] for name in names]
+    featname = name or featfn.__name__
+    feat = Feature(featname, arity, wrapped, binary)
+    ALL_FEATURES.append(feat)
+    assert featname not in FEAT_LOOKUP
+    FEAT_LOOKUP[featname] = feat
+    return wrapped
 
-#define_passthrough_feature('days_since_prior')
-#define_passthrough_feature('previously_ordered')
-@feature
-def in_previous_order(df, user):
-  return (df['previously_ordered'].values > 0)
-define_passthrough_feature('n_prev_products')
-define_passthrough_feature('n_prev_reorders')
-define_passthrough_feature('n_prev_repeats')
+  return decorator
 
-@feature_with_arity(2)
-def day_of_week_circular_sincos(df, user):
-  # Raw value is an int from 0 to 6
-  dow = df['dow'].values
-  scaled = (dow / 7) * (2 * math.pi)
-  sin = np.sin(scaled)
-  cos = np.cos(scaled)
-  return np.stack([sin, cos], axis=1)
+def define_passthrough_feature(key):
+  @feature(name=key, keys=(key,), arity=1)
+  def _inner(val):
+    return val
 
-@feature_with_arity(7)
-def day_of_week_onehot(df, user):
-  res = np.zeros([len(df), 7])
-  res[np.arange(len(df)), df['dow'].values.astype(np.int8)] = 1
-  return res
+_passthrough_keys = ['days_since_prior', 'n_prev_products']
+for k in _passthrough_keys:
+  define_passthrough_feature(k)
 
-@feature_with_arity(2)
-def hour_of_day_circular_sincos(df, user):
-  # Raw value is an int from 0 to 6
-  hr = df['hour'].values
-  scaled = (hr / 24) * (2 * math.pi)
-  sin = np.sin(scaled)
-  cos = np.cos(scaled)
-  return np.stack([sin, cos], axis=1)
+# boundaries=[0, 1, 2] leads to buckets (-inf, 0), [0, 1), [1, 2), [2, inf)
+def define_bucketized_feature(key, boundaries):
+  name = key + '_bucketized'
+  boundaries = map(float, boundaries)
+  nbuckets = len(boundaries) + 1
+  @feature(arity=nbuckets, name=name, keys=[key], binary=True)
+  def _innerfeat(val):
+    bucket_indices = math_ops._bucketize(val, boundaries=boundaries)
+    return tf.one_hot(bucket_indices, depth=nbuckets, axis=0)
 
-@feature
-def prev_repeat_rate(df, user):
-  # What proportion of last order was repeated?
-  sizes = df['n_prev_products'].values # Should always be non-zero... right?
-  repeats = df['n_prev_repeats'].values
-  return repeats / sizes
+def define_onehot_feature(key, depth):
+  @feature(arity=depth, name=key+'_onehot', keys=[key], binary=True)
+  def _innerfeat(val):
+    return tf.one_hot(tf.cast(val, tf.int64), depth, axis=0)
 
-@feature
-def prev_reorder_rate(df, user):
-  # What proportion of last order was reordered
-  sizes = df['n_prev_products'].values # Should always be non-zero... right?
-  repeats = df['n_prev_reorders'].values
-  return repeats / sizes
+define_onehot_feature('dow', 7)
+#define_onehot_feature('hour', 24)
 
-# TODO: Based on a very naive reading of the weights on the inputs to the RNN,
-# these days_since_prior features seem very important (i.e. they have large
-# norms. Suggests that it might be worth exploring even more variations. 
-# e.g. maybe bucketize?
-@feature
-def days_since_is_maxed(df, user):
-  # Is days_since_prior_order its max value (30)? (It's pretty clear that
-  # this variable is truncated to that max)
-  return (df['days_since_prior'].values == 30).astype(int)
-@feature
-def same_day(df, user):
-  return (df['days_since_prior'].values == 0).astype(int)
+hour_buckets = [7, 10, 13, 16, 20,]
+define_bucketized_feature('hour', hour_buckets)
 
-@feature
-def days_since_last_scaled(df, user):
-  days = df['days_since_prior'].values
-  return days / 30
+@feature(binary=True)
+def in_previous_order(previously_ordered):
+  return tf.minimum(previously_ordered, 1)
 
-@feature
-def previously_firstordered(df, user):
-  # Was the focal product in the previous order AND was it the first item added?
-  return df['previously_ordered'].values == 1
-@feature
-def previously_ordered_firsthalf(df, user):
-  # Was the focal product in the previous order AND was it the first half of items added?
-  return (
-      (df['previously_ordered'].values <= (df['n_prev_products'].values/2))
-      *
-      (df['previously_ordered'].values > 0)
-      )
-@feature
-def previously_ordered_secondhalf(df, user):
-  # Was the focal product in the previous order AND was it in the last half of items added?
-  return (
-      (df['previously_ordered'].values > (df['n_prev_products'].values/2))
-      *
-      (df['previously_ordered'].values > 0)
-      )
-NFEATS = sum(f.arity for f in FEATURES)
+@feature()
+def in_previous_order_normalized_cart_order(previously_ordered, n_prev_products):
+  return previously_ordered / n_prev_products
+
+if 0:
+  @feature(binary=True)
+  def days_since_prior_is_maxed(days_since_prior):
+    return days_since_prior == 30.0
+
+  @feature(binary=True)
+  def sameday(days_since_prior):
+    return days_since_prior == 0.0
+else:
+  days_since_prior_buckets = [2, 3, 5, 7, 10, 15, 20, 30]
+  define_bucketized_feature('days_since_prior', days_since_prior_buckets)
+

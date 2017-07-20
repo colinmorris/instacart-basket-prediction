@@ -2,9 +2,10 @@ import random
 import pandas as pd
 import numpy as np
 import itertools
+import tensorflow as tf
 
 from baskets.insta_pb2 import User
-from baskets.features import FEATURES, NFEATS
+from baskets import common, constants
 
 class UserWrapper(object):
   """Wrapper around User protobuf objs.
@@ -27,8 +28,16 @@ class UserWrapper(object):
     return len(self.user.orders)
 
   @property
+  def nprods(self):
+    return len(self.all_pids)
+
+  @property
   def seqlen(self):
     return len(self.user.orders) - 1
+
+  @property
+  def istest(self):
+    return self.user.test
 
   @property
   def all_pids(self):
@@ -50,7 +59,7 @@ class UserWrapper(object):
     # Special case: if predictable prods is empty, return a single dummy
     # product id representing "none" (to be consistent with kaggle's scoring method)
     if not res:
-      return set([NONE_PRODUCTID])
+      return set([constants.NONE_PRODUCTID])
     return res
 
   def sample_pids(self, n):
@@ -72,6 +81,8 @@ class UserWrapper(object):
     order = self.user.orders[iorder]
     iprod = random.randint(0, len(order.products)-1)
     return order.products[iprod]
+
+  # TODO: clear out dusty old methods
 
   rawcols = ['dow', 'hour', 'days_since_prior',
       'previously_ordered', 'n_prev_products', 'n_prev_repeats', 'n_prev_reorders']
@@ -168,3 +179,11 @@ def vectorize(df, user, maxlen, features=None, nfeats=None):
       res[:seqlen,i:i+feat.arity] = featvals
     i += feat.arity
   return res
+
+def iterate_wrapped_users(recordpath):
+  recordpath = common.resolve_recordpath(recordpath)
+  records = tf.python_io.tf_record_iterator(recordpath)
+  for record in records:
+    user = User()
+    user.ParseFromString(record)
+    yield UserWrapper(user)

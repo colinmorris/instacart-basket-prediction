@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# TODO XXX: post-refactor rewrite
+
 import time
 import csv
 import argparse

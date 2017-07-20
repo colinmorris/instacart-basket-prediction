@@ -1,11 +1,16 @@
 import os
 import time
 import logging
+from enum import IntEnum
 
 from tensorflow.contrib.training import HParams
 
-from baskets.features import NFEATS, FEATURES
+from baskets.feature_spec import FeatureSpec
 from baskets import common
+
+# TODO: Write a subroutine to validate hps when loaded?
+
+Mode = IntEnum('Mode', 'training inference eval')
 
 """TODO: there are really two distinct kinds of parameters conflated here.
 1) Model parameters, which are immutable, e.g. rnn_size, feats, product_embedding_size
@@ -16,6 +21,9 @@ Probably makes sense to store them separately.
 """
 def get_default_hparams():
   return HParams(
+      # One of {training, inference, eval}
+      mode=Mode.training,
+      # TODO: deprecate me
       is_training=True,
       # 256 seems like the sweet spot for this. More powerful than 128.
       # 512 is veeeery slow, and seems to have bad convergence
@@ -27,10 +35,9 @@ def get_default_hparams():
       # TODO: Should really be doing some kind of dynamic padding - where we
       # pad each batch to the length of its longest sequence.
       max_seq_len=100,
-      # More correctly, the dimensionality of the feature space (there are 
-      # some "features" that correspond to 2+ numbers, e.g. onehot day of week
-      nfeats=NFEATS,
-      feats=[f.name for f in FEATURES],
+      features=FeatureSpec.default_spec().names,
+      # Whether to subtract mean and divide by stdev for features
+      normalize_features=False,
       # Note that the learning rate used for training is a fn of the initial
       # value, the decay/min, and the current *global_step*. So if you start
       # train from an existing checkpoint, the learning rate will not start
@@ -109,11 +116,17 @@ def get_default_hparams():
       fully_specified=False, # Used for config file bookkeeping
   )
 
-def hps_for_tag(tag, save_full=False):
+def hps_for_tag(tag, save_full=False, mode=None):
+  """mode is an optional override for whatever's defined in the config file
+  for the mode field"""
   hps = get_default_hparams()
   config_path = '{}/{}.json'.format(common.CONFIG_DIR, tag)
   with open(config_path) as f:
     hps.parse_json(f.read())
+  mode = mode or hps.mode
+  if mode != Mode.training:
+    # (For now assuming eval and inference are the same)
+    hps = as_eval(hps)
   if save_full:
     full_hps = copy_hps(hps)
     full_hps.fully_specified = True
@@ -125,7 +138,7 @@ def hps_for_tag(tag, save_full=False):
 
 def as_eval(hps):
   eval_hps = copy_hps(hps)
-  eval_hps.is_training = False
+  eval_hps.mode = Mode.eval
   eval_hps.use_recurrent_dropout = False
   return eval_hps
 

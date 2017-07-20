@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+
+# XXX TODO: This needs to updated/rewritten post-refactor.
 import argparse
 import functools
 import tensorflow as tf
