@@ -80,21 +80,8 @@ so we could even just zero out the loss for those first n timesteps.)
 - more tests are always good
 
 # Perf
-- set up input queue (good for more than just perf reasons - also makes it easier to randomize order of instances per epoch)
-- look into precomputing features (or at least speeding up current code)
-  - one thing that makes this tricky is that there's a lot of redundancy in separately
-    storing the training sequences for each of a user's n products, because they share
-    like 90% of their DNA. Most feats are not product-specific.
-  - it would be cool if I could use the tf input pipeline stuff using a custom
-    protobuf format (not Examples or SequenceExamples)
-- what about running this in the 'cloud'? would a nice GPU speed up training significantly?
-- one weird trick that might speed up input pipeline: make placeholders variable length
-  and do the padding in tf runtime. Seems like big bottleneck is just copying the data
-  from python runtime to tf. Most of that data is zeros because of padding to max_seq_len=100.
 
 # Bugfixes
-- fix double log lines with runner.py
-- remove user arg from features. not used.
 
 # Features
 - more investigation into feature transformations
@@ -137,11 +124,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - "savers can automatically number checkpoint filenames with a provided counter. This lets you keep multiple checkpoints at different steps while training a model. For example you can number the checkpoint filenames with the training step number. To avoid filling up disks, savers manage checkpoint files automatically. For example, they can keep only the N most recent files, or one checkpoint for every N hours of training."
   - https://www.tensorflow.org/api_docs/python/tf/train/Saver
   - that sounds useful
-- 'tagging' system is a little janky right now. kind of want to have a 1 to many rel'n from
-  configs/hps to tags, rather than 1:1 as it is right now. When I resume training on 
-  an existing model for another 20k timesteps, I might want to track that twice-trained
-  model under a different tag. Sort of related to the problem of early stopping, and the
-  above stuff about multiple checkpoints.
 - 'whales' are kind of a problem - users with, say, 20+ orders, and 90+ prods. 
   (those are actually the 75th %ile values, so not even whales really). 
   They generate a lot of training examples compared to typical users. 
@@ -209,3 +191,5 @@ so we could even just zero out the loss for those first n timesteps.)
   (Though I guess sometimes the thing I'm testing is logging)
 - train some baseline rnn models with very limited features (e.g. just the label
   for the previous order)
+- auto-encoder learning multi-hot representation of baskets
+- contrived fake orders/user for testing

@@ -32,9 +32,6 @@ def get_default_hparams():
       # out gradient updates? Especially in 'finetune' mode, where training signal
       # is very sparse/noisy compared to normal.
       batch_size=100,
-      # TODO: Should really be doing some kind of dynamic padding - where we
-      # pad each batch to the length of its longest sequence.
-      max_seq_len=100,
       features=FeatureSpec.default_spec().names,
       # Whether to subtract mean and divide by stdev for features
       normalize_features=False,
@@ -111,7 +108,7 @@ def get_default_hparams():
       #    for its worseness might be lack of ortho init)
       cell='lstm', 
       # One of {Adam, LazyAdam}
-      optimizer='Adam',
+      optimizer='LazyAdam',
 
       fully_specified=False, # Used for config file bookkeeping
   )
@@ -135,6 +132,15 @@ def hps_for_tag(tag, save_full=False, mode=None):
     with open(full_path, 'w') as f:
       f.write(hps.to_json())
   return hps
+
+def save_hps(tag, hps, subdir=None):
+  fname = tag + '.json'
+  if subdir is not None:
+    path = os.path.join(common.CONFIG_DIR, subdir, fname)
+  else:
+    path = os.path.join(common.CONFIG_DIR, fname)
+  with open(path, 'w') as f:
+    f.write(hps.to_json())
 
 def as_eval(hps):
   eval_hps = copy_hps(hps)

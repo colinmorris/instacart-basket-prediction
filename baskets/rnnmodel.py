@@ -181,6 +181,9 @@ class RNNModel(object):
                   self.total_cost,
                   self.global_step,
           )
+        if self.hps.aisle_embedding_size == 0 or self.hps.dept_embedding_size == 0:
+          # meh.
+          return
         # Log the size of gradient updates to tensorboard
         gradient_varnames = ['RNN/output_w', 'dept_embeddings', 'aisle_embeddings']
         # TODO: how to handle product embeddings? Updates should be v. sparse.

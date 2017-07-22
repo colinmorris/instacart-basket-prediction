@@ -124,7 +124,7 @@ def train(sess, model, runlabel, eval_model, logdir):
       output_log = output_format % output_values
       tf.logging.info(output_log)
       start = time.time()
-    if (i+1) % hps.save_every == 0 or i == (hps.num_steps - 1):
+    if (i+1) % hps.save_every == 0 or (i == (hps.num_steps - 1) and hps.num_steps > 100):
       utils.save_model(sess, runlabel, step)
     if (i+1) % hps.eval_every == 0:
       tf.logging.info("Calculating validation loss")
@@ -152,9 +152,15 @@ def main():
       help='Load existing checkpoint with the given tag name and resume training')
   parser.add_argument('--finetune', action='store_true')
   parser.add_argument('--logdir', default='logs')
+  parser.add_argument('--toy', action='store_true')
   args = parser.parse_args()
 
   hps = hypers.hps_for_tag(args.tag, save_full=True)
+  logdir = args.logdir
+  if args.toy:
+    hps.num_steps = 100
+    hps.log_every = 50
+    logdir = 'toylogs'
   tf.logging.info('Building model')
   train_dat = BasketDataset(hps, args.recordfile)
   model = RNNModel(hps, train_dat)
