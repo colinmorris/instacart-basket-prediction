@@ -58,6 +58,8 @@ Some timing stats:
   - which is pretty slow. worth profiling. Maybe have a 'lazy mode' that cuts a few corners
     for big speedups (e.g. in terms of trying fewer thresholds)
       - also maaaaybe worth considering trying to turn O(n^4) E[f] algo into O(n^3)
+  - 5min with '--quick' mode (lower thresh for using hybrid predictor, non-exhaustive 
+    enumeration of cand thresholds)
 - caching lookups (oid_to_pids etc.): 800s
 - generating user pbs: 20min
 - precomputing vectors: 

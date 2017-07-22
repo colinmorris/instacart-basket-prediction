@@ -1,11 +1,19 @@
 import time
+import sys
 from contextlib import contextmanager
 import tensorflow as tf
 
 @contextmanager
-def time_me(what_i_did='Finished'):
+def time_me(what_i_did='Finished', mode='tflog'):
   t0 = time.time()
   yield
   t1 = time.time()
   msg = '{} in {:.1f}s'.format(what_i_did, t1-t0)
-  tf.logging.info(msg)
+  if mode == 'tflog':
+    tf.logging.info(msg)
+  elif mode == 'print':
+    print msg
+  elif mode == 'stderr':
+    sys.stderr.write(msg+'\n')
+  else:
+    assert False, 'Unrecognized mode {}'.format(mode)

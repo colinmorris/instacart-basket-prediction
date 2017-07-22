@@ -19,6 +19,7 @@ hp_exploration_cands = dict(
     grad_clip={0.0: .75, 1.0: .25},
     cell={'lstm': .8, 'layer_norm': .15, 'hyper': .05},
     optimizer=['Adam', 'LazyAdam'],
+    normalize_features={True: .75, False: .25},
 )
 
 ordered_hp_aliases = [
@@ -43,7 +44,7 @@ def _sample_dict(hp_dict):
 
 
 def sample_hps():
-  id = ''.join(chr(random.randint(ord('a'), ord('z'))) for _ in range(4))
+  id = '_' + ''.join(chr(random.randint(ord('a'), ord('z'))) for _ in range(4))
   hps = hypers.get_default_hparams()
   for param, cands in hp_exploration_cands.iteritems():
     if param == 'min_learning_rate_denom':

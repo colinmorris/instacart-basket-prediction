@@ -65,5 +65,5 @@ def main():
     print df.mean()
   
 if __name__ == '__main__':
-  with time_me('Finished evaluation'):
+  with time_me('Finished evaluation', mode='stderr'):
     main()
