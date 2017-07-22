@@ -4,7 +4,7 @@
 from baskets.test_helpers import user, user_pb
 from baskets import utils
 
-from precompute_feats import _seq_data, get_user_sequence_examples
+from vectorize import _seq_data, get_user_sequence_examples
 
 def test_seqdata(user):
   HAH =27086 # Half and half. Ordered a lot.

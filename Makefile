@@ -10,16 +10,16 @@ $(userdir)/validation.tfrecords $(userdir)/test.tfrecords $(userdir)/train.tfrec
 	python preprocessing/partition_users.py --traintest
 
 $(vectordir)/train.tfrecords: $(userdir)/train.tfrecords
-	precompute_feats.py --max-prods 5 train
+	vectorize.py --max-prods 5 train
 
 $(vectordir)/validation.tfrecords: $(userdir)/validation.tfrecords
-	precompute_feats.py --max-prods 5 validation
+	vectorize.py --max-prods 5 validation
 
 $(vectordir)/test.tfrecords: $(userdir)/test.tfrecords
-	precompute_feats.py test
+	vectorize.py test
 
 $(vectordir)/unit_tests.tfrecords: $(userdir)/train.tfrecords
-	precompute_feats.py -n 50 --max-prods 5 --out unit_tests train
+	vectorize.py -n 50 --max-prods 5 --out unit_tests train
 
 clean: 
 	rm $(vectordir)/*.tfrecords
