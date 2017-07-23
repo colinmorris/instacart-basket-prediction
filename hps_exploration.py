@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from __future__ import division
 import random
 import argparse
@@ -11,7 +12,7 @@ hp_exploration_cands = dict(
     learning_rate = [.1, .01, .001, .0001, .00001],
     decay_rate=[.995, .999, .9995, .9999],
     min_learning_rate_denom=[10, 100, 1000],
-    product_embedding_size=[8, 32, 64],
+    product_embedding_size=[0, 8, 32, 64],
     dept_embedding_size=[0, 4],
     aisle_embedding_size=[0, 4, 8, 16],
     l2_weight=[0.00001, 0.000001, 0.0000001, 0],
@@ -79,7 +80,8 @@ def main():
 
   for _ in range(args.n):
     hps, tag = sample_hps()
-    hypers.save_hps(tag, hps, subdir='hpsearch')
+    hps.num_steps = 12000
+    hypers.save_hps(tag, hps)
     print tag
 
 if __name__ == '__main__':

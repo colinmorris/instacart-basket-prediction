@@ -1,3 +1,4 @@
+*.pyc
 *.pickle
 *.h5
 *.tfrecords
