@@ -18,10 +18,10 @@ LOG_DIR = os.path.join(ROOT, 'logs')
 
 CHECKPOINT_DIR = os.path.join(ROOT, 'checkpoints')
 
-# Other options are ZLIB and NONE
+# Other options are ZLIB and NONE (though in the latter case, the name should be '', cause tf.contrib.data is quirky like that)
 VECTOR_COMPRESSION_NAME = 'GZIP'
 VECTOR_COMPRESSION_TYPE = getattr(tf.python_io.TFRecordCompressionType, 
-    VECTOR_COMPRESSION_NAME)
+    VECTOR_COMPRESSION_NAME or 'NONE')
 
 def resolve_recordpath(recordpath):
   if '/' in recordpath:
