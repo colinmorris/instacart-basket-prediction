@@ -134,6 +134,9 @@ def hps_for_tag(tag, save_full=False, mode=None):
   return hps
 
 def save_hps(tag, hps, subdir=None):
+  # (IntEnum will actually pass a check of isinstance int)
+  if type(hps.mode) != int:
+    hps.mode = hps.mode.value
   fname = tag + '.json'
   if subdir is not None:
     path = os.path.join(common.CONFIG_DIR, subdir, fname)
