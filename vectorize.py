@@ -1,17 +1,21 @@
 #!/usr/bin/env python
 from __future__ import division
 import argparse
+import os
 import random
 import time
-import pandas as pd
 import numpy as np
 import tensorflow as tf
 
 
 from baskets.user_wrapper import iterate_wrapped_users
 from baskets.insta_pb2 import User
-from baskets import common, utils, data_fields
+from baskets import common, data_fields
 from baskets.time_me import time_me
+
+# (speed seems basically identical)
+#PROD_LOOKUP_MODE = 'pickle' # or np
+PROD_LOOKUP_MODE = 'np' # or pickle
 
 # id fields are as defined by Kaggle (i.e. starting from 1, not 0)
 context_fields = [
@@ -21,10 +25,9 @@ context_fields = [
 # cart (starting from 1)
 raw_feats = ['previously_ordered',]
 generic_raw_feats = ['days_since_prior', 'dow', 'hour',
-      'n_prev_products',] 
-# Going to skip these last two for now. Slightly annoying bookeeping to 
-# calculate them, and not convinced they really help much.
-#'n_prev_repeats', 'n_prev_reorders']
+      'n_prev_products', 
+      #'n_prev_repeats', 'n_prev_reorders'
+      ]
 sequence_fields = ['lossmask', 'labels', ] # + raw_feats
 
 def _seq_data(user, pids):
@@ -70,24 +73,14 @@ def _seq_data(user, pids):
   pidfeats = dict(labels=labels, lossmask=lossmask, previously_ordered=prev_ordered)
   return gfs, pidfeats
 
-
-def write_user_vectors(user, writer, product_df, testmode, max_prods):
-  n = 0
-  for example in get_user_sequence_examples(user, product_df, testmode, max_prods):
-    writer.write(example.SerializeToString())
-    n += 1
-  return n
-
-def get_user_sequence_examples(user, product_df, testmode, max_prods):
+def get_user_sequence_examples(user, product_lookup, testmode, max_prods):
   assert not testmode
-  if max_prods is None:
-    max_prods = float('inf')
+  max_prods = max_prods or float('inf')
   nprods = min(max_prods, user.nprods)
   weight = 1 / nprods
   # Generic context features
   base_context = {
       'uid': intfeat(user.uid),
-      #'seqlen': intfeat(user.seqlen),
       'weight': floatfeat(weight),
       }
   pids = random.sample(user.all_pids, nprods)
@@ -101,7 +94,7 @@ def get_user_sequence_examples(user, product_df, testmode, max_prods):
   for pidx, pid in enumerate(pids):
     # Context features (those that don't scale with seqlen)
     ctx_dict = base_context.copy()
-    aisleid, deptid = product_df.loc[pid-1, ['aisle_id', 'department_id']]
+    aisleid, deptid = product_lookup[pid-1]
     product_ctx = dict(pid=intfeat(pid), aisleid=intfeat(aisleid), deptid=intfeat(deptid))
     ctx_dict.update(product_ctx)
     context = tf.train.Features(feature=ctx_dict)
@@ -139,6 +132,12 @@ def _seqfeat(values, featfn):
   feats = [featfn(v) for v in values]
   return tf.train.FeatureList(feature=feats)
 
+def write_user_vectors(user, writer, product_df, testmode, max_prods):
+  n = 0
+  for example in get_user_sequence_examples(user, product_df, testmode, max_prods):
+    writer.write(example.SerializeToString())
+    n += 1
+  return n
 
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -160,12 +159,23 @@ def main():
 
   outpath = common.resolve_vector_recordpath(args.out or args.user_records_file)
   tf.logging.info("Writing vectors to {}".format(outpath))
-  writer = tf.python_io.TFRecordWriter(outpath)
-  product_df = utils.load_product_df()
+  # Other option is GZIP. Not sure why I'd choose one over the other. (default is .NONE)
+  writer_options = tf.python_io.TFRecordOptions(
+      compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+  writer = tf.python_io.TFRecordWriter(outpath, options=writer_options)
+  if PROD_LOOKUP_MODE == 'pickle':
+    import pickle
+    with open(os.path.join(common.DATA_DIR, 'product_lookup.pickle')) as f:
+      prod_lookup = pickle.load(f)
+  elif PROD_LOOKUP_MODE == 'np':
+    lookuppath = os.path.join(common.DATA_DIR, 'product_lookup.npy')
+    prod_lookup = np.load(lookuppath)
+  else:
+    assert False
   i = 0
   nseqs = 0
   for user in iterate_wrapped_users(args.user_records_file):
-    nseqs += write_user_vectors(user, writer, product_df, args.test_mode, args.max_prods)
+    nseqs += write_user_vectors(user, writer, prod_lookup, args.test_mode, args.max_prods)
     i += 1
     if args.n_users and i >= args.n_users:
       break
