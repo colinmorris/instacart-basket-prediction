@@ -102,38 +102,37 @@ class TransformedDataset(DatasetWrapper):
 class BasketDataset(DatasetWrapper):
   FIELDS = TransformedDataset.FIELDS
   def __init__(self, hps, fname=None):
-    with tf.device('/cpu:0'):
-      self.hps = hps
-      raw = RawDataset(hps, fname)
-      transformed = TransformedDataset(hps, raw)
-      # TODO: Feature transformations before or after batching? Does it matter?
-      # TODO: normalize. Kinda hairy.
-      # batch
-      padded_shapes = []
-      for field in transformed.FIELDS:
-        if field in context_fields or field == 'seqlen':
-          shape = []
-        elif field in sequence_fields:
-          shape = [-1]
-        elif field == 'features':
-          shape = transformed.feat_spec.shape
-        else:
-          assert False, "Don't know what to do with field {}".format(field)
-        padded_shapes.append(shape)
-      self.dataset = transformed.dataset
-      self.feature_spec = transformed.feat_spec
-      # TODO: does the order of calls to batch/repeat matter? in docs they do repeat first
-      if hps.mode == Mode.training:
-        # NB: VERY IMPORTANT to shufle before batching. Glad I caught that.
-        self.dataset = self.dataset.shuffle(buffer_size=10000)
-        self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
-        self.dataset = self.dataset.repeat()
-        self.iterator = self.dataset.make_one_shot_iterator()
+    self.hps = hps
+    raw = RawDataset(hps, fname)
+    transformed = TransformedDataset(hps, raw)
+    # TODO: Feature transformations before or after batching? Does it matter?
+    # TODO: normalize. Kinda hairy.
+    # batch
+    padded_shapes = []
+    for field in transformed.FIELDS:
+      if field in context_fields or field == 'seqlen':
+        shape = []
+      elif field in sequence_fields:
+        shape = [-1]
+      elif field == 'features':
+        shape = transformed.feat_spec.shape
       else:
-        self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
-        self.dataset = self.dataset.repeat(1)
-        self.iterator = self.dataset.make_initializable_iterator()
-      self.next_element = self.iterator.get_next() 
+        assert False, "Don't know what to do with field {}".format(field)
+      padded_shapes.append(shape)
+    self.dataset = transformed.dataset
+    self.feature_spec = transformed.feat_spec
+    # TODO: does the order of calls to batch/repeat matter? in docs they do repeat first
+    if hps.mode == Mode.training:
+      # NB: VERY IMPORTANT to shufle before batching. Glad I caught that.
+      self.dataset = self.dataset.shuffle(buffer_size=10000)
+      self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
+      self.dataset = self.dataset.repeat()
+      self.iterator = self.dataset.make_one_shot_iterator()
+    else:
+      self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
+      self.dataset = self.dataset.repeat(1)
+      self.iterator = self.dataset.make_initializable_iterator()
+    self.next_element = self.iterator.get_next() 
 
   def new_epoch_op(self):
     assert self.hps.mode != Mode.training
