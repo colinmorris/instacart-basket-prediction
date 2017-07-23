@@ -53,7 +53,8 @@ Some timing stats:
   - (Also, some large but unknown % is spent copying data from python runtime to tf runtime)
 - 110s to calculate validation loss (so calculating this every 1.5k batches, means it 
   accounts for around 5-10% of training time)
-- precomputing probabilities for 509 test users: 2min
+- precomputing probabilities:
+  - 509 test users -> 2min
 - eval.py: 20 min on 509 users
   - which is pretty slow. worth profiling. Maybe have a 'lazy mode' that cuts a few corners
     for big speedups (e.g. in terms of trying fewer thresholds)
@@ -62,7 +63,7 @@ Some timing stats:
     enumeration of cand thresholds)
 - caching lookups (oid_to_pids etc.): 800s
 - generating user pbs: 20min
-- precomputing vectors: 
+- vectorizing user pbs:
   - 8.3k users (validation set), 5 prods/usr, 41k seqs => 54s (was 45s before n_prev_re(orders|peats))
   - 95s for 9905 users, using prod limit of 5
   - 20min for train set set (196k users) with prodlim of 5 
