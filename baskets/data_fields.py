@@ -18,7 +18,9 @@ for idf in id_fields:
   f = Field(idf, int)
   ALL_FIELDS.append(f)
 
-raw_feats = ['previously_ordered', 'days_since_prior', 'dow', 'hour', 'n_prev_products',] 
+raw_feats = ['previously_ordered', 'days_since_prior', 'dow', 'hour', 
+    'n_prev_products', 'n_prev_reorders', 'n_prev_repeats',
+    ] 
 for rf in raw_feats:
   f = Field(rf, int)
   ALL_FIELDS.append(f)

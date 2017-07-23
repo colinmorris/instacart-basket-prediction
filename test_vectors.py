@@ -2,9 +2,11 @@
 # It makes no sense to me that I need to import user_pb even though I never
 # use it. But I was warned that pytest had some weird black magic hacks.
 from baskets.test_helpers import user, user_pb
-from baskets import utils
 
+import vectorize
 from vectorize import _seq_data, get_user_sequence_examples
+  
+TEST_UID = 2455
 
 def test_seqdata(user):
   HAH =27086 # Half and half. Ordered a lot.
@@ -24,12 +26,15 @@ def test_seqdata(user):
   assert (generic_feats['days_since_prior'][:3] == [2, 1, 3]).all()
   assert (generic_feats['n_prev_products'][:3] == [6, 5, 2]).all()
 
+  assert (generic_feats['n_prev_reorders'][:4] == [0, 4, 1, 3]).all()
+  assert (generic_feats['n_prev_repeats'][:4] == [0, 4, 1, 0]).all()
+
 def test_seqexample(user):
-  product_df = utils.load_product_df()
-  seq_eg_iter = get_user_sequence_examples(user, product_df, testmode=False, max_prods=3)
+  product_lookup = vectorize.load_product_lookup()
+  seq_eg_iter = get_user_sequence_examples(user, product_lookup, testmode=False, max_prods=3)
   seq_egs = list(seq_eg_iter)
   assert len(seq_egs) == 3
   example = seq_egs[0]
-  seqlens = list(example.context.feature['seqlen'].int64_list.value)
-  assert seqlens == [6]
+  uids = list(example.context.feature['uid'].int64_list.value)
+  assert uids == [TEST_UID]
 

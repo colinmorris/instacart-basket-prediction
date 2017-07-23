@@ -26,18 +26,31 @@ def evaluate_model(sess, model):
   total_cost = 0.0
   # The cost measured on just the 'finetuned' metric: the last order
   total_finetune_cost = 0.0
-  costvars = [model.cost, model.finetune_cost]
+  weightsum_var = tf.reduce_sum(model.dataset['weight'])
+  bs_var = tf.shape(model.dataset['weight'])[0]
+  costvars = [model.cost, model.finetune_cost, model.weighted_cost, weightsum_var, bs_var]
   nbatches = 0
+  nseqs = 0
+  total_weight = 0
+  total_weighted_cost = 0
   while 1:
     try:
-      cost, ft_cost = sess.run(costvars)
+      cost, ft_cost, wcost, wsum, bs = sess.run(costvars)
     except tf.errors.OutOfRangeError:
       break
+    nseqs += bs
     total_cost += cost
     total_finetune_cost += ft_cost
+    total_weighted_cost += wcost
+    total_weight += wsum
     nbatches += 1
 
-  return total_cost / nbatches, total_finetune_cost / nbatches
+  reweighted_cost = total_weighted_cost * (nseqs/total_weight)
+  return dict(
+      Loss = total_cost / nbatches, 
+      Finetune_Loss = total_finetune_cost / nbatches, 
+      Weighted_Loss = reweighted_cost/nbatches
+      )
 
 def train(sess, model, runlabel, eval_model, logdir):
   # Setup summary writer.
@@ -129,15 +142,15 @@ def train(sess, model, runlabel, eval_model, logdir):
     if (i+1) % hps.eval_every == 0:
       tf.logging.info("Calculating validation loss")
       t0 = time.time()
-      eval_cost, ft_cost = evaluate_model(sess, eval_model)
+      validation_summ = evaluate_model(sess, eval_model)
       t1 = time.time()
       eval_time = t1 - t0
       # Cheat the clock on total training time, so it doesn't count time spent 
       # on the validation set
       start += eval_time
-      tf.logging.info('Evaluation loss={:.4f} (took {:.1f}s)'.format(eval_cost, eval_time))
+      tf.logging.info('Evaluation loss={:.4f} (took {:.1f}s)'.format(
+        validation_summ['Loss'], eval_time))
       write_tagged_value('Timing/Validation', eval_time)
-      validation_summ = {'Loss': eval_cost, 'Finetune_Loss': ft_cost}
       write_values('Loss/Validation', validation_summ)
       summary_writer.flush()
 

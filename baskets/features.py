@@ -47,7 +47,9 @@ def define_passthrough_feature(key):
   def _inner(val):
     return val
 
-_passthrough_keys = ['days_since_prior', 'n_prev_products']
+_passthrough_keys = ['days_since_prior', 'n_prev_products',
+    'n_prev_reorders', 'n_prev_repeats',
+    ]
 for k in _passthrough_keys:
   define_passthrough_feature(k)
 
@@ -91,4 +93,13 @@ if 0:
 else:
   days_since_prior_buckets = [2, 3, 5, 7, 10, 15, 20, 30]
   define_bucketized_feature('days_since_prior', days_since_prior_buckets)
+
+# TODO: Probably want to decide on one of either the raw or normalized
+# versions of these features
+@feature()
+def prev_reorder_rate(n_prev_reorders, n_prev_products):
+  return n_prev_reorders / n_prev_products
+@feature()
+def prev_repeat_rate(n_prev_repeats, n_prev_products):
+  return n_prev_repeats / n_prev_products
 

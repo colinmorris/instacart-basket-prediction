@@ -137,6 +137,7 @@ class RNNModel(object):
     loss_per_seq = tf.realdiv(loss_per_seq, 
         tf.reduce_sum(self.lossmask, axis=1)
     )
+    weighted_loss_per_seq = tf.multiply(loss_per_seq, input_vars['weight'])
     # Loss on just the last element of each sequence.
     last_order_indices = self.sequence_lengths - 1 
     r = tf.range(self.batch_size)
@@ -147,6 +148,7 @@ class RNNModel(object):
     self.lastorder_logits = tf.gather_nd(logits, finetune_indices)
     
     self.cost = tf.reduce_mean(loss_per_seq)
+    self.weighted_cost = tf.reduce_mean(weighted_loss_per_seq)
     self.total_cost = self.cost
     if self.hps.l2_weight:
       tvs = tf.trainable_variables()

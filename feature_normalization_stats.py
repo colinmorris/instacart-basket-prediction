@@ -12,7 +12,7 @@ def main():
   tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('--recordfile', default='train.tfrecords')
-  parser.add_argument('-n', type=int, default=10000, help='How many batches to calculate over')
+  parser.add_argument('-n', type=int, default=10000, help='How many batches to calculate over (default 10k)')
   args = parser.parse_args()
 
   hps = hypers.get_default_hparams()

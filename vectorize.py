@@ -13,10 +13,6 @@ from baskets.insta_pb2 import User
 from baskets import common, data_fields
 from baskets.time_me import time_me
 
-# (speed seems basically identical)
-#PROD_LOOKUP_MODE = 'pickle' # or np
-PROD_LOOKUP_MODE = 'np' # or pickle
-
 # id fields are as defined by Kaggle (i.e. starting from 1, not 0)
 context_fields = [
     'pid', 'aisleid', 'deptid', 'uid', 'weight',
@@ -26,7 +22,7 @@ context_fields = [
 raw_feats = ['previously_ordered',]
 generic_raw_feats = ['days_since_prior', 'dow', 'hour',
       'n_prev_products', 
-      #'n_prev_repeats', 'n_prev_reorders'
+      'n_prev_repeats', 'n_prev_reorders'
       ]
 sequence_fields = ['lossmask', 'labels', ] # + raw_feats
 
@@ -41,15 +37,22 @@ def _seq_data(user, pids):
   pidfeat_shape = (nprods, user.seqlen)
   labels = np.zeros(pidfeat_shape)
   prev_ordered = np.zeros(pidfeat_shape)
+  pids_seen = set([]) # unique pids seen up to but not including the ith order
+  prev_pidset = None
   for i, order in enumerate(user.user.orders):
     # The order with index i corresponds to the i-1th element of the sequence
     # (we always skip the first order, because by definition it can have no
     # reorders)
     seqidx = i-1
     ordered = order.products
+    unordered = set(ordered) # I made a funny
     # Calculate the generic (non-product-specific) features
+    # Sometimes the value of the next order's feature is a function of this order
     if i < user.seqlen:
       gfs['n_prev_products'][i] = len(ordered)
+      gfs['n_prev_reorders'][i] = len(pids_seen.intersection(unordered)) 
+      gfs['n_prev_repeats'][i] = 0 if prev_pidset is None else len(prev_pidset.intersection(unordered))
+    # And some features are calculated wrt the current order
     if i > 0:
       gfs['days_since_prior'][seqidx] = order.days_since_prior
       gfs['dow'][seqidx] = order.dow
@@ -64,6 +67,8 @@ def _seq_data(user, pids):
         prev_ordered[j, i] = cart_index+1
       if i > 0:
         labels[j, seqidx] = 1
+    pids_seen.update(unordered)
+    prev_pidset = unordered
 
   lossmask = np.zeros(pidfeat_shape)
   first_occurences = prev_ordered.argmax(axis=1)
@@ -139,6 +144,10 @@ def write_user_vectors(user, writer, product_df, testmode, max_prods):
     n += 1
   return n
 
+def load_product_lookup():
+  lookuppath = os.path.join(common.DATA_DIR, 'product_lookup.npy')
+  return np.load(lookuppath)
+
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
@@ -162,15 +171,7 @@ def main():
   writer_options = tf.python_io.TFRecordOptions(
       compression_type=common.VECTOR_COMPRESSION_TYPE)
   writer = tf.python_io.TFRecordWriter(outpath, options=writer_options)
-  if PROD_LOOKUP_MODE == 'pickle':
-    import pickle
-    with open(os.path.join(common.DATA_DIR, 'product_lookup.pickle')) as f:
-      prod_lookup = pickle.load(f)
-  elif PROD_LOOKUP_MODE == 'np':
-    lookuppath = os.path.join(common.DATA_DIR, 'product_lookup.npy')
-    prod_lookup = np.load(lookuppath)
-  else:
-    assert False
+  prod_lookup = load_product_lookup()
   i = 0
   nseqs = 0
   for user in iterate_wrapped_users(args.user_records_file):

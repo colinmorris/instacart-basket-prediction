@@ -9,16 +9,18 @@ vectors: $(vectordir)/validation.tfrecords $(vectordir)/train.tfrecords $(vector
 $(userdir)/validation.tfrecords $(userdir)/test.tfrecords $(userdir)/train.tfrecords: $(userdir)/users.tfrecords
 	python preprocessing/partition_users.py --traintest
 
-$(vectordir)/train.tfrecords: $(userdir)/train.tfrecords
+train: $(vectordir)/train.tfrecords
+$(vectordir)/train.tfrecords: $(userdir)/train.tfrecords vectorize.py
 	vectorize.py --max-prods 5 train
 
-$(vectordir)/validation.tfrecords: $(userdir)/validation.tfrecords
+$(vectordir)/validation.tfrecords: $(userdir)/validation.tfrecords vectorize.py
 	vectorize.py --max-prods 5 validation
 
-$(vectordir)/test.tfrecords: $(userdir)/test.tfrecords
+test: $(vectordir)/test.tfrecords
+$(vectordir)/test.tfrecords: $(userdir)/test.tfrecords vectorize.py
 	vectorize.py test
 
-$(vectordir)/unit_tests.tfrecords: $(userdir)/train.tfrecords
+$(vectordir)/unit_tests.tfrecords: $(userdir)/train.tfrecords vectorize.py
 	vectorize.py -n 50 --max-prods 5 --out unit_tests train
 
 clean: 

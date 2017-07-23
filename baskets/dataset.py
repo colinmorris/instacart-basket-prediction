@@ -10,15 +10,14 @@ from baskets.feature_spec import FeatureSpec
 
 
 INPUT_KEYS = {'pid', 'aisleid', 'deptid', 'features', 'lossmask', 'labels', 'seqlen',
-    'uid',
+    'uid', 'weight',
     }
 
 context_fields = [
     'pid', 'aisleid', 'deptid', 'uid', 'weight',
 ]
 raw_feats = ['previously_ordered', 'days_since_prior', 'dow', 'hour',
-      'n_prev_products', ]
-      #'n_prev_repeats', 'n_prev_reorders']
+      'n_prev_products', 'n_prev_repeats', 'n_prev_reorders']
 sequence_fields = ['lossmask', 'labels', ] + raw_feats
 
 # XXX: Structure of this code is a real mess. Waiting for the temperature to

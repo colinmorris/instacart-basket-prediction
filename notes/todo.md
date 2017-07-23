@@ -193,3 +193,5 @@ so we could even just zero out the loss for those first n timesteps.)
   for the previous order)
 - auto-encoder learning multi-hot representation of baskets
 - contrived fake orders/user for testing
+- compressing vector tfrecords worked out nicely. Maybe should do the same thing for user pbs.
+- look into rejection_resample
