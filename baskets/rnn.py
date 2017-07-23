@@ -275,7 +275,9 @@ class LayerNormLSTMCell(tf.contrib.rnn.RNNCell):
 
       h_size = self.num_units
       x_size = x.get_shape().as_list()[1]
-      batch_size = x.get_shape().as_list()[0]
+      #batch_size = x.get_shape().as_list()[0]
+      # XXX: Needed to change from above to allow for variable batch size.
+      batch_size = tf.shape(x)[0]
 
       w_init = None  # uniform
 

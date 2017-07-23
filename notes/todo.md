@@ -39,8 +39,6 @@ so we could even just zero out the loss for those first n timesteps.)
   - could also use validation set. I don't think there's much risk I've overfitted to that at this point. Main problem is just that generating predictions is pretty darn slow right now.
 - it's possible probability predictions are not calibrated/have some bias. Just for fun, worth
   trying predictions with some fixed bias on the calculated 'optimal' threshold.
-- when measuring loss on validation set, would be interesting to compare micro vs.
-  macro-averaged (i.e. avg. over all users vs. average of average per user)
 - compare train vs. validation loss (how have you not thought to look at this yet?)
   
 # Architecture
@@ -65,7 +63,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - multiple layers per cell. Learning interaction terms.
   - seems esp. important for the product embedding thing
   - 'learning wide and deep'
-- fanciful idea: stacked RNNs
 - another crazy idea: some kind of asymmetrical loss emphasizing true positives?
   cause in terms of fscore, the 'points' per outcome look something like
   {tpos: 2, tneg: 0, fpos: -1, fneg: -1}
@@ -76,8 +73,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - but yeah, worth trying different loss fns
 
 # Testing
-- add tests for some of the batching helper stuff
-- more tests are always good
 
 # Perf
 
@@ -186,12 +181,21 @@ so we could even just zero out the loss for those first n timesteps.)
   (fetching a bunch of summary vars)
 - currently logging raw gradients. Should be logging gradient *updates* (i.e. taking
   into account learning rate, momentum etc.). Also ratio of weights:updates.
-- maybe as a nice little pragmatic thing, don't write logs/checkpoints if num_steps is 
-  less than, say, 100? Since that basically always means I'm just testing something.
-  (Though I guess sometimes the thing I'm testing is logging)
-- train some baseline rnn models with very limited features (e.g. just the label
-  for the previous order)
 - auto-encoder learning multi-hot representation of baskets
 - contrived fake orders/user for testing
 - compressing vector tfrecords worked out nicely. Maybe should do the same thing for user pbs.
 - look into rejection_resample
+- Dynamic Bayesian Networks? Ooh, ahh
+- consider open-sourcing code for exact E[f]
+- on the discussion boards, someone mentioned the "profound importance of add to cart order". Is that a real thing?
+- ensembles, model stacking/blending. FWLS.
+- examples of products that get discontinued/renamed?
+- when exploring hps, esp. interested in effect of having no product embs (on speed + on loss)
+- Sameh's post on this Kaggle thread is very interesting: https://www.kaggle.com/c/instacart-market-basket-analysis/discussion/36859
+  - makes the point that driving the probability of a product actually in the groundtruth from, say, .5 to .9999 
+    decreases the loss function, but doesn't improve your F-score (because your threshold for including a product
+    will never be less than .5). Similarly for driving a prob of a bad product from .05, to .01, to .00001
+  - is there a takeaway from this? 
+  - maybe if doing a final model blending step, should try something like SVM with hinge loss? 
+    or some kind of Huber loss (don't fully understand that one yet, but seems worth looking
+    more into)

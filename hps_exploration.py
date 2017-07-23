@@ -18,6 +18,7 @@ hp_exploration_cands = dict(
     l2_weight=[0.00001, 0.000001, 0.0000001, 0],
     recurrent_dropout_prob={.6: .1, .9: .8, .95: .1},
     grad_clip={0.0: .75, 1.0: .25},
+    # It does seem kind of ridiculous to do layer_norm and have normalize_features set to False...
     cell={'lstm': .8, 'layer_norm': .15, 'hyper': .05},
     optimizer=['Adam', 'LazyAdam'],
     normalize_features={True: .75, False: .25},
