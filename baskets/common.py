@@ -2,6 +2,7 @@
 """
 import os
 import pickle
+import tensorflow as tf
 
 _thisdir = os.path.dirname(__file__)
 ROOT = os.path.realpath(os.path.join(_thisdir, '..'))
@@ -16,6 +17,11 @@ CONFIG_DIR = os.path.join(ROOT, 'configs')
 LOG_DIR = os.path.join(ROOT, 'logs')
 
 CHECKPOINT_DIR = os.path.join(ROOT, 'checkpoints')
+
+# Other options are ZLIB and NONE
+VECTOR_COMPRESSION_NAME = 'GZIP'
+VECTOR_COMPRESSION_TYPE = getattr(tf.python_io.TFRecordCompressionType, 
+    VECTOR_COMPRESSION_NAME)
 
 def resolve_recordpath(recordpath):
   if '/' in recordpath:

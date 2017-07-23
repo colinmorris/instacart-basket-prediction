@@ -42,7 +42,8 @@ class RawDataset(DatasetWrapper):
     if fname is None:
       fname = self._mode_to_default_recordname[hps.mode]
     path = common.resolve_vector_recordpath(fname)
-    dataset = tf.contrib.data.TFRecordDataset([path])
+    dataset = tf.contrib.data.TFRecordDataset([path], 
+        compression_type=common.VECTOR_COMPRESSION_NAME)
     dataset = dataset.map(self.parse_record_fn())
     self.dataset = dataset
 

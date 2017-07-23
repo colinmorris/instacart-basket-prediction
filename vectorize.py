@@ -159,9 +159,8 @@ def main():
 
   outpath = common.resolve_vector_recordpath(args.out or args.user_records_file)
   tf.logging.info("Writing vectors to {}".format(outpath))
-  # Other option is GZIP. Not sure why I'd choose one over the other. (default is .NONE)
   writer_options = tf.python_io.TFRecordOptions(
-      compression_type=tf.python_io.TFRecordCompressionType.ZLIB)
+      compression_type=common.VECTOR_COMPRESSION_TYPE)
   writer = tf.python_io.TFRecordWriter(outpath, options=writer_options)
   if PROD_LOOKUP_MODE == 'pickle':
     import pickle
