@@ -30,9 +30,11 @@ def train(traindat, params, tag, nrounds):
   # TODO: early_stopping_rounds
   dtrain = traindat.as_dmatrix()
   dval = valdat.as_dmatrix()
-  watchlist = [(dval, 'validation'), (dtrain, 'train')]
+  # If you pass in more than one value to evals, early stopping uses the
+  # last one. Because why not.
+  watchlist = [(dtrain, 'train'), (dval, 'validation'),]
 
-  model = xgb.train(xgb_params, dtrain, nrounds, evals=watchlist)
+  model = xgb.train(xgb_params, dtrain, nrounds, evals=watchlist, early_stopping_rounds=10)
   # Set output_margin=True to get logits
   model_path = common.resolve_xgboostmodel_path(tag)
   model.save_model(model_path)

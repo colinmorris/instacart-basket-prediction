@@ -18,7 +18,7 @@ from baskets.insta_pb2 import User
 from baskets import common, data_fields
 from baskets.time_me import time_me
 
-DEBUG = True
+DEBUG = False
 
 # (These are just sort of made up)
 _FRECENCY_HALFLIFE_DAYS = 7
@@ -57,6 +57,8 @@ def _write_all_recarray_fields(recarr, value):
   view = recarr.view(float).reshape(len(recarr), -1)
   view[:] = value
 
+_generic_dtypes = [(featname, float) for featname in generic_raw_feats]
+_product_dtypes = [(featname, float) for featname in product_raw_feats]
 def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   """Return a tuple of (generic, prod-specific) recarrays.
   """
@@ -65,18 +67,17 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   pid_to_ix = {pid: i for (i, pid) in enumerate(pids)}
   # XXX: Using the setattr syntax on recarrays is a little dangerous, because 
   # you'll get no indication of the attribute you're setting isn't a named field.
-  generic_dtypes = [(featname, float) for featname in generic_raw_feats]
-  g = np.recarray( (1,), dtype=generic_dtypes )
-  product_dtypes = [(featname, float) for featname in product_raw_feats]
-  p = np.recarray( (len(pids),), dtype=product_dtypes )
+  # Also, it's a mild perf annotance. Somewhere around 1/4 to 1/3 of total run time of vectorization is spent in setattr.
+  g = np.recarray( (1,), dtype=_generic_dtypes )
+  p = np.recarray( (len(pids),), dtype=_product_dtypes )
   # Set a special 'not initialized' value for bookkeeping
   NOTSET = -1337
   _write_all_recarray_fields(g, NOTSET)
   _write_all_recarray_fields(p, NOTSET)
 
-  g.uid = user.uid
-  g.weight = 1 / len(pids)
-  g.n_prev_orders = len(user.user.orders[:order_idx])
+  g['uid'] = user.uid
+  g['weight'] = 1 / len(pids)
+  g['n_prev_orders'] = len(user.user.orders[:order_idx])
 
   # focal order
   order = user.user.orders[order_idx]
@@ -87,7 +88,7 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   prev_opset = set(prev_ops)
   for passthrough_feat in ['orderid', 'dow', 'hour', 'days_since_prior']:
     g[passthrough_feat] = getattr(order, passthrough_feat)
-  g.prev_order_size = len(prev.products)
+  g['prev_order_size'] = len(prev.products)
   
   # prevprev feats
   try:
@@ -100,16 +101,16 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   else:
     prevprev_opset = set(prevprev.products)
     repeats = prev_opset.intersection(prevprev_opset)
-    g.n_prev_repeats = len(repeats)
+    g['n_prev_repeats'] = len(repeats)
 
   for pi, pid in enumerate(pids):
     pp = p[pi]
     # (numpy will implictly convert, so that's nice)
-    pp.label = pid in opset
-    pp.previously_ordered = pid in prev_opset
-    pp.prev_cartorder = np.nan if pid not in prev_opset else list(prev_ops).index(pid) 
-    pp.pid = pid
-    pp.aisleid, pp.deptid = product_lookup[pid-1]
+    pp['label'] = pid in opset
+    pp['previously_ordered'] = pid in prev_opset
+    pp['prev_cartorder'] = np.nan if pid not in prev_opset else list(prev_ops).index(pid) 
+    pp['pid'] = pid
+    pp['aisleid'], pp['deptid'] = product_lookup[pid-1]
 
   zero_init_cols = ['n_prev_focals', 'n_prev_focals_this_dow', 'n_prev_focals_this_hour',
       'frecency_days', 'frecency_orders', 
@@ -140,13 +141,13 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
       except KeyError:
         continue
       pp = p[pi]
-      pp.n_prev_focals += 1
-      pp.n_prev_focals_this_dow += prevo.dow == order.dow
-      pp.n_prev_focals_this_hour += prevo.hour == order.hour
-      pp.frecency_days += order_frecency_days
-      pp.frecency_orders += order_frecency_orders
+      pp['n_prev_focals'] += 1
+      pp['n_prev_focals_this_dow'] += prevo.dow == order.dow
+      pp['n_prev_focals_this_hour'] += prevo.hour == order.hour
+      pp['frecency_days'] += order_frecency_days
+      pp['frecency_orders'] += order_frecency_orders
       if pid in streakers:
-        pp.n_consecutive_prev_focal_orders += 1
+        pp['n_consecutive_prev_focal_orders'] += 1
 
       freeze(pid, 'last_focal_cartorder', cartorder)
       freeze(pid, 'orders_since_focal', ordercount)
@@ -154,8 +155,8 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
 
       pid_order_sizes[pid].append(osize)
       # (The below feats may of course be overwritten later)
-      pp.orders_since_first_focal = ordercount
-      pp.days_since_first_focal = daycount
+      pp['orders_since_first_focal'] = ordercount
+      pp['days_since_first_focal'] = daycount
 
     daycount += prevo.days_since_prior
     ordercount += 1
@@ -163,7 +164,7 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     prevo_prodset = set(prevo.products)
     streakers = streakers.union(prevo_prodset)
 
-  g.avg_order_size = np.mean(order_sizes)
+  g['avg_order_size'] = np.mean(order_sizes)
   for pid, osizes in pid_order_sizes.iteritems():
     p[pid_to_ix[pid]].avg_focal_order_size = np.mean(osizes)
 
@@ -198,7 +199,10 @@ def accumulate_user_vectors(users, max_prods, product_lookup, max_users, testmod
     nusers += 1
     if max_users and nusers >= max_users:
       break
+    if nusers % 10000 == 0:
+      print "{}... ".format(nusers),
 
+  print "Accumulated vectors for {} users".format(len(vec_accumulator))
   concatted = np.concatenate(vec_accumulator)
   final_arr = concatted.view(np.recarray)
   return final_arr
