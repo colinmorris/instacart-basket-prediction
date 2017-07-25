@@ -44,6 +44,7 @@ product_raw_feats = ['previously_ordered', 'prev_cartorder',
     'pid', 'aisleid', 'deptid',
     'label',
     ]
+all_fields = generic_raw_feats + product_raw_feats
 # TODO: Not implemented: 
 """
     'n_prev_reorders',
@@ -107,7 +108,7 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     pp.label = pid in opset
     pp.previously_ordered = pid in prev_opset
     pp.prev_cartorder = np.nan if pid not in prev_opset else list(prev_ops).index(pid) 
-    p.pid = pid
+    pp.pid = pid
     pp.aisleid, pp.deptid = product_lookup[pid-1]
 
   zero_init_cols = ['n_prev_focals', 'n_prev_focals_this_dow', 'n_prev_focals_this_hour',
@@ -200,9 +201,6 @@ def accumulate_user_vectors(users, max_prods, product_lookup, max_users, testmod
 
   concatted = np.concatenate(vec_accumulator)
   final_arr = concatted.view(np.recarray)
-  if 0:
-    outpath = os.path.join(common.DATA_DIR, 'scalar_vectors.npy')
-    np.save(outpath, final_arr)
   return final_arr
 
 def load_product_lookup():
@@ -217,6 +215,8 @@ def main():
   parser.add_argument('--max-prods', type=int, default=None,
       help='Max number of products to take per user (default: no limit)')
   parser.add_argument('--testmode', action='store_true')
+  parser.add_argument('--outname', help='Identifier used to name the generated\
+      npy file. Default name is based on user_records_file')
   args = parser.parse_args()
   random.seed(1337)
 
@@ -225,9 +225,12 @@ def main():
 
   prod_lookup = load_product_lookup()
   user_iter = iterate_wrapped_users(args.user_records_file)
-  return accumulate_user_vectors(user_iter, args.max_prods, prod_lookup, 
+  vecs = accumulate_user_vectors(user_iter, args.max_prods, prod_lookup, 
       args.n_users, args.testmode)
+  output_tag = args.outname or args.user_records_file
+  outpath = common.resolve_scalarvector_path(output_tag)
+  np.save(outpath, vecs)
 
 if __name__ == '__main__':
-  with time_me():
+  with time_me(mode='print'):
     foo = main()
