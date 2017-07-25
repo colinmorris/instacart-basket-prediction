@@ -3,7 +3,6 @@ from __future__ import division
 import argparse
 import os
 import random
-import time
 import numpy as np
 import tensorflow as tf
 

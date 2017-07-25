@@ -67,3 +67,6 @@ Some timing stats:
   - 8.3k users (validation set), 5 prods/usr, 41k seqs => 54s (was 45s before n_prev_re(orders|peats))
   - 95s for 9905 users, using prod limit of 5
   - 20min for train set set (196k users) with prodlim of 5 
+  - ~5hrs (20k secs) for train set with no product lim
+    - *only* 670MB! Not bad.
+    - 12B sequences
