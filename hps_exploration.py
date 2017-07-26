@@ -7,15 +7,15 @@ from baskets import hypers
 
 hp_exploration_cands = dict(
 
-    rnn_size = {256: .85, 512: .15},
+    rnn_size = {256: .8, 512: .2},
     batch_size = [128, 256, 512],
     learning_rate = [.1, .01, .001, .0001, .00001],
-    decay_rate=[.995, .999, .9995, .9999],
+    decay_rate=[.995, .999, .9995, .9999, .99999, 1],
     min_learning_rate_denom=[10, 100, 1000],
     product_embedding_size=[0, 8, 32, 64],
     dept_embedding_size=[0, 4],
     aisle_embedding_size=[0, 4, 8, 16],
-    l2_weight=[0.00001, 0.000001, 0.0000001, 0],
+    l2_weight=[1e-5, 1e-6, 1e-7, 1e-8], # TODO: setting this to 0 causes some errors with nans for l2 norms of embeddings reported in histogram summaries. hmmm.
     recurrent_dropout_prob={.6: .1, .9: .8, .95: .1},
     grad_clip={0.0: .75, 1.0: .25},
     # It does seem kind of ridiculous to do layer_norm and have normalize_features set to False...
@@ -81,7 +81,7 @@ def main():
 
   for _ in range(args.n):
     hps, tag = sample_hps()
-    hps.num_steps = 12000
+    hps.num_steps = 24000
     hypers.save_hps(tag, hps)
     print tag
 

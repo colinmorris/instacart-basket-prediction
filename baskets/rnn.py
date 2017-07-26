@@ -426,7 +426,8 @@ class HyperLSTMCell(tf.contrib.rnn.RNNCell):
       self.hyper_state = tf.concat(
           [total_h[:, self.num_units:], total_c[:, self.num_units:]], 1)
 
-      batch_size = x.get_shape().as_list()[0]
+      batch_size = tf.shape(x)[0]
+      #batch_size = x.get_shape().as_list()[0]
       x_size = x.get_shape().as_list()[1]
       self._input_size = x_size
 

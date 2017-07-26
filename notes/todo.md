@@ -108,6 +108,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - tf.contrib.Dataset map docs: "A function mapping a nested structure of tensors (having shapes and types defined by self.output_shapes and self.output_types) to another nested structure of tensors.". Not clear what a nested structure is. (Was surprised a dictionary isn't one.)
 - dataset docs should maybe mention when order matters in terms of chaining 
   calls on a dataset. doing .batch() before .shuffle() seems like a big gotcha.
+- linkify huber loss url
 
 # Misc
 - review TODOs in code
@@ -199,3 +200,6 @@ so we could even just zero out the loss for those first n timesteps.)
   - maybe if doing a final model blending step, should try something like SVM with hinge loss? 
     or some kind of Huber loss (don't fully understand that one yet, but seems worth looking
     more into)
+  - yeah, I think huber loss is kinda sick actually
+- if only for clarity, should probably switch from xentropy loss to log_loss
+- dynamic/reactive lr schedule based on validation loss
