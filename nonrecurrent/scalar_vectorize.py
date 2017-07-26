@@ -18,6 +18,8 @@ from baskets.insta_pb2 import User
 from baskets import common, data_fields
 from baskets.time_me import time_me
 
+import fields
+
 DEBUG = False
 
 # (These are just sort of made up)
@@ -26,39 +28,14 @@ FRECENCY_DAYS_LAMBDA = math.log(2) / _FRECENCY_HALFLIFE_DAYS
 _FRECENCY_HALFLIFE_ORDERS = 4
 FRECENCY_ORDERS_LAMBDA = math.log(2) / _FRECENCY_HALFLIFE_ORDERS
 
-generic_raw_feats = ['days_since_prior', 'dow', 'hour',
-      'n_prev_repeats',
-      'uid', 'weight', 'orderid',
-      'avg_order_size', 'prev_order_size',
-      'n_prev_orders',
-      ]
-product_raw_feats = ['previously_ordered', 'prev_cartorder',
-    'last_focal_cartorder',
-    'frecency_days', 'frecency_orders',
-    'n_consecutive_prev_focal_orders',
-    'n_prev_focals', 
-    'orders_since_focal', 'days_since_focal', 
-    'orders_since_first_focal', 'days_since_first_focal',
-    'n_prev_focals_this_dow', 'n_prev_focals_this_hour',
-    'avg_focal_order_size',
-    'pid', 'aisleid', 'deptid',
-    'label',
-    ]
-all_fields = generic_raw_feats + product_raw_feats
-# TODO: Not implemented: 
-"""
-    'n_prev_reorders',
-    'focal_reorder_interval_days_mean', 'focal_reorder_interval_days_std',
-    'focal_reorder_interval_orders_mean', 'focal_reorder_interval_orders_std',
-"""
 
 def _write_all_recarray_fields(recarr, value):
-  # All recarr's dtypes should be floats, or bad stuff will happen
-  view = recarr.view(float).reshape(len(recarr), -1)
+  # I used to understand this code...
+  view = recarr.view(fields.dtype).reshape(len(recarr), -1)
   view[:] = value
 
-_generic_dtypes = [(featname, float) for featname in generic_raw_feats]
-_product_dtypes = [(featname, float) for featname in product_raw_feats]
+_generic_dtypes = [(featname, fields.dtype) for featname in fields.generic_raw_feats]
+_product_dtypes = [(featname, fields.dtype) for featname in fields.product_raw_feats]
 def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   """Return a tuple of (generic, prod-specific) recarrays.
   """
@@ -76,7 +53,7 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   _write_all_recarray_fields(p, NOTSET)
 
   g['uid'] = user.uid
-  g['weight'] = 1 / len(pids)
+  g['user_prods'] = len(pids)
   g['n_prev_orders'] = len(user.user.orders[:order_idx])
 
   # focal order
@@ -107,7 +84,6 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     pp = p[pi]
     # (numpy will implictly convert, so that's nice)
     pp['label'] = pid in opset
-    pp['previously_ordered'] = pid in prev_opset
     pp['prev_cartorder'] = np.nan if pid not in prev_opset else list(prev_ops).index(pid) 
     pp['pid'] = pid
     pp['aisleid'], pp['deptid'] = product_lookup[pid-1]
@@ -169,10 +145,10 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     p[pid_to_ix[pid]].avg_focal_order_size = np.mean(osizes)
 
   if DEBUG:
-    for pfield in product_raw_feats:
+    for pfield in fields.product_raw_feats:
       if (p[pfield] == NOTSET).any():
         logging.warning('Field {} not set'.format(pfield))
-    for gfield in generic_raw_feats:
+    for gfield in fields.generic_raw_feats:
       if (g[gfield] == NOTSET).any():
         logging.warning('Field {} not set'.format(gfield))
   return g, p
@@ -200,7 +176,7 @@ def accumulate_user_vectors(users, max_prods, product_lookup, max_users, testmod
     if max_users and nusers >= max_users:
       break
     if nusers % 10000 == 0:
-      print "{}... ".format(nusers),
+      print "{}... ".format(nusers)
 
   print "Accumulated vectors for {} users".format(len(vec_accumulator))
   concatted = np.concatenate(vec_accumulator)

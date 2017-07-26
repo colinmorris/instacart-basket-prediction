@@ -7,13 +7,13 @@ import logging
 from baskets import common, constants
 from baskets.hypers import Mode
 
-from scalar_vectorize import all_fields
+import fields
 
 class Dataset(object):
   """Wrapper around the recarrays serialized by scalar_vectorize.py"""
 
-  non_feat_cols = {'label', 'weight', 'uid', 'orderid'}
-  feat_cols = [col for col in all_fields if col not in non_feat_cols]
+  non_feat_cols = {'label', 'user_prods', 'uid', 'orderid'}
+  feat_cols = [col for col in fields.all_fields if col not in non_feat_cols]
 
   def __init__(self, data_tag, hps, mode=Mode.training, maxlen=None):
     self.hps = hps
@@ -36,16 +36,16 @@ class Dataset(object):
     weight =  (self.mode == Mode.eval and self.hps.weight_validation) or\
         (self.mode == Mode.training and self.hps.weight)
     if weight:
-      kwargs['weight'] = self.records['weight']
+      kwargs['weight'] = 1 / self.records['user_prods']
 
     basic_feat_cols = [col for col in self.feat_cols if col not in onehot_vars]
     featdat = self.records[basic_feat_cols]
-    featdat = featdat.view(float).reshape(len(featdat), -1)
+    featdat = featdat.view(fields.dtype).reshape(len(featdat), -1)
     onehot_matrices = []
     for onehot_var in onehot_vars:
       onehot = label_binarize(self.records[onehot_var], 
           classes=range(1, self.FIELD_TO_NVALUES[onehot_var]+1),
-          sparse_output=True).astype(float)
+          sparse_output=True).astype(fields.dtype)
       onehot_matrices.append(onehot)
     if onehot_matrices:
       # TODO: There are some perf issues with this. Look into this workaround:
