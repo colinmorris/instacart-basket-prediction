@@ -21,6 +21,7 @@ CHECKPOINT_DIR = os.path.join(ROOT, 'checkpoints')
 
 XGBOOST_DIR = os.path.join(ROOT, 'nonrecurrent')
 XGBOOST_MODEL_DIR = os.path.join(XGBOOST_DIR, 'models')
+XGBOOST_CONFIG_DIR = os.path.join(XGBOOST_DIR, 'configs')
 
 # Other options are ZLIB and NONE (though in the latter case, the name should be '', cause tf.contrib.data is quirky like that)
 VECTOR_COMPRESSION_NAME = 'GZIP'
@@ -46,6 +47,9 @@ def resolve_scalarvector_path(identifier):
 
 def resolve_xgboostmodel_path(identifier):
   return _resolve(identifier, '.model', XGBOOST_MODEL_DIR)
+
+def resolve_xgboost_config_path(identifier):
+  return _resolve(identifier, '.json', XGBOOST_CONFIG_DIR)
 
 def logdir_for_tag(tag):
   return os.path.join(LOG_DIR, tag)

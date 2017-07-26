@@ -4,11 +4,14 @@ from __future__ import division
 import argparse
 import xgboost as xgb
 from collections import defaultdict
+import logging
 
 from baskets import common
 from baskets.time_me import time_me
+from baskets.hypers import Mode
 
 from dataset import Dataset
+import hypers
 
 # Copied from https://www.kaggle.com/nickycan/lb-0-3805009-python-edition
 # TODO: Loas params from config files.
@@ -29,11 +32,9 @@ P_THRESH = .2
 THRESH = (P_THRESH)
 
 counter = 0
-def train(traindat, params, tag, nrounds):
-  valdat = Dataset('validation', weight=True)
-  # TODO: try weight parameter
+def train(traindat, params, tag, hps):
+  valdat = Dataset('validation', hps, mode=Mode.eval)
   # TODO: try set_base_margin (https://github.com/dmlc/xgboost/blob/master/demo/guide-python/boost_from_prediction.py)
-  # TODO: early_stopping_rounds
   dtrain = traindat.as_dmatrix()
   def quick_fscore(preds, _notused_dtrain):
     global counter
@@ -69,13 +70,14 @@ def train(traindat, params, tag, nrounds):
   watchlist = [(dtrain, 'train'), (dval, 'validation'),]
   #watchlist = [(dval, 'validation'),]
 
-  model = xgb.train(xgb_params, dtrain, nrounds, evals=watchlist, 
-      early_stopping_rounds=10) #, feval=quick_fscore, maximize=True)
+  model = xgb.train(xgb_params, dtrain, hps.rounds, evals=watchlist, 
+      early_stopping_rounds=hps.early_stopping_rounds) #, feval=quick_fscore, maximize=True)
   # Set output_margin=True to get logits
   model_path = common.resolve_xgboostmodel_path(tag)
   model.save_model(model_path)
 
 def main():
+  logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('tag')
   parser.add_argument('--train-recordfile', default='train', 
@@ -87,10 +89,20 @@ def main():
   parser.add_argument('--weight', action='store_true')
   args = parser.parse_args()
 
-  dataset = Dataset(args.train_recordfile, maxlen=args.n_users, weight=args.weight)
+  try:
+    hps = hypers.hps_for_tag(args.tag)
+  except hypers.NoHpsDefinedException:
+    logging.warn('No hps found for tag {}. Creating and saving some.'.format(args.tag))
+    hps = hypers.get_default_hparams()
+    hps.train_file = args.train_recordfile
+    hps.rounds = args.n_rounds
+    hps.weight = args.weight
+    hypers.save_hps(args.tag, hps)
+  with time_me('Loaded train dataset', mode='stderr'):
+    dataset = Dataset(hps.train_file, hps, maxlen=args.n_users)
   params = xgb_params
   with time_me(mode='stderr'):
-    train(dataset, params, args.tag, args.n_rounds)
+    train(dataset, params, args.tag, hps)
 
 if __name__ == '__main__':
   main()

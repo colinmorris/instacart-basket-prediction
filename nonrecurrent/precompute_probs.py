@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from baskets import common
 from baskets.time_me import time_me
+from baskets.hypers import Mode
 
 from dataset import Dataset
 
@@ -30,8 +31,10 @@ def main():
       help='Limit number of users tested on (default: no limit)')
   args = parser.parse_args()
 
-  dataset = Dataset(args.recordfile, maxlen=args.n_users)
+
   for model_tag in args.tags:
+    hps = hypers.hps_for_tag(args.tag)
+    dataset = Dataset(args.recordfile, hps, mode=Mode.inference, maxlen=args.n_users)
     path = common.resolve_xgboostmodel_path(model_tag)
     logging.info('Loading model with tag {}'.format(model_tag))
     model = xgb.Booster(model_file=path)
