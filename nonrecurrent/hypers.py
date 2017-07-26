@@ -45,6 +45,7 @@ def get_default_hparams():
       tree_method='auto',
       scale_pos_weight=1,
       grow_policy='depthwise',
+      base_score=.2, # (default .5. gives a very minor headstart.)
       )
 
 
@@ -75,6 +76,8 @@ def save_hps(tag, hps):
   
 _XGB_HPS = ['eta', 'max_depth', 'min_child_weight', 'gamma', 'subsample',
     'colsample_bytree', 'alpha', 'reg_lambda',
+    'max_delta_step', 'colsample_bylevel', 'tree_method', 'scale_pos_weight',
+    'base_score', 'grow_policy',
 ]
 def xgb_params_from_hps(hps):
   # Copied from https://www.kaggle.com/nickycan/lb-0-3805009-python-edition
