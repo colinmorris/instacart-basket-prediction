@@ -203,3 +203,5 @@ so we could even just zero out the loss for those first n timesteps.)
   - yeah, I think huber loss is kinda sick actually
 - if only for clarity, should probably switch from xentropy loss to log_loss
 - dynamic/reactive lr schedule based on validation loss
+- little thing: git add empty (data) dirs that cod expects to exist 
+  (or programatically mkdir them when required)

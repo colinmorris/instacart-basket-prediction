@@ -11,6 +11,7 @@ DATA_DIR = os.path.join(ROOT, 'dat')
 PDICT_DIR = os.path.join(DATA_DIR, 'pdicts')
 USER_PB_DIR = os.path.join(DATA_DIR, 'user_pbs')
 VECTOR_DIR = os.path.join(DATA_DIR, 'vectors')
+SCALARVECTOR_DIR = os.path.join(DATA_DIR, 'scalar_vectors')
 
 CONFIG_DIR = os.path.join(ROOT, 'configs')
 
@@ -18,28 +19,37 @@ LOG_DIR = os.path.join(ROOT, 'logs')
 
 CHECKPOINT_DIR = os.path.join(ROOT, 'checkpoints')
 
+XGBOOST_DIR = os.path.join(ROOT, 'nonrecurrent')
+XGBOOST_MODEL_DIR = os.path.join(XGBOOST_DIR, 'models')
+XGBOOST_CONFIG_DIR = os.path.join(XGBOOST_DIR, 'configs')
+
 # Other options are ZLIB and NONE (though in the latter case, the name should be '', cause tf.contrib.data is quirky like that)
 VECTOR_COMPRESSION_NAME = 'GZIP'
 VECTOR_COMPRESSION_TYPE = getattr(tf.python_io.TFRecordCompressionType, 
     VECTOR_COMPRESSION_NAME or 'NONE')
 
-def resolve_recordpath(recordpath):
-  if '/' in recordpath:
+def _resolve(identifier, extension, subdir):
+  if '/' in identifier:
     # Hope you know what you're doing
-    return recordpath
-  ext = '.tfrecords'
-  if not recordpath.endswith(ext):
-    recordpath += ext
-  return os.path.join(USER_PB_DIR, recordpath)
+    return identifier
+  if not identifier.endswith(extension):
+    identifier += extension
+  return os.path.join(subdir, identifier)
+
+def resolve_recordpath(recordpath):
+  return _resolve(recordpath, '.tfrecords', USER_PB_DIR)
 
 def resolve_vector_recordpath(recordpath):
-  if '/' in recordpath:
-    # Hope you know what you're doing
-    return recordpath
-  ext = '.tfrecords'
-  if not recordpath.endswith(ext):
-    recordpath += ext
-  return os.path.join(VECTOR_DIR, recordpath)
+  return _resolve(recordpath, '.tfrecords', VECTOR_DIR)
+
+def resolve_scalarvector_path(identifier):
+  return _resolve(identifier, '.npy', SCALARVECTOR_DIR)
+
+def resolve_xgboostmodel_path(identifier):
+  return _resolve(identifier, '.model', XGBOOST_MODEL_DIR)
+
+def resolve_xgboost_config_path(identifier):
+  return _resolve(identifier, '.json', XGBOOST_CONFIG_DIR)
 
 def logdir_for_tag(tag):
   return os.path.join(LOG_DIR, tag)
