@@ -27,19 +27,24 @@ def get_default_hparams():
       # --- xgb params below --
       # step size shrinkage aka learning_rate
       eta=0.1,
+      # Min loss reduction required to make a furth partition on a leaf node.
+      gamma=0.70,
       max_depth=6,
       # Minimum sum of instance weight (hessian) needed in a child. Whatever that means.
       min_child_weight=10,
-      # Min loss reduction required to make a furth partition on a leaf node.
-      gamma=0.70,
+      max_delta_step=0,
       # Subsample ratio of training data
       subsample=0.76,
       # Sample this fraction of cols per tree
       colsample_bytree=0.95,
-      # L1 regularization
-      alpha=2e-05,
+      colsample_bylevel = 1.0,
       # L2 regularization
       reg_lambda=10,
+      # L1 regularization
+      alpha=2e-05,
+      tree_method='auto',
+      scale_pos_weight=1,
+      grow_policy='depthwise',
       )
 
 
@@ -75,5 +80,5 @@ def xgb_params_from_hps(hps):
   # Copied from https://www.kaggle.com/nickycan/lb-0-3805009-python-edition
   params = dict(objective="reg:logistic", eval_metric="logloss")
   for param in _XGB_HPS:
-    params[param] = hps[param]
+    params[param] = getattr(hps, param)
   return params

@@ -5,6 +5,8 @@ import argparse
 import xgboost as xgb
 from collections import defaultdict
 import logging
+import pickle
+import os
 
 from baskets import common
 from baskets.time_me import time_me
@@ -18,14 +20,14 @@ P_THRESH = .2
 THRESH = (P_THRESH)
 
 counter = 0
-def train(traindat, params, tag, hps):
+def train(traindat, tag, hps):
   valdat = Dataset('validation', hps, mode=Mode.eval)
   # TODO: try set_base_margin (https://github.com/dmlc/xgboost/blob/master/demo/guide-python/boost_from_prediction.py)
   dtrain = traindat.as_dmatrix()
   def quick_fscore(preds, _notused_dtrain):
     global counter
     counter += 1
-    if 1 and counter % 5 != 0:
+    if 0 and counter % 5 != 0:
       return 'fscore', 0.0
     with time_me('calculated validation fscore', mode='print'):
       user_counts = defaultdict(lambda : dict(tpos=0, fpos=0, fneg=0))
@@ -57,11 +59,18 @@ def train(traindat, params, tag, hps):
   #watchlist = [(dval, 'validation'),]
 
   xgb_params = hypers.xgb_params_from_hps(hps)
+  evals_result = {}
   model = xgb.train(xgb_params, dtrain, hps.rounds, evals=watchlist, 
-      early_stopping_rounds=hps.early_stopping_rounds) #, feval=quick_fscore, maximize=True)
+      early_stopping_rounds=hps.early_stopping_rounds, evals_result=evals_result) #, feval=quick_fscore, maximize=True)
   # Set output_margin=True to get logits
   model_path = common.resolve_xgboostmodel_path(tag)
   model.save_model(model_path)
+  preds = model.predict(dval)
+  _, fscore = quick_fscore(preds, None)
+  resultsdict = dict(fscore=fscore, evals=evals_result)
+  res_path = os.path.join(common.XGBOOST_DIR, 'results', tag+'.pickle')
+  with open(res_path, 'w') as f:
+    pickle.dump(resultsdict, f)
 
 def main():
   logging.basicConfig(level=logging.INFO)
@@ -87,9 +96,8 @@ def main():
     hypers.save_hps(args.tag, hps)
   with time_me('Loaded train dataset', mode='stderr'):
     dataset = Dataset(hps.train_file, hps, maxlen=args.n_users)
-  params = xgb_params
   with time_me(mode='stderr'):
-    train(dataset, params, args.tag, hps)
+    train(dataset, args.tag, hps)
 
 if __name__ == '__main__':
   main()
