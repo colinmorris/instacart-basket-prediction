@@ -7,6 +7,7 @@ from collections import defaultdict
 import logging
 import pickle
 import os
+import time
 
 from baskets import common
 from baskets.time_me import time_me
@@ -23,7 +24,8 @@ counter = 0
 def train(traindat, tag, hps):
   valdat = Dataset('validation', hps, mode=Mode.eval)
   # TODO: try set_base_margin (https://github.com/dmlc/xgboost/blob/master/demo/guide-python/boost_from_prediction.py)
-  dtrain = traindat.as_dmatrix()
+  with time_me('Made training dmatrix', mode='stderr'):
+    dtrain = traindat.as_dmatrix()
   def quick_fscore(preds, _notused_dtrain):
     global counter
     counter += 1
@@ -60,14 +62,16 @@ def train(traindat, tag, hps):
 
   xgb_params = hypers.xgb_params_from_hps(hps)
   evals_result = {}
+  t0 = time.time()
   model = xgb.train(xgb_params, dtrain, hps.rounds, evals=watchlist, 
       early_stopping_rounds=hps.early_stopping_rounds, evals_result=evals_result) #, feval=quick_fscore, maximize=True)
-  # Set output_margin=True to get logits
+
+  t1 = time.time()
   model_path = common.resolve_xgboostmodel_path(tag)
   model.save_model(model_path)
   preds = model.predict(dval)
   _, fscore = quick_fscore(preds, None)
-  resultsdict = dict(fscore=fscore, evals=evals_result)
+  resultsdict = dict(fscore=fscore, evals=evals_result, duration=t1-t0)
   res_path = os.path.join(common.XGBOOST_DIR, 'results', tag+'.pickle')
   with open(res_path, 'w') as f:
     pickle.dump(resultsdict, f)

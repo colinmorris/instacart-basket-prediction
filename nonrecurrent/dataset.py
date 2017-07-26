@@ -53,7 +53,7 @@ class Dataset(object):
     kwargs = dict(label=self.labels)
     # Starts with a dummy value because of reasons.
     onehot_vars = self.hps.onehot_vars[1:]
-    if not self.hps.onehot_vars:
+    if not onehot_vars:
       kwargs['feature_names'] = self.feat_cols
     weight =  (self.mode == Mode.eval and self.hps.weight_validation) or\
         (self.mode == Mode.training and self.hps.weight)

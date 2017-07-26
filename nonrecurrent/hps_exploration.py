@@ -10,11 +10,10 @@ hp_exploration_cands = dict(
 
     weight = [True, False],
     soft_weights = [True, False],
-    # TODO: onehot vars
 
     eta = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5],
     # (0 = no limit)
-    max_depth = [0, 4, 5, 6, 7, 8, 10],
+    max_depth = [4, 5, 6, 7, 8, 10], # 0 not working
     min_child_weight = [0.5, 1, 2, 5, 10, 20],
     gamma = [0, 0.1, 0.33, 0.5, 0.7, 0.9, 1.2],
     subsample = [0.4, 0.5, 0.66, 0.76, 0.9, 1.0],
@@ -23,9 +22,9 @@ hp_exploration_cands = dict(
     reg_lambda = [0.1, 1, 10, 30],
     alpha = [0, 1e-06, 1e-05, 1e-04, 1e-03],
     max_delta_step = {0: .9, 1: .05, 10: .05},
-    tree_method = {'approx': .9, 'hist': .1},
+    tree_method = {'approx': 1.0, 'hist': 0.0},
     scale_pos_weight = {1: .9, 2: .05, 10: .05},
-    grow_policy = {'depthwise': .9, 'lossguide': .1},
+    grow_policy = {'depthwise': 1.0, 'lossguide': 0.0},
 )
 
 def _sample_dict(hp_dict):
@@ -59,6 +58,13 @@ def sample_hps():
   else:
     hps.onehot_vars = [None]
 
+  # XXX: this constellation of options seems not to work right now...
+  # more hack
+  if hps.max_depth == 0:
+    hps.grow_policy = 'lossguide'
+  if hps.grow_policy == 'lossguide':
+    hps.tree_method = 'hist'
+
   tag = id
   return hps, tag
 
@@ -69,7 +75,7 @@ def main():
 
   for _ in range(args.n):
     hps, tag = sample_hps()
-    hps.rounds = 200
+    hps.rounds = 50
     hypers.save_hps(tag, hps)
     print tag
 
