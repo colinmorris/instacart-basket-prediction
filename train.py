@@ -56,18 +56,19 @@ def train(sess, model, runlabel, eval_model, logdir):
   # Setup summary writer.
   summary_writer = tf.summary.FileWriter('{}/{}'.format(logdir, runlabel))
   step = None
+  normalized_step = None
   summary_op = model.merged_summary()
 
   def write_tagged_value(tag, value):
     summ = tf.summary.Summary()
     summ.value.add(tag=tag, simple_value=float(value))
-    summary_writer.add_summary(summ, step)
+    summary_writer.add_summary(summ, normalized_step)
   def write_values(groupname, summary_dict):
     summ = tf.summary.Summary()
     for tag, value in summary_dict.iteritems():
       fulltag = os.path.join(groupname, tag) # sue me
       summ.value.add(tag=fulltag, simple_value=float(value))
-    summary_writer.add_summary(summ, step)
+    summary_writer.add_summary(summ, normalized_step)
 
   # Calculate trainable params.
   t_vars = tf.trainable_variables()
@@ -82,8 +83,16 @@ def train(sess, model, runlabel, eval_model, logdir):
   
   hps = model.hps
   start = time.time()
+  
+  def normalize_stepcount(steps):
+    if hps.batch_size in (100, 128):
+      return steps
+    assert hps.batch_size % 128 == 0
+    return int((steps * 128) / hps.batch_size)
 
-  log_every = model.hps.log_every
+  log_every = normalize_stepcount(model.hps.log_every)
+  eval_every = normalize_stepcount(model.hps.eval_every)
+  save_every = normalize_stepcount(model.hps.save_every)
   # Some training stats to accumulate and report every few hundred batches.
   train_costs = np.zeros(log_every)
   train_ft_costs = np.zeros(log_every)
@@ -98,8 +107,11 @@ def train(sess, model, runlabel, eval_model, logdir):
       model.train_op]
   # >0 if we're resuming from a checkpoint
   start_step = sess.run(model.global_step)
-  for i in range(hps.num_steps):
+  num_steps = normalize_stepcount(hps.num_steps)
+  step_multiplier = (hps.batch_size // 128) if hps.batch_size > 128 else 1
+  for i in range(num_steps):
     step = sess.run(model.global_step)
+    normalized_step = step * step_multiplier
     lr_exponent = i if model.hps.lr_reset else step
     lr = ( (hps.learning_rate - hps.min_learning_rate) *
            (hps.decay_rate)**lr_exponent + hps.min_learning_rate
@@ -125,6 +137,12 @@ def train(sess, model, runlabel, eval_model, logdir):
       loss_summ = {'Basic_Loss': cost, 'Finetune_Loss': ft_cost, 'Weight_Penalty': l2_cost,
           'Total_Cost': cost+l2_cost }
       write_values('Loss/Train', loss_summ)
+
+      LOG_UNIQUE = 0
+      if LOG_UNIQUE:
+        unique_uids = tf.size(tf.unique(model.dataset['uid'])[0])
+        nunique = sess.run(unique_uids)
+        tf.logging.info("{} unique uids in batch".format(nunique))
       
       # TODO: I think this'll advance the dataset iterator, which we don't want.
       # Should just sneak the summary op into the above sess.run when needed
@@ -133,13 +151,13 @@ def train(sess, model, runlabel, eval_model, logdir):
       summary_writer.flush()
 
       output_format = ('step: %d/%d, cost: %.4f, train_time_taken: %.3f, lr: %.5f')
-      output_values = (step, start_step+hps.num_steps, cost, time_taken, lr)
+      output_values = (step, start_step+num_steps, cost, time_taken, lr)
       output_log = output_format % output_values
       tf.logging.info(output_log)
       start = time.time()
-    if (i+1) % hps.save_every == 0 or (i == (hps.num_steps - 1) and hps.num_steps > 100):
+    if (i+1) % save_every == 0 or (i == (num_steps - 1) and num_steps > 100):
       utils.save_model(sess, runlabel, step)
-    if (i+1) % hps.eval_every == 0:
+    if (i+1) % eval_every == 0:
       tf.logging.info("Calculating validation loss")
       t0 = time.time()
       validation_summ = evaluate_model(sess, eval_model)

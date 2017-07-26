@@ -124,7 +124,7 @@ class BasketDataset(DatasetWrapper):
     # TODO: does the order of calls to batch/repeat matter? in docs they do repeat first
     if hps.mode == Mode.training:
       # NB: VERY IMPORTANT to shufle before batching. Glad I caught that.
-      self.dataset = self.dataset.shuffle(buffer_size=10000)
+      self.dataset = self.dataset.shuffle(buffer_size=10000, seed=1337)
       self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
       self.dataset = self.dataset.repeat()
       self.iterator = self.dataset.make_one_shot_iterator()
