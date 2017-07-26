@@ -23,7 +23,26 @@ def get_default_hparams():
       # thing isn't supposed to be a list!". So start it with a dummy value. Bleh.
       onehot_vars=[None],
       dropped_cols=[None],
+
+      # --- xgb params below --
+      # step size shrinkage aka learning_rate
+      eta=0.1,
+      max_depth=6,
+      # Minimum sum of instance weight (hessian) needed in a child. Whatever that means.
+      min_child_weight=10,
+      # Min loss reduction required to make a furth partition on a leaf node.
+      gamma=0.70,
+      # Subsample ratio of training data
+      subsample=0.76,
+      # Sample this fraction of cols per tree
+      colsample_bytree=0.95,
+      # L1 regularization
+      alpha=2e-05,
+      # L2 regularization
+      reg_lambda=10,
       )
+
+
 
 
 class NoHpsDefinedException(Exception):
@@ -48,3 +67,13 @@ def save_hps(tag, hps):
   path = common.resolve_xgboost_config_path(tag)
   with open(path, 'w') as f:
     f.write(hps.to_json())
+  
+_XGB_HPS = ['eta', 'max_depth', 'min_child_weight', 'gamma', 'subsample',
+    'colsample_bytree', 'alpha', 'reg_lambda',
+]
+def xgb_params_from_hps(hps):
+  # Copied from https://www.kaggle.com/nickycan/lb-0-3805009-python-edition
+  params = dict(objective="reg:logistic", eval_metric="logloss")
+  for param in _XGB_HPS:
+    params[param] = hps[param]
+  return params

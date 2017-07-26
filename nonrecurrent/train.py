@@ -13,20 +13,6 @@ from baskets.hypers import Mode
 from dataset import Dataset
 import hypers
 
-# Copied from https://www.kaggle.com/nickycan/lb-0-3805009-python-edition
-# TODO: Loas params from config files.
-xgb_params = {
-    "objective"         : "reg:logistic"
-    ,"eval_metric"      : "logloss"
-    ,"eta"              : 0.1
-    ,"max_depth"        : 6
-    ,"min_child_weight" :10
-    ,"gamma"            :0.70
-    ,"subsample"        :0.76
-    ,"colsample_bytree" :0.95
-    ,"alpha"            :2e-05
-    ,"lambda"           :10
-}
 
 P_THRESH = .2
 THRESH = (P_THRESH)
@@ -70,6 +56,7 @@ def train(traindat, params, tag, hps):
   watchlist = [(dtrain, 'train'), (dval, 'validation'),]
   #watchlist = [(dval, 'validation'),]
 
+  xgb_params = hypers.xgb_params_from_hps(hps)
   model = xgb.train(xgb_params, dtrain, hps.rounds, evals=watchlist, 
       early_stopping_rounds=hps.early_stopping_rounds) #, feval=quick_fscore, maximize=True)
   # Set output_margin=True to get logits
