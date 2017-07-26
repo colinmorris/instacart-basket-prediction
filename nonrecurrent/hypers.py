@@ -12,11 +12,17 @@ def get_default_hparams():
       # Whether to apply per-instance weighting to the training set
       weight=False,
       weight_validation=True,
+      # An intermediate option between no weighting and weighting instances
+      # by 1/userprods. As a user's number of products increases, the weight
+      # on each of their instances increases, but the total weight of all 
+      # their instances increases. Only used for training.
+      soft_weights=True,
       # Ugh. More riggery and tomfoolery.
       # For some reason tf Hparams can't have empty sequence values? But if we default
       # it to None and try to overwrite it with a list later, tf complains "hey, that
       # thing isn't supposed to be a list!". So start it with a dummy value. Bleh.
       onehot_vars=[None],
+      dropped_cols=[None],
       )
 
 

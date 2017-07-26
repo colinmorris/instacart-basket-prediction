@@ -14,6 +14,8 @@ class Dataset(object):
 
   non_feat_cols = {'label', 'user_prods', 'uid', 'orderid'}
   feat_cols = [col for col in fields.all_fields if col not in non_feat_cols]
+  FIELD_TO_NVALUES = {'pid': constants.N_PRODUCTS, 'aisleid': constants.N_AISLES,
+      'deptid': constants.N_DEPARTMENTS}
 
   def __init__(self, data_tag, hps, mode=Mode.training, maxlen=None):
     self.hps = hps
@@ -25,8 +27,28 @@ class Dataset(object):
     self.records = dat
     self.labels = dat['label']
 
-  FIELD_TO_NVALUES = {'pid': constants.N_PRODUCTS, 'aisleid': constants.N_AISLES,
-      'deptid': constants.N_DEPARTMENTS}
+  @classmethod
+  def basic_feat_cols_for_hps(kls, hps):
+    onehot_vars = hps.onehot_vars[1:]
+    dropped = hps.dropped_cols[1:]
+    return [col for col in kls.feat_cols if 
+        col not in onehot_vars and col not in dropped]
+
+  @property
+  def basic_feat_cols(self):
+    return self.basic_feat_cols_for_hps(self.hps)
+
+  @classmethod
+  def feature_names_for_hps(kls, hps):
+    onehot_vars = hps.onehot_vars[1:]
+    cols = kls.basic_feat_cols_for_hps(hps)
+    for onehot_var in onehot_vars:
+      onehot_cols = ['{}_{}'.format(onehot_var, i+1) 
+          for i in range(kls.FIELD_TO_NVALUES[onehot_var])
+          ]
+      cols += onehot_cols
+    return cols
+
   def as_dmatrix(self):
     kwargs = dict(label=self.labels)
     # Starts with a dummy value because of reasons.
@@ -36,10 +58,13 @@ class Dataset(object):
     weight =  (self.mode == Mode.eval and self.hps.weight_validation) or\
         (self.mode == Mode.training and self.hps.weight)
     if weight:
-      kwargs['weight'] = 1 / self.records['user_prods']
+      if self.mode == Mode.training and self.hps.soft_weights:
+        weights = 1 / (np.log2(self.records['user_prods'])+1)
+      else:
+        weights = 1 / self.records['user_prods']
+      kwargs['weight'] = weights 
 
-    basic_feat_cols = [col for col in self.feat_cols if col not in onehot_vars]
-    featdat = self.records[basic_feat_cols]
+    featdat = self.records[self.basic_feat_cols]
     featdat = featdat.view(fields.dtype).reshape(len(featdat), -1)
     onehot_matrices = []
     for onehot_var in onehot_vars:

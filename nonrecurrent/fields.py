@@ -1,8 +1,7 @@
 import numpy as np
 
 # dtype used for all features/fields
-# TODO: try less precision
-dtype = np.float16
+dtype = np.float32
 
 generic_raw_feats = ['days_since_prior', 'dow', 'hour',
       'n_prev_repeats',
@@ -28,6 +27,8 @@ all_fields = generic_raw_feats + product_raw_feats
     'n_prev_reorders',
     'focal_reorder_interval_days_mean', 'focal_reorder_interval_days_std',
     'focal_reorder_interval_orders_mean', 'focal_reorder_interval_orders_std',
+
+    avg_interval_between_orders,
 """
 
 """

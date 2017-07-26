@@ -138,7 +138,7 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     ordercount += 1
     order_sizes.append(osize)
     prevo_prodset = set(prevo.products)
-    streakers = streakers.union(prevo_prodset)
+    streakers = streakers.intersection(prevo_prodset)
 
   g['avg_order_size'] = np.mean(order_sizes)
   for pid, osizes in pid_order_sizes.iteritems():

@@ -6,6 +6,11 @@ from baskets.insta_pb2 import User
 from baskets import common
 from baskets.user_wrapper import UserWrapper
 
+TESTUSER_ID = 2455 
+
+# The product id of Half and Half. It comes up a lot in testing, for some reason.
+HALF_AND_HALF_ID = 27086
+
 @pytest.fixture()
 def user_pb():
   u = User()
