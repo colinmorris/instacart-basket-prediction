@@ -73,6 +73,7 @@ def train(traindat, tag, hps):
   model.save_model(model_path)
   preds = model.predict(dval)
   _, fscore = quick_fscore(preds, None)
+  logging.info('Final validation (quick) fscore = {}'.format(fscore))
   resultsdict = dict(fscore=fscore, evals=evals_result, duration=t1-t0)
   res_path = os.path.join(common.XGBOOST_DIR, 'results', tag+'.pickle')
   with open(res_path, 'w') as f:
@@ -106,8 +107,7 @@ def main():
     hps.weight = args.weight
     hypers.save_hps(args.tag, hps)
   validate_hps(hps)
-  with time_me('Loaded train dataset', mode='stderr'):
-    dataset = Dataset(hps.train_file, hps)
+  dataset = Dataset(hps.train_file, hps)
   with time_me(mode='stderr'):
     train(dataset, args.tag, hps)
 

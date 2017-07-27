@@ -27,13 +27,29 @@ def patch_featnames():
 patch_featnames()
 
 def plot_importance(importance_type='weight'):
-  xgb.plot_importance(model, importance_type=importance_type)
-
+  """
+  How the importance is calculated: either "weight", "gain", or "cover" 
+    "weight" is the number of times a feature appears in a tree 
+    "gain" is the average"gain"of splits which use the feature 
+    "cover" is the average coverage of splits which use the feature
+      where coverage is defined as the number of samples affected by the split
+  """
+  xgb.plot_importance(model, importance_type=importance_type,
+      max_num_features=40,
+      )
 
 def plot_trees(n=2, ax=None, rankdir='UT'): # 'LR' for left-right
   xgb.plot_tree(model, num_trees=n, rankdir=rankdir, ax=ax)
 
-dpi = 96 * 20
-for i in range(20):
-  plot_trees(i)
-  plt.savefig('trees/tree_{}.png'.format(i), dpi=dpi, bbox_inches='tight')
+def trees(n):
+  dpi = 96 * 20
+  for i in range(n):
+    plot_trees(i)
+    plt.savefig('trees/tree_{}.png'.format(i), dpi=dpi, bbox_inches='tight')
+
+if 1:
+  for imp in ['weight', 'gain', 'cover']:
+    plot_importance(imp)
+    plt.savefig('feature_importance_{}_{}.png'.format(imp, args.tag),
+        dpi=144,
+        )

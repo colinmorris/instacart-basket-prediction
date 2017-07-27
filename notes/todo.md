@@ -205,3 +205,4 @@ so we could even just zero out the loss for those first n timesteps.)
 - dynamic/reactive lr schedule based on validation loss
 - little thing: git add empty (data) dirs that cod expects to exist 
   (or programatically mkdir them when required)
+- libFFM?

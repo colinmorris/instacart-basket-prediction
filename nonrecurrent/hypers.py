@@ -1,3 +1,4 @@
+import json
 from tensorflow.contrib.training import HParams
 
 from baskets import common
@@ -5,6 +6,7 @@ from baskets.hypers import Mode
 
 def get_default_hparams():
   return HParams(
+      # (not actually used?)
       mode=Mode.training,
       train_file='train', # i.e. train_full
       rounds=50,
@@ -23,6 +25,7 @@ def get_default_hparams():
       # it to None and try to overwrite it with a list later, tf complains "hey, that
       # thing isn't supposed to be a list!". So start it with a dummy value. Bleh.
       onehot_vars=[None],
+      # XXX: Not currently working (haven't had need to use this yet, so it rotted)
       dropped_cols=[None],
 
       # --- xgb params below --

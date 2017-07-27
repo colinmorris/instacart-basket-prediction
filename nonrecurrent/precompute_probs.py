@@ -10,6 +10,7 @@ from baskets.time_me import time_me
 from baskets.hypers import Mode
 
 from dataset import Dataset
+import hypers
 
 def get_pdict(model, dataset):
   """{uid -> {pid -> prob}}"""
@@ -33,7 +34,7 @@ def main():
 
 
   for model_tag in args.tags:
-    hps = hypers.hps_for_tag(args.tag)
+    hps = hypers.hps_for_tag(model_tag)
     dataset = Dataset(args.recordfile, hps, mode=Mode.inference)
     path = common.resolve_xgboostmodel_path(model_tag)
     logging.info('Loading model with tag {}'.format(model_tag))
