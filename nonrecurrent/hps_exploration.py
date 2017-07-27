@@ -13,19 +13,21 @@ hp_exploration_cands = dict(
     #soft_weights = [True, False],
     train_file = ['train', 'train_5'],
 
-    eta = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5],
+    # 0.01 seems ridiculously low. Others seem reasonable.
+    eta = [0.05, 0.1, 0.2, 0.3, 0.5],
     # (0 = no limit, and implies lossguide grow_policy)
-    max_depth = [0, 4, 5, 6, 7, 8, 10],
-    min_child_weight = [0.5, 1, 2, 5, 10, 20],
-    gamma = [0, 0.1, 0.33, 0.5, 0.7, 0.9, 1.2],
-    subsample = [0.4, 0.5, 0.66, 0.76, 0.9, 1.0],
+    max_depth = [0, 4, 5, 6, 6, 7, 7, 8, 8, 10, 10, 12, 14, 16],
+    min_child_weight = [0.5, 1, 2.5, 5, 7.5, 10, 15, 20],
+    gamma = [0, 0.1, 0.33, .7, 1.2, 2.4, 4.8],
+    subsample = [0.2, 0.5, 0.66, 0.8, 0.9, 1.0],
     colsample_bytree = [0.3, 0.5, 0.7, 0.85, 0.95, 1.0],
-    colsample_bylevel = {0.3:.1, 0.5:.1, 0.85:.1, 1.0:.7},
-    reg_lambda = [0.1, 1, 10, 30],
+    colsample_bylevel = [0.3, 0.5, 0.85, 1.0],
+    reg_lambda = [0.01, 0.1, 1, 10, 30],
     alpha = [0, 1e-06, 1e-05, 1e-04, 1e-03],
     max_delta_step = {0: .9, 1: .05, 10: .05},
-    tree_method = {'approx': 1.0, 'hist': 0.0},
-    scale_pos_weight = {1: .9, 2: .05, 10: .05},
+    tree_method = {'approx': .85, 'hist': 0.15},
+    # Failed experiment
+    #scale_pos_weight = {1: .9, 2: .05, 10: .05},
     grow_policy = {'depthwise': .95, 'lossguide': 0.05},
 )
 

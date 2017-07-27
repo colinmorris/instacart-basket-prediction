@@ -49,7 +49,11 @@ def main():
       row[hp] = getattr(hps, hp)
     for (k, v) in row.iteritems():
       if isinstance(v, float):
-        row[k] = '{:.4f}'.format(v)
+        if k == 'alpha': # these can be teensy tiny
+          fmt = '{:.1e}'
+        else:
+          fmt = '{:.4f}'
+        row[k] = fmt.format(v)
     row['onehot_vars'] = len(hps.onehot_vars)-1
     writer.writerow(row)
     i += 1
