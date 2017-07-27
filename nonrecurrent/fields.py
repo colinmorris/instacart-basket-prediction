@@ -22,6 +22,11 @@ product_raw_feats = ['prev_cartorder',
     'label',
     ]
 all_fields = generic_raw_feats + product_raw_feats
+
+# Most feats are ints. These are floats.
+float_feats = {'avg_order_size', 'frecency_days', 'frecency_orders',
+    'avg_focal_order_size'}
+
 # TODO: Not implemented: 
 """
     'n_prev_reorders',

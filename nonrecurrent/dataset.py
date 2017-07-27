@@ -10,6 +10,9 @@ from baskets.hypers import Mode
 
 import fields
 
+# This seems surprisingly unhelpful, but leaving it on for now out of principle.
+FTYPES = 1
+
 class Dataset(object):
   """Wrapper around the recarrays serialized by scalar_vectorize.py"""
 
@@ -29,7 +32,7 @@ class Dataset(object):
 
   @classmethod
   def basic_feat_cols_for_hps(kls, hps):
-    onehot_vars = hps.onehot_vars[1:]
+    onehot_vars = kls.onehot_vars_for_hps(hps)
     dropped = hps.dropped_cols[1:]
     return [col for col in kls.feat_cols if 
         col not in onehot_vars and col not in dropped]
@@ -40,7 +43,7 @@ class Dataset(object):
 
   @classmethod
   def feature_names_for_hps(kls, hps):
-    onehot_vars = hps.onehot_vars[1:]
+    onehot_vars = kls.onehot_vars_for_hps(hps)
     cols = kls.basic_feat_cols_for_hps(hps)
     for onehot_var in onehot_vars:
       onehot_cols = ['{}_{}'.format(onehot_var, i+1) 
@@ -52,6 +55,22 @@ class Dataset(object):
   @property
   def feature_names(self):
     return self.feature_names_for_hps(self.hps)
+
+  @property
+  def feature_types(self):
+    types = []
+    for fname in self.basic_feat_cols:
+      t = 'float' if fname in fields.float_feats else 'int'
+      types.append(t)
+    for onehot_var in self.onehot_vars:
+      # 'i' = indicator
+      onehot_types = ['i' for _ in range(self.FIELD_TO_NVALUES[onehot_var])]
+      types.extend(onehot_types)
+    return types
+
+  @classmethod
+  def onehot_vars_for_hps(kls, hps):
+    return sorted(hps.onehot_vars[1:])
 
   @property
   def onehot_vars(self):
@@ -88,7 +107,9 @@ class Dataset(object):
     path = self.dmatrix_cache_path
     # xgb is not try/except friendly here
     if os.path.exists(path):
-      return xgb.DMatrix(path)
+      return xgb.DMatrix(path, feature_names=self.feature_names,
+          feature_types=(self.feature_types if FTYPES else None)
+          )
     else:
       logging.info('Cache miss on dmatrix. Building and caching.')
       dm = self._as_dmatrix()
@@ -134,6 +155,9 @@ class Dataset(object):
     if isinstance(featdat, np.ndarray) and not featdat.flags.c_contiguous:
       logging.info('Contiguizing feature data')
       featdat = np.ascontiguousarray(featdat)
+
+    if FTYPES:
+      kwargs['feature_types'] = self.feature_types
 
     return xgb.DMatrix(featdat, **kwargs)
 
