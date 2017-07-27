@@ -76,6 +76,10 @@ def train(traindat, tag, hps):
   with open(res_path, 'w') as f:
     pickle.dump(resultsdict, f)
 
+def validate_hps(hps):
+  assert hps.max_depth > 0 or hps.grow_policy != 'depthwise'
+  # TODO: add more as they come up
+
 def main():
   logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser()
@@ -98,6 +102,7 @@ def main():
     hps.rounds = args.n_rounds
     hps.weight = args.weight
     hypers.save_hps(args.tag, hps)
+  validate_hps(hps)
   with time_me('Loaded train dataset', mode='stderr'):
     dataset = Dataset(hps.train_file, hps, maxlen=args.n_users)
   with time_me(mode='stderr'):
