@@ -78,6 +78,9 @@ def train(traindat, tag, hps):
 
 def validate_hps(hps):
   assert hps.max_depth > 0 or hps.grow_policy != 'depthwise'
+  assert hps.max_depth > 0 or hps.max_leaves > 0
+  if hps.grow_policy == 'lossguide':
+    assert hps.tree_method == 'hist'
   # TODO: add more as they come up
 
 def main():

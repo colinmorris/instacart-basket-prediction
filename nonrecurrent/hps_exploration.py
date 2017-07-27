@@ -14,7 +14,7 @@ hp_exploration_cands = dict(
     train_file = ['train', 'train_5'],
 
     eta = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5],
-    # (0 = no limit)
+    # (0 = no limit, and implies lossguide grow_policy)
     max_depth = [0, 4, 5, 6, 7, 8, 10],
     min_child_weight = [0.5, 1, 2, 5, 10, 20],
     gamma = [0, 0.1, 0.33, 0.5, 0.7, 0.9, 1.2],
@@ -26,7 +26,7 @@ hp_exploration_cands = dict(
     max_delta_step = {0: .9, 1: .05, 10: .05},
     tree_method = {'approx': 1.0, 'hist': 0.0},
     scale_pos_weight = {1: .9, 2: .05, 10: .05},
-    grow_policy = {'depthwise': 1.0, 'lossguide': 0.0},
+    grow_policy = {'depthwise': .95, 'lossguide': 0.05},
 )
 
 def _sample_dict(hp_dict):
@@ -93,12 +93,14 @@ def sample_hps():
     hps.soft_weights = True
     
 
-  # XXX: this constellation of options seems not to work right now...
   # more hack
   if hps.max_depth == 0:
     hps.grow_policy = 'lossguide'
+    hps.max_leaves = random.choice([1, 2, 4, 8, 16, 32])
   if hps.grow_policy == 'lossguide':
     hps.tree_method = 'hist'
+  if hps.tree_method == 'hist':
+    hps.max_bins = random.choice([64, 128, 256, 256, 256, 384])
 
   tag = id
   return hps, tag

@@ -29,7 +29,10 @@ def get_default_hparams():
       eta=0.1,
       # Min loss reduction required to make a furth partition on a leaf node.
       gamma=0.70,
+      # One of the below two params must be > 0
       max_depth=6,
+      # Only relevant if grow_policy == 'lossguide'
+      max_leaves=0,
       # Minimum sum of instance weight (hessian) needed in a child. Whatever that means.
       min_child_weight=10,
       max_delta_step=0,
@@ -46,6 +49,7 @@ def get_default_hparams():
       scale_pos_weight=1,
       grow_policy='depthwise',
       base_score=.2, # (default .5. gives a very minor headstart.)
+      max_bins=256,
       )
 
 
@@ -78,7 +82,7 @@ def save_hps(tag, hps):
 _XGB_HPS = ['eta', 'max_depth', 'min_child_weight', 'gamma', 'subsample',
     'colsample_bytree', 'alpha', 'reg_lambda',
     'max_delta_step', 'colsample_bylevel', 'tree_method', 'scale_pos_weight',
-    'base_score', 'grow_policy',
+    'base_score', 'grow_policy', 'max_leaves', 'max_bins',
 ]
 def xgb_params_from_hps(hps):
   # Copied from https://www.kaggle.com/nickycan/lb-0-3805009-python-edition
