@@ -39,8 +39,8 @@ def get_default_hparams():
       # Subsample ratio of training data
       subsample=0.76,
       # Sample this fraction of cols per tree
-      colsample_bytree=0.95,
-      colsample_bylevel = 1.0,
+      colsample_bytree=0.65,
+      colsample_bylevel = .5,
       # L2 regularization
       reg_lambda=10,
       # L1 regularization
@@ -71,13 +71,14 @@ def hps_for_tag(tag):
     raise NoHpsDefinedException(msg)
   return hps
 
-def save_hps(tag, hps):
+def save_hps(tag, hps, pprint=True):
   # (IntEnum will actually pass a check of isinstance int)
+  hps_dict = hps.values()
   if type(hps.mode) != int:
-    hps.mode = hps.mode.value
+    hps_dict['mode'] = hps.mode.value
   path = common.resolve_xgboost_config_path(tag)
   with open(path, 'w') as f:
-    f.write(hps.to_json())
+    json.dump(hps_dict, f, indent=2, separators=(',', ': '))
   
 _XGB_HPS = ['eta', 'max_depth', 'min_child_weight', 'gamma', 'subsample',
     'colsample_bytree', 'alpha', 'reg_lambda',

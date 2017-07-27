@@ -43,7 +43,7 @@ def _sample_dict(hp_dict):
 
 def randtag():
   # Totally an excellent use of my time.
-  letters = map(chr, range(ord('a'), ord('z')+!))
+  letters = map(chr, range(ord('a'), ord('z')+1))
   vowels = 'aeiou'
   verboten = 'qhjy'
   consonants = [l for l in letters if l not in vowels and l not in verboten]

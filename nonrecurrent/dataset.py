@@ -86,7 +86,7 @@ class Dataset(object):
     if not kwargs['label'].flags.c_contiguous:
       logging.info('Contiguizing labels')
       kwargs['label'] = np.ascontiguousarray(kwargs['label'])
-    if not featdat.flags.c_contiguous:
+    if isinstance(featdat, np.ndarray) and not featdat.flags.c_contiguous:
       logging.info('Contiguizing feature data')
       featdat = np.ascontiguousarray(featdat)
 
