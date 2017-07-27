@@ -33,10 +33,12 @@ def train(traindat, tag, hps):
       return 'fscore', 0.0
     with time_me('calculated validation fscore', mode='print'):
       user_counts = defaultdict(lambda : dict(tpos=0, fpos=0, fneg=0))
-      for i, record in enumerate(valdat.records):
-        uid = record['uid']
-        pred = preds[i] >= THRESH
-        label = record['label']
+      uids = valdat.uids
+      labels = dval.get_label()
+      for i, prob in enumerate(preds):
+        uid = uids[i]
+        pred = prob >= THRESH
+        label = labels[i]
         if pred and label:
           user_counts[uid]['tpos'] += 1
         elif pred and not label:
@@ -91,8 +93,6 @@ def main():
       help='identifier for file with the users to train on (default: train)')
   parser.add_argument('-n', '--n-rounds', type=int, default=50,
       help='Number of rounds of boosting')
-  parser.add_argument('--n-users', type=int, 
-      help='Limit number of users tested on (default: no limit)')
   parser.add_argument('--weight', action='store_true')
   args = parser.parse_args()
 
@@ -107,7 +107,7 @@ def main():
     hypers.save_hps(args.tag, hps)
   validate_hps(hps)
   with time_me('Loaded train dataset', mode='stderr'):
-    dataset = Dataset(hps.train_file, hps, maxlen=args.n_users)
+    dataset = Dataset(hps.train_file, hps)
   with time_me(mode='stderr'):
     train(dataset, args.tag, hps)
 

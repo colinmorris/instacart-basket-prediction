@@ -16,8 +16,10 @@ def get_pdict(model, dataset):
   dtest = dataset.as_dmatrix()
   probs = model.predict(dtest)
   pmap = defaultdict(dict)
-  for i, record in enumerate(dataset.records):
-    uid, pid = map(int, [record['uid'], record['pid']])
+  uids = dataset.uids
+  pids = dataset.pids
+  for i in range(len(uids)):
+    uid, pid = map(int, [uids[i], pids[i]])
     pmap[uid][pid] = probs[i]
   return pmap
 
@@ -27,14 +29,12 @@ def main():
   parser.add_argument('tags', metavar='tag', nargs='+')
   parser.add_argument('--recordfile', default='test', 
       help='identifier for file with the users to test on (default: test)')
-  parser.add_argument('-n', '--n-users', type=int, 
-      help='Limit number of users tested on (default: no limit)')
   args = parser.parse_args()
 
 
   for model_tag in args.tags:
     hps = hypers.hps_for_tag(args.tag)
-    dataset = Dataset(args.recordfile, hps, mode=Mode.inference, maxlen=args.n_users)
+    dataset = Dataset(args.recordfile, hps, mode=Mode.inference)
     path = common.resolve_xgboostmodel_path(model_tag)
     logging.info('Loading model with tag {}'.format(model_tag))
     model = xgb.Booster(model_file=path)
