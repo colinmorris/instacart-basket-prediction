@@ -8,8 +8,10 @@ import hypers
 
 hp_exploration_cands = dict(
 
-    weight = [True, False],
-    soft_weights = [True, False],
+    # (special-cased below)
+    #weight = [True, False],
+    #soft_weights = [True, False],
+    train_file = ['train', 'train_5'],
 
     eta = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5],
     # (0 = no limit)
@@ -57,6 +59,21 @@ def sample_hps():
     hps.onehot_vars = [None, 'aisleid', 'deptid']
   else:
     hps.onehot_vars = [None]
+
+  # More hack (just so we don't get confusing configurations where
+  # soft_weights=True but weight=False. Makes it trickier to infer
+  # effect of soft weights)
+  x = random.random()
+  if x < 1/3:
+    hps.weight = False
+    hps.soft_weights = False
+  elif x < 2/3:
+    hps.weight = True
+    hps.soft_weights = False
+  else:
+    hps.weight = True
+    hps.soft_weights = True
+    
 
   # XXX: this constellation of options seems not to work right now...
   # more hack

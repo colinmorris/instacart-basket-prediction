@@ -63,7 +63,8 @@ def hps_for_tag(tag):
     with open(config_path) as f:
       hps.parse_json(f.read())
   except IOError:
-    raise NoHpsDefinedException()
+    msg = "No hps defined for tag {}".format(tag)
+    raise NoHpsDefinedException(msg)
   return hps
 
 def save_hps(tag, hps):

@@ -49,12 +49,15 @@ class Dataset(object):
       cols += onehot_cols
     return cols
 
+  @property
+  def feature_names(self):
+    return self.feature_names_for_hps(self.hps)
+
   def as_dmatrix(self):
     kwargs = dict(label=self.labels)
     # Starts with a dummy value because of reasons.
     onehot_vars = self.hps.onehot_vars[1:]
-    if not onehot_vars:
-      kwargs['feature_names'] = self.feat_cols
+    kwargs['feature_names'] = self.feature_names
     weight =  (self.mode == Mode.eval and self.hps.weight_validation) or\
         (self.mode == Mode.training and self.hps.weight)
     if weight:
@@ -76,7 +79,15 @@ class Dataset(object):
       # TODO: There are some perf issues with this. Look into this workaround:
       # https://stackoverflow.com/questions/6844998/is-there-an-efficient-way-of-concatenating-scipy-sparse-matrices/33259578#33259578
       featdat = scipy.sparse.hstack([featdat,]+onehot_matrices)
-
+    
     logging.info('Made dmatrix with feature data having shape {}'.format(featdat.shape))
+
+    # https://github.com/dmlc/xgboost/issues/2554
+    if not kwargs['label'].flags.c_contiguous:
+      logging.info('Contiguizing labels')
+      kwargs['label'] = np.ascontiguousarray(kwargs['label'])
+    if not featdat.flags.c_contiguous:
+      logging.info('Contiguizing feature data')
+      featdat = np.ascontiguousarray(featdat)
 
     return xgb.DMatrix(featdat, **kwargs)
