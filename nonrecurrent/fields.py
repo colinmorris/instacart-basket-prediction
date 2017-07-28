@@ -8,6 +8,10 @@ generic_raw_feats = ['days_since_prior', 'dow', 'hour',
       'uid', 'user_prods', 'orderid',
       'avg_order_size', 'prev_order_size',
       'n_prev_orders',
+      'n_distinct_prods',
+      'n_singleton_orders',
+      'order_history_days',
+      'n_30day_intervals',
       ]
 product_raw_feats = ['prev_cartorder',
     'last_focal_cartorder',
@@ -20,6 +24,11 @@ product_raw_feats = ['prev_cartorder',
     'avg_focal_order_size',
     'pid', 'aisleid', 'deptid',
     'label',
+    'n_singleton_focal_orders',
+    'n_30day_focal_intervals',
+    # idk if this should include the target order. I guess for dtrees, it should
+    # basically make no difference?
+    'n_30days_since_last_focal',
     ]
 all_fields = generic_raw_feats + product_raw_feats
 
@@ -35,15 +44,11 @@ float_feats = {'avg_order_size', 'frecency_days', 'frecency_orders',
 
 
 Features you probably should implement:
-  - n focals in last 30 days
-  - n 30 day intervals since last focal order
   - avg interval between orders
   - avg interval between focal orders
   - avg. # of 30 day intervals between orders/focal orders
+    - or just # of 30 day intervals
   - multiple parameterizations of frecency (range of lambdas)
-  - n distinct products ordered up to this order
-  - n singleton orders
-  - n singleton focal orders
   - avg. focal cart order (normalized?)
 
 Features you *might* wanna implement:
@@ -52,6 +57,8 @@ Features you *might* wanna implement:
     likely to help out xgboost? Basically just a strong hint to split
     days_since_prior on these thresholds?
   - # prods from same dept/aisle as focal in prev order
+  - n focals in last 30 days
+    - (probably subsumed by multiple frecency parameterizations)
 
 Features that could be calculated in postprocessing step:
   - % of prev orders having focal

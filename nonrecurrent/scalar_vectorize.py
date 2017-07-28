@@ -55,6 +55,8 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   g['uid'] = user.uid
   g['user_prods'] = len(pids)
   g['n_prev_orders'] = len(user.user.orders[:order_idx])
+  assert order_idx == -1, "n_distinct prods will not be right!"
+  g['n_distinct_prods'] = user.nprods
 
   # focal order
   order = user.user.orders[order_idx]
@@ -90,9 +92,14 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
 
   zero_init_cols = ['n_prev_focals', 'n_prev_focals_this_dow', 'n_prev_focals_this_hour',
       'frecency_days', 'frecency_orders', 
-      'n_consecutive_prev_focal_orders']
+      'n_consecutive_prev_focal_orders', 'n_singleton_focal_orders', 'n_30day_focal_intervals',
+      ]
   for col in zero_init_cols:
     p[col] = 0
+  zero_init_gcols = ['n_singleton_orders', 'n_30day_intervals',
+      ]
+  for col in zero_init_gcols:
+    g[col] = 0
   # running count of days/orders separating loop order from the focal order
   daycount = order.days_since_prior
   ordercount = 1
@@ -109,6 +116,10 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   # Walk backwards starting from the previous order
   for prevo in user.user.orders[order_idx-1::-1]:
     osize = len(prevo.products)
+    singleton = osize == 1
+    g['n_singleton_orders'] += singleton
+    maxdays = prevo.days_since_prior == 30
+    g['n_30day_intervals'] += maxdays
     order_frecency_days = math.exp(-1 * FRECENCY_DAYS_LAMBDA * daycount)
     order_frecency_orders = math.exp(-1 * FRECENCY_ORDERS_LAMBDA * ordercount)
     for cartorder, pid in enumerate(prevo.products):
@@ -120,6 +131,9 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
       pp['n_prev_focals'] += 1
       pp['n_prev_focals_this_dow'] += prevo.dow == order.dow
       pp['n_prev_focals_this_hour'] += prevo.hour == order.hour
+      pp['n_singleton_focal_orders'] += singleton
+      pp['n_30day_focal_intervals'] += maxdays
+
       pp['frecency_days'] += order_frecency_days
       pp['frecency_orders'] += order_frecency_orders
       if pid in streakers:
@@ -128,13 +142,19 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
       freeze(pid, 'last_focal_cartorder', cartorder)
       freeze(pid, 'orders_since_focal', ordercount)
       freeze(pid, 'days_since_focal', daycount)
+      freeze(pid, 'n_30days_since_last_focal', g['n_30day_intervals'])
 
       pid_order_sizes[pid].append(osize)
       # (The below feats may of course be overwritten later)
       pp['orders_since_first_focal'] = ordercount
       pp['days_since_first_focal'] = daycount
 
-    daycount += prevo.days_since_prior
+    assert prevo.nth >= 1
+    if prevo.nth == 1:
+      g['order_history_days'] = daycount
+    else:
+      # Not that it really matters, but days_since_prior on the first order is nan
+      daycount += prevo.days_since_prior
     ordercount += 1
     order_sizes.append(osize)
     prevo_prodset = set(prevo.products)
