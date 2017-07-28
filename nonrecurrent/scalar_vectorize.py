@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# TODO: You *really* wanna write some unit tests for this thing.
-# TODO: profile me
-
 from __future__ import division
 import argparse
 from collections import defaultdict
@@ -23,6 +20,10 @@ import fields
 DEBUG = False
 
 # (These are just sort of made up)
+# TODO: 30 days really means "30+ days" and so should be taken with a grain
+# of salt. Could even consider translating 30 day intervals into some bigger
+# number. Coming up with a principled choice is kinda tricky. Could look at 
+# histogram and try to extrapolate the mean of the tail that got gobbled up.
 _FRECENCY_HALFLIFE_DAYS = 7
 FRECENCY_DAYS_LAMBDA = math.log(2) / _FRECENCY_HALFLIFE_DAYS
 _FRECENCY_HALFLIFE_ORDERS = 4
@@ -30,7 +31,6 @@ FRECENCY_ORDERS_LAMBDA = math.log(2) / _FRECENCY_HALFLIFE_ORDERS
 
 
 def _write_all_recarray_fields(recarr, value):
-  # I used to understand this code...
   view = recarr.view(fields.dtype).reshape(len(recarr), -1)
   view[:] = value
 

@@ -33,7 +33,28 @@ float_feats = {'avg_order_size', 'frecency_days', 'frecency_orders',
     'focal_reorder_interval_days_mean', 'focal_reorder_interval_days_std',
     'focal_reorder_interval_orders_mean', 'focal_reorder_interval_orders_std',
 
-    avg_interval_between_orders,
+
+Features you probably should implement:
+  - n focals in last 30 days
+  - n 30 day intervals since last focal order
+  - avg interval between orders
+  - avg interval between focal orders
+  - avg. # of 30 day intervals between orders/focal orders
+  - multiple parameterizations of frecency (range of lambdas)
+  - n distinct products ordered up to this order
+  - n singleton orders
+  - n singleton focal orders
+  - avg. focal cart order (normalized?)
+
+Features you *might* wanna implement:
+  - focal in penultimate order? (or penpenultimate or...)
+  - indicators for days since prior == 0, == 30. Not sure whether this is
+    likely to help out xgboost? Basically just a strong hint to split
+    days_since_prior on these thresholds?
+  - # prods from same dept/aisle as focal in prev order
+
+Features that could be calculated in postprocessing step:
+  - % of prev orders having focal
 """
 
 """
