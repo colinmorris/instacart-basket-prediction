@@ -1,3 +1,4 @@
+import os
 import argparse
 import numpy as np
 import tensorflow as tf
@@ -24,7 +25,7 @@ def main():
   dat = dataset.BasketDataset(hps, 'unit_tests.tfrecords')
   model = rnnmodel.RNNModel(hps, dat)
   sess = tf.InteractiveSession()
-  utils.load_checkpoint_for_tag(sess, tag)
+  utils.load_checkpoint_for_tag(tag, sess)
 
   def lookup(varname):
     with tf.variable_scope('instarnn', reuse=True):

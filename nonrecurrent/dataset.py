@@ -33,6 +33,7 @@ class Dataset(object):
 
   @classmethod
   def basic_feat_cols_for_hps(kls, hps):
+    """Simple scalar features (i.e. not one-hot encoded or embedded categoricals)"""
     onehot_vars = kls.onehot_vars_for_hps(hps)
     dropped = hps.dropped_cols[1:]
     return [col for col in kls.feat_cols if 
@@ -51,6 +52,11 @@ class Dataset(object):
           for i in range(kls.FIELD_TO_NVALUES[onehot_var])
           ]
       cols += onehot_cols
+
+    if hps.embedding_tag:
+      emb_cols = ['pid_emb_{}'.format(i) for i in range(hps.embedding_dimension)]
+      cols += emb_cols
+
     return cols
 
   @property
@@ -67,6 +73,9 @@ class Dataset(object):
       # 'i' = indicator
       onehot_types = ['i' for _ in range(self.FIELD_TO_NVALUES[onehot_var])]
       types.extend(onehot_types)
+    if self.hps.embedding_tag:
+      emb_types = ['float' for i in range(self.hps.embedding_dimension)]
+      types += emb_types
     return types
 
   @classmethod
@@ -93,9 +102,12 @@ class Dataset(object):
 
   @property
   def dmatrix_key(self):
-    a = self.data_tag
-    b = ':'.join(self.onehot_vars)
-    return '{}_{}'.format(a, b)
+    k = self.data_tag
+    if self.hps.embedding_tag:
+      k += '_emb_{}'.format(self.hps.embedding_tag)
+    if self.onehot_vars:
+      k += '_' + ':'.join(self.onehot_vars)
+    return k
 
   @property
   def dmatrix_cache_path(self):
@@ -145,13 +157,16 @@ class Dataset(object):
       # https://stackoverflow.com/questions/6844998/is-there-an-efficient-way-of-concatenating-scipy-sparse-matrices/33259578#33259578
       featdat = scipy.sparse.hstack([featdat,]+onehot_matrices)
 
-    if hps.embeddings_tag:
-      embs = cache_embeddings.load_embeddings(hps.embeddings_tag)
+    if self.hps.embedding_tag:
+      embs = cache_embeddings.load_embeddings(self.hps.embedding_tag)
       npids, embsize = embs.shape
+      assert embsize == self.hps.embedding_dimension
       logging.info('Loaded {}-d embeddings from rnn model {}'.format(
-        embsize, hps.embeddings_tag)
+        embsize, self.hps.embedding_tag))
       pids = self.records['pid']
-      lookuped = embs[pids]
+      # NB: pids are 1-indexed
+      pidxs = (pids-1).astype(np.int32)
+      lookuped = embs[pidxs]
       orig_shape = featdat.shape
       featdat = np.hstack((featdat, lookuped))
       logging.info('Shape went from {} to {} after adding pid embeddings'.format(
