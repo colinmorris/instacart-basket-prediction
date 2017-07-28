@@ -5,6 +5,12 @@ import tensorflow as tf
 from baskets import rnnmodel, utils, hypers, dataset, common
 from baskets.time_me import time_me
 
+def path_for_cached_embeddings(tag):
+  return os.path.join(common.XGBOOST_DIR, 'cache', 'embeddings_{}.npy'.format(tag))
+
+def load_embeddings(tag):
+  return np.load(path_for_cached_embeddings(tag))
+
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('tag')
@@ -27,7 +33,7 @@ def main():
     return val
 
   emb = lookup('product_embeddings')
-  outpath = os.path.join(common.XGBOOST_DIR, 'cache', 'embeddings_{}.npy'.format(tag))
+  outpath = path_for_cached_embeddings(tag)
   np.save(outpath, emb)
   print 'Saved embeddings with shape {} to {}'.format(emb.shape, outpath)
 

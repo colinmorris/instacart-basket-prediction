@@ -9,6 +9,7 @@ from baskets import common, constants
 from baskets.hypers import Mode
 
 import fields
+import cache_embeddings
 
 # This seems surprisingly unhelpful, but leaving it on for now out of principle.
 FTYPES = 1
@@ -143,6 +144,18 @@ class Dataset(object):
       # TODO: There are some perf issues with this. Look into this workaround:
       # https://stackoverflow.com/questions/6844998/is-there-an-efficient-way-of-concatenating-scipy-sparse-matrices/33259578#33259578
       featdat = scipy.sparse.hstack([featdat,]+onehot_matrices)
+
+    if hps.embeddings_tag:
+      embs = cache_embeddings.load_embeddings(hps.embeddings_tag)
+      npids, embsize = embs.shape
+      logging.info('Loaded {}-d embeddings from rnn model {}'.format(
+        embsize, hps.embeddings_tag)
+      pids = self.records['pid']
+      lookuped = embs[pids]
+      orig_shape = featdat.shape
+      featdat = np.hstack((featdat, lookuped))
+      logging.info('Shape went from {} to {} after adding pid embeddings'.format(
+        orig_shape, featdat.shape))
     
     logging.info('Made dmatrix with feature data having shape {}'.format(featdat.shape))
 
