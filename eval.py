@@ -3,7 +3,6 @@
 to some model's predictions.
 """
 import argparse
-import numpy as np
 
 from baskets import common
 from baskets import predictor as pred

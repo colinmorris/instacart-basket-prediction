@@ -9,6 +9,22 @@ class OrderResults(object):
     self.fp = fp
     self.fn = fn
 
+  def __repr__(self):
+    return str(self)
+
+  def __str__(self):
+    return 'tp:{}, fp:{}, fn:{}, precision={:.2f}, recall={:.2f}, fscore={:.2f}'.format(
+        self.tp, self.fp, self.fn, self.precision, self.recall, self.fscore)
+
+  @classmethod
+  def for_pids(kls, predicted, actual):
+    predicted = set(predicted)
+    actual = set(actual)
+    fp = len(predicted.difference(actual))
+    fn = len(actual.difference(predicted))
+    tp = len(predicted.intersection(actual))
+    return kls(tp, fp, fn)
+
   # TODO: why is this implemented in 2 places? (cf. fscore.py)
   @property
   def fscore(self):
@@ -44,12 +60,7 @@ class Results(object):
   def add_result(self, predicted, actual):
     # TODO: it might be worth storing the actual/predicted values, at least
     # in some cases for the purposes of debugging/postmortem
-    predicted = set(predicted)
-    actual = set(actual)
-    fp = len(predicted.difference(actual))
-    fn = len(actual.difference(predicted))
-    tp = len(predicted.intersection(actual))
-    sub = OrderResults(tp, fp, fn)
+    sub = OrderResults.for_pids(predicted_actual)
     self.subs.append(sub)
 
   def to_df(self):

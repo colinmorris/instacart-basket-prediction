@@ -33,6 +33,6 @@ def load_product_df():
     path = common.csv_path('products.csv')
     _product_df =  pd.read_csv(path,
         dtype={'product_id': np.int32, 'aisle_id': np.int32, 'department_id': np.int8},
-        usecols=['product_id', 'aisle_id', 'department_id'],
+        usecols=['product_id', 'aisle_id', 'department_id', 'product_name'],
         )
   return _product_df

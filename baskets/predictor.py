@@ -56,7 +56,7 @@ class ThresholdPredictor(ProbabilisticPredictor):
 
 class MonteCarloThresholdPredictor(ProbabilisticPredictor):
 
-  def __init__(self, probmap, ntrials, save=False, optimization_level=10):
+  def __init__(self, probmap, ntrials=80, save=False, optimization_level=10):
     super(MonteCarloThresholdPredictor, self).__init__(probmap)
     self.ntrials = ntrials
     self.save = save
