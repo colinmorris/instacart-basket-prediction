@@ -47,15 +47,15 @@ class Dataset(object):
   def feature_names_for_hps(kls, hps):
     onehot_vars = kls.onehot_vars_for_hps(hps)
     cols = kls.basic_feat_cols_for_hps(hps)
+    if hps.embedding_tag:
+      emb_cols = ['pid_emb_{}'.format(i) for i in range(hps.embedding_dimension)]
+      cols += emb_cols
     for onehot_var in onehot_vars:
       onehot_cols = ['{}_{}'.format(onehot_var, i+1) 
           for i in range(kls.FIELD_TO_NVALUES[onehot_var])
           ]
       cols += onehot_cols
 
-    if hps.embedding_tag:
-      emb_cols = ['pid_emb_{}'.format(i) for i in range(hps.embedding_dimension)]
-      cols += emb_cols
 
     return cols
 
@@ -69,13 +69,13 @@ class Dataset(object):
     for fname in self.basic_feat_cols:
       t = 'float' if fname in fields.float_feats else 'int'
       types.append(t)
+    if self.hps.embedding_tag:
+      emb_types = ['float' for i in range(self.hps.embedding_dimension)]
+      types += emb_types
     for onehot_var in self.onehot_vars:
       # 'i' = indicator
       onehot_types = ['i' for _ in range(self.FIELD_TO_NVALUES[onehot_var])]
       types.extend(onehot_types)
-    if self.hps.embedding_tag:
-      emb_types = ['float' for i in range(self.hps.embedding_dimension)]
-      types += emb_types
     return types
 
   @classmethod
@@ -146,16 +146,6 @@ class Dataset(object):
 
     featdat = self.records[self.basic_feat_cols]
     featdat = featdat.view(fields.dtype).reshape(len(featdat), -1)
-    onehot_matrices = []
-    for onehot_var in self.onehot_vars:
-      onehot = label_binarize(self.records[onehot_var], 
-          classes=range(1, self.FIELD_TO_NVALUES[onehot_var]+1),
-          sparse_output=True).astype(fields.dtype)
-      onehot_matrices.append(onehot)
-    if onehot_matrices:
-      # TODO: There are some perf issues with this. Look into this workaround:
-      # https://stackoverflow.com/questions/6844998/is-there-an-efficient-way-of-concatenating-scipy-sparse-matrices/33259578#33259578
-      featdat = scipy.sparse.hstack([featdat,]+onehot_matrices)
 
     if self.hps.embedding_tag:
       embs = cache_embeddings.load_embeddings(self.hps.embedding_tag)
@@ -172,12 +162,24 @@ class Dataset(object):
       logging.info('Shape went from {} to {} after adding pid embeddings'.format(
         orig_shape, featdat.shape))
     
+    onehot_matrices = []
+    for onehot_var in self.onehot_vars:
+      onehot = label_binarize(self.records[onehot_var], 
+          classes=range(1, self.FIELD_TO_NVALUES[onehot_var]+1),
+          sparse_output=True).astype(fields.dtype)
+      onehot_matrices.append(onehot)
+    if onehot_matrices:
+      # TODO: There are some perf issues with this. Look into this workaround:
+      # https://stackoverflow.com/questions/6844998/is-there-an-efficient-way-of-concatenating-scipy-sparse-matrices/33259578#33259578
+      featdat = scipy.sparse.hstack([featdat,]+onehot_matrices)
+    
     logging.info('Made dmatrix with feature data having shape {}'.format(featdat.shape))
 
     # https://github.com/dmlc/xgboost/issues/2554
     if not kwargs['label'].flags.c_contiguous:
       logging.info('Contiguizing labels')
       kwargs['label'] = np.ascontiguousarray(kwargs['label'])
+      logging.info('Contiguized')
     if isinstance(featdat, np.ndarray) and not featdat.flags.c_contiguous:
       logging.info('Contiguizing feature data')
       featdat = np.ascontiguousarray(featdat)
