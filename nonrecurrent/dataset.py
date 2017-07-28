@@ -94,9 +94,7 @@ class Dataset(object):
   def dmatrix_key(self):
     a = self.data_tag
     b = ':'.join(self.onehot_vars)
-    # TODO: pretty inefficient to store a separate copy for each weight mode.
-    c = self.weight_mode
-    return '{}_{}_W{}'.format(a, b, c)
+    return '{}_{}'.format(a, b)
 
   @property
   def dmatrix_cache_path(self):
@@ -108,14 +106,19 @@ class Dataset(object):
     path = self.dmatrix_cache_path
     # xgb is not try/except friendly here
     if os.path.exists(path):
-      return xgb.DMatrix(path, feature_names=self.feature_names,
+      dm = xgb.DMatrix(path, feature_names=self.feature_names,
           feature_types=(self.feature_types if FTYPES else None)
           )
     else:
       logging.info('Cache miss on dmatrix. Building and caching.')
       dm = self._as_dmatrix()
       dm.save_binary(path)
-      return dm
+    # We add on weights (if any) after the fact, to avoid proliferation of big
+    # serialized dmatrix files.
+    if self.weight_mode != 'none':
+      weights = self.get_weights()
+      dm.set_weight(weights)
+    return dm
 
   @property
   def records(self):
@@ -127,12 +130,6 @@ class Dataset(object):
   def _as_dmatrix(self):
     kwargs = dict(label=self.records['label'])
     kwargs['feature_names'] = self.feature_names
-    if self.weight_mode == 'simple':
-      kwargs['weight'] = 1 / self.records['user_prods']
-    elif self.weight_mode == 'soft':
-      kwargs['weight'] = 1 / (np.log2(self.records['user_prods'])+1)
-    else:
-      assert self.weight_mode == 'none'
 
     featdat = self.records[self.basic_feat_cols]
     featdat = featdat.view(fields.dtype).reshape(len(featdat), -1)
@@ -161,6 +158,28 @@ class Dataset(object):
       kwargs['feature_types'] = self.feature_types
 
     return xgb.DMatrix(featdat, **kwargs)
+
+  @property
+  def weight_key(self):
+    return 'weights_{}_{}'.format(self.data_tag, self.weight_mode)
+
+  def get_weights(self):
+    path = os.path.join(self.CACHE_DIR, '{}.npy'.format(self.weight_key))
+    try:
+      return np.load(path)
+    except IOError:
+      logging.info('Cache miss on weights with key {}'.format(self.weight_key))
+      w = self._get_weights()
+      np.save(path, w)
+      return w
+
+  def _get_weights(self):
+    if self.weight_mode == 'simple':
+      return 1 / self.records['user_prods']
+    elif self.weight_mode == 'soft':
+      return 1 / (np.log2(self.records['user_prods'])+1)
+    else:
+      assert False, "No weights to get"
 
   @property
   def uids(self):
