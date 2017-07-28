@@ -155,8 +155,6 @@ so we could even just zero out the loss for those first n timesteps.)
   - train at a constant lr for a while until validation loss stops going down, then
     drop lr and repeat.
 - Add extra L2 penalty to product weights? Or add an L1 term?
-- tf.feature_column stuff is kinda cool. Maybe could use feature_column.input_layer as rnn input,
-  (making it easy to add stuff like embeddings, crossed columns, bucketized, etc.)
 - at some point you should collate list of lessons learned from this project. 'Cause you're
   sure as shit not getting that prize money.
   - but, no, really, definitely tons of things I would have done differently if 
@@ -202,10 +200,7 @@ so we could even just zero out the loss for those first n timesteps.)
     more into)
   - yeah, I think huber loss is kinda sick actually
 - if only for clarity, should probably switch from xentropy loss to log_loss
-- dynamic/reactive lr schedule based on validation loss
+- dynamic/reactive lr schedule based on validation loss. early stopping.
 - little thing: git add empty (data) dirs that cod expects to exist 
   (or programatically mkdir them when required)
 - libFFM?
-- arrrrrgh. Now understanding why I should have made a gcloud disk for data/sources, 
-  and kept it separate from boot image. Trying to run TF stuff on a non-GPU instance
-  is causing problems with cuda driver stuff. :/

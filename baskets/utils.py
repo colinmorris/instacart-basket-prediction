@@ -6,6 +6,7 @@ import tensorflow as tf
 from baskets import common
 
 def load_checkpoint_for_tag(tag, sess):
+  assert isinstance(tag, basestring)
   cpkt_path = '{}/{}'.format(common.CHECKPOINT_DIR, tag)
   load_checkpoint(sess, cpkt_path)
 
