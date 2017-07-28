@@ -84,6 +84,11 @@ def validate_hps(hps):
   assert hps.max_depth > 0 or hps.max_leaves > 0
   if hps.grow_policy == 'lossguide':
     assert hps.tree_method == 'hist'
+
+  if hps.embedding_tag is not None:
+    # Nvm, you can have both if you want.
+    #assert 'pid' not in hps.onehot_vars
+    assert hps.embedding_dimension > 0
   # TODO: add more as they come up
 
 def main():

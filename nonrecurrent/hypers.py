@@ -27,6 +27,13 @@ def get_default_hparams():
       onehot_vars=[None],
       # XXX: Not currently working (haven't had need to use this yet, so it rotted)
       dropped_cols=[None],
+      # TODO: try out aisle and dept embeddings too
+      # If present, then encode product ids using the embeddings learned by the RNN
+      # model with the given tag.
+      embedding_tag=None,
+      # Kind of annoying that this needs to be made explicit, but whatever. Just
+      # a consequence of how the code was structured.
+      embedding_dimension=None,
 
       # --- xgb params below --
       # step size shrinkage aka learning_rate
@@ -34,6 +41,7 @@ def get_default_hparams():
       # Min loss reduction required to make a furth partition on a leaf node.
       gamma=0.70,
       # One of the below two params must be > 0
+      # (Current best run uses max_depth=10)
       max_depth=6,
       # Only relevant if grow_policy == 'lossguide'
       max_leaves=0,
@@ -45,7 +53,7 @@ def get_default_hparams():
       # Sample this fraction of cols per tree
       colsample_bytree=0.65,
       colsample_bylevel = .5,
-      # L2 regularization
+      # L2 regularization (current best run uses 0.1)
       reg_lambda=10,
       # L1 regularization
       alpha=2e-05,
