@@ -9,4 +9,3 @@ scikit-learn~=0.17.1
 scipy~=0.19.0
 tensorflow~=1.2.1
 tensorflow-tensorboard~=0.1.2
--e git+https://github.com/dmlc/xgboost@4f3539b913c9a71ad99b773d7b34ad7fd5a84ef6#egg=xgboost&subdirectory=python-package
