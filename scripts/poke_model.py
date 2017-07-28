@@ -1,10 +1,8 @@
 import sys, os.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import numpy as np
 import tensorflow as tf
-import rnnmodel
-import utils
-import model_helpers as helpers
+
+from baskets import rnnmodel, utils, hypers, dataset
 
 try:
   tag = sys.argv[1]
@@ -14,10 +12,11 @@ except IndexError:
 
 ckpt = 'checkpoints/{}'.format(tag)
 
-hps = helpers.hps_for_tag(tag)
+hps = hypers.hps_for_tag(tag)
 hps.is_training = 0
 hps.batch_size = 1
-model = rnnmodel.RNNModel(hps)
+dat = dataset.BasketDataset(hps, 'unit_tests.tfrecords')
+model = rnnmodel.RNNModel(hps, dat)
 sess = tf.InteractiveSession()
 utils.load_checkpoint(sess, ckpt)
 
