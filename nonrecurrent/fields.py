@@ -30,6 +30,13 @@ product_raw_feats = ['prev_cartorder',
     # basically make no difference?
     'n_30days_since_last_focal',
     ]
+
+DAY_FRECENCY_HALFLIVES = [3, 6, 12, 24]
+product_raw_feats += ['day_frecency_{}'.format(hl) for hl in DAY_FRECENCY_HALFLIVES]
+ORDER_FRECENCY_HALFLIVES = [2, 4, 8, 16]
+product_raw_feats += ['order_frecency_{}'.format(hl) for hl in ORDER_FRECENCY_HALFLIVES]
+
+
 all_fields = generic_raw_feats + product_raw_feats
 
 # Most feats are ints. These are floats.
@@ -44,10 +51,6 @@ float_feats = {'avg_order_size', 'frecency_days', 'frecency_orders',
 
 
 Features you probably should implement:
-  - avg interval between orders
-  - avg interval between focal orders
-  - avg. # of 30 day intervals between orders/focal orders
-    - or just # of 30 day intervals
   - multiple parameterizations of frecency (range of lambdas)
   - avg. focal cart order (normalized?)
 
@@ -62,6 +65,8 @@ Features you *might* wanna implement:
 
 Features that could be calculated in postprocessing step:
   - % of prev orders having focal
+  - avg interval between focal orders
+  - avg interval between orders
 """
 
 """
