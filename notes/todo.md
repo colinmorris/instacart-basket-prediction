@@ -204,3 +204,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - little thing: git add empty (data) dirs that cod expects to exist 
   (or programatically mkdir them when required)
 - libFFM?
+- Would be nice to figure out how to better profile tf execution during training/inference.
+  In particular, would be nice to ensure that there are no silly bottlenecks on, like, 
+  disk I/O, preprocessing, populating input queue, or whatever.

@@ -1,8 +1,8 @@
 200k users (206,209 to be exact)
 current split:
-  test.tfrecords: 509
-  train.tfrecords: 195795
-  eval.tfrecords: 9905
+  test.tfrecords: 2047
+  train.tfrecords: 195k-ish
+  validation.tfrecords: 8-9k-ish
 Kaggle-defined test set:
   - 75k users
   - 45,100 batches = 4,510,000 sequences
@@ -54,7 +54,7 @@ Some timing stats:
 - 110s to calculate validation loss (so calculating this every 1.5k batches, means it 
   accounts for around 5-10% of training time)
 - precomputing probabilities:
-  - 509 test users -> 2min
+  - 509 test users -> 2min (which machine?)
 - eval.py: 20 min on 509 users
   - which is pretty slow. worth profiling. Maybe have a 'lazy mode' that cuts a few corners
     for big speedups (e.g. in terms of trying fewer thresholds)
@@ -66,10 +66,13 @@ Some timing stats:
 - vectorizing user pbs:
   - 8.3k users (validation set), 5 prods/usr, 41k seqs => 54s (was 45s before n_prev_re(orders|peats))
   - 95s for 9905 users, using prod limit of 5
-  - 20min for train set set (196k users) with prodlim of 5 
+  - 130k sequences (test set) in 170s on amber
+  - 20min for train set (196k users) with prodlim of 5 
   - ~5hrs (20k secs) for train set with no product lim
     - *only* 670MB! Not bad.
     - 12B sequences
+  - TODO: looking at CPU utilization, it seems like vectorize.py makes no use 
+    at all of multiple cores. Should be 'trivially' parallelizable?
 - 'scalar vectorization':
   - 3s for 100 users (no product limit)
   - 1min for test set
