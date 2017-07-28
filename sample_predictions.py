@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Hacky lil script for exploring predictions"""
+
 import argparse
 from collections import defaultdict
 

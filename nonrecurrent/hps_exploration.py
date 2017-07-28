@@ -26,7 +26,8 @@ hp_exploration_cands = dict(
     alpha = [0, 1e-06, 1e-05, 1e-04, 1e-03],
     max_delta_step = {0: .9, 1: .05, 10: .05},
     # Exact seems really good! And not all *that* slow.
-    tree_method = {'approx': .6, 'hist': 0.10, 'exact': .30},
+    # XXX
+    tree_method = {'approx': .1, 'hist': 0.1, 'exact': .8},
     # Failed experiment
     #scale_pos_weight = {1: .9, 2: .05, 10: .05},
     grow_policy = {'depthwise': .95, 'lossguide': 0.05},
@@ -119,7 +120,7 @@ def main():
     hps, tag = sample_hps()
     tag = '{}_{}'.format(args.prefix, tag)
     hps.rounds = args.n_rounds
-    hps.early_stopping_rounds = 4
+    hps.early_stopping_rounds = 10
     hypers.save_hps(tag, hps)
     print tag
 

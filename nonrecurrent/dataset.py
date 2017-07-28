@@ -94,6 +94,7 @@ class Dataset(object):
   def dmatrix_key(self):
     a = self.data_tag
     b = ':'.join(self.onehot_vars)
+    # TODO: pretty inefficient to store a separate copy for each weight mode.
     c = self.weight_mode
     return '{}_{}_W{}'.format(a, b, c)
 
