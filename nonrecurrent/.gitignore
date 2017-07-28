@@ -1,1 +1,5 @@
 models/
+cache/
+hpruns*.txt
+*.csv
+runner.sh
