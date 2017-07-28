@@ -206,3 +206,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - little thing: git add empty (data) dirs that cod expects to exist 
   (or programatically mkdir them when required)
 - libFFM?
+- arrrrrgh. Now understanding why I should have made a gcloud disk for data/sources, 
+  and kept it separate from boot image. Trying to run TF stuff on a non-GPU instance
+  is causing problems with cuda driver stuff. :/
