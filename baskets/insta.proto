@@ -12,6 +12,7 @@ message User {
 
 message Order {
   optional int32 orderid = 1;
+  // Starts from 1 (I'm pretty sure)
   optional int32 nth = 2;
   // day of week, hour of day
   // should probably be enums?

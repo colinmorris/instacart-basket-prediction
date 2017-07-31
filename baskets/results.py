@@ -60,7 +60,7 @@ class Results(object):
   def add_result(self, predicted, actual):
     # TODO: it might be worth storing the actual/predicted values, at least
     # in some cases for the purposes of debugging/postmortem
-    sub = OrderResults.for_pids(predicted_actual)
+    sub = OrderResults.for_pids(predicted, actual)
     self.subs.append(sub)
 
   def to_df(self):

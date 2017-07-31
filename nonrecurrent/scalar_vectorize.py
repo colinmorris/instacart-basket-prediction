@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# TODO: You *really* wanna write some unit tests for this thing.
-# TODO: profile me
-
 from __future__ import division
 import argparse
 from collections import defaultdict
@@ -20,9 +17,13 @@ from baskets.time_me import time_me
 
 import fields
 
-DEBUG = False
+DEBUG = 0
 
 # (These are just sort of made up)
+# TODO: 30 days really means "30+ days" and so should be taken with a grain
+# of salt. Could even consider translating 30 day intervals into some bigger
+# number. Coming up with a principled choice is kinda tricky. Could look at 
+# histogram and try to extrapolate the mean of the tail that got gobbled up.
 _FRECENCY_HALFLIFE_DAYS = 7
 FRECENCY_DAYS_LAMBDA = math.log(2) / _FRECENCY_HALFLIFE_DAYS
 _FRECENCY_HALFLIFE_ORDERS = 4
@@ -30,7 +31,6 @@ FRECENCY_ORDERS_LAMBDA = math.log(2) / _FRECENCY_HALFLIFE_ORDERS
 
 
 def _write_all_recarray_fields(recarr, value):
-  # I used to understand this code...
   view = recarr.view(fields.dtype).reshape(len(recarr), -1)
   view[:] = value
 
@@ -55,6 +55,8 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   g['uid'] = user.uid
   g['user_prods'] = len(pids)
   g['n_prev_orders'] = len(user.user.orders[:order_idx])
+  assert order_idx == -1, "n_distinct prods will not be right!"
+  g['n_distinct_prods'] = user.nprods
 
   # focal order
   order = user.user.orders[order_idx]
@@ -89,10 +91,14 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     pp['aisleid'], pp['deptid'] = product_lookup[pid-1]
 
   zero_init_cols = ['n_prev_focals', 'n_prev_focals_this_dow', 'n_prev_focals_this_hour',
-      'frecency_days', 'frecency_orders', 
-      'n_consecutive_prev_focal_orders']
+      'n_consecutive_prev_focal_orders', 'n_singleton_focal_orders', 'n_30day_focal_intervals',
+      ] + fields.frecency_feats
   for col in zero_init_cols:
     p[col] = 0
+  zero_init_gcols = ['n_singleton_orders', 'n_30day_intervals',
+      ]
+  for col in zero_init_gcols:
+    g[col] = 0
   # running count of days/orders separating loop order from the focal order
   daycount = order.days_since_prior
   ordercount = 1
@@ -109,8 +115,20 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   # Walk backwards starting from the previous order
   for prevo in user.user.orders[order_idx-1::-1]:
     osize = len(prevo.products)
-    order_frecency_days = math.exp(-1 * FRECENCY_DAYS_LAMBDA * daycount)
-    order_frecency_orders = math.exp(-1 * FRECENCY_ORDERS_LAMBDA * ordercount)
+    singleton = osize == 1
+    g['n_singleton_orders'] += singleton
+    maxdays = prevo.days_since_prior == 30
+    g['n_30day_intervals'] += maxdays
+    frecencies = {}
+    for featname, dfh in fields.DAY_FRECENCIES.items():
+      lambda_ = math.log(2) / dfh 
+      val = math.exp(-1 * lambda_ * daycount)
+      frecencies[featname] = val
+    for featname, dfh in fields.ORDER_FRECENCIES.items():
+      lambda_ = math.log(2) / dfh 
+      val = math.exp(-1 * lambda_ * ordercount)
+      frecencies[featname] = val
+
     for cartorder, pid in enumerate(prevo.products):
       try:
         pi = pid_to_ix[pid]
@@ -120,21 +138,30 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
       pp['n_prev_focals'] += 1
       pp['n_prev_focals_this_dow'] += prevo.dow == order.dow
       pp['n_prev_focals_this_hour'] += prevo.hour == order.hour
-      pp['frecency_days'] += order_frecency_days
-      pp['frecency_orders'] += order_frecency_orders
+      pp['n_singleton_focal_orders'] += singleton
+      pp['n_30day_focal_intervals'] += maxdays
+
+      for frecency_var, val in frecencies.iteritems():
+        pp[frecency_var] += val
       if pid in streakers:
         pp['n_consecutive_prev_focal_orders'] += 1
 
       freeze(pid, 'last_focal_cartorder', cartorder)
       freeze(pid, 'orders_since_focal', ordercount)
       freeze(pid, 'days_since_focal', daycount)
+      freeze(pid, 'n_30days_since_last_focal', g['n_30day_intervals'])
 
       pid_order_sizes[pid].append(osize)
       # (The below feats may of course be overwritten later)
       pp['orders_since_first_focal'] = ordercount
       pp['days_since_first_focal'] = daycount
 
-    daycount += prevo.days_since_prior
+    assert prevo.nth >= 1
+    if prevo.nth == 1:
+      g['order_history_days'] = daycount
+    else:
+      # Not that it really matters, but days_since_prior on the first order is nan
+      daycount += prevo.days_since_prior
     ordercount += 1
     order_sizes.append(osize)
     prevo_prodset = set(prevo.products)
@@ -157,7 +184,10 @@ def get_user_vectors(user, max_prods, product_lookup, testmode):
   assert not testmode
   max_prods = max_prods or float('inf')
   nprods = min(max_prods, user.nprods)
-  pids = random.sample(user.all_pids, nprods)
+  if max_prods == float('inf'):
+    pids = sorted(user.all_pids)
+  else:
+    pids = random.sample(user.all_pids, nprods)
   generic_feats, prod_feats = _order_data(user, pids, product_lookup, order_idx=-1, test=testmode)
   assert prod_feats.shape[0] == nprods
   generic_feats = np.tile(generic_feats, [nprods])

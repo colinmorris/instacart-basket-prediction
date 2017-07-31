@@ -1,0 +1,11 @@
+enum34~=1.1.6
+graphviz~=0.8
+matplotlib~=2.0.2
+numpy~=1.12.1
+pandas~=0.20.1
+protobuf~=3.3.0
+pytest~=3.1.2
+scikit-learn~=0.17.1
+scipy~=0.19.0
+tensorflow~=1.2.1
+tensorflow-tensorboard~=0.1.2

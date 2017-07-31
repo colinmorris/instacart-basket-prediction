@@ -41,6 +41,8 @@ class UserWrapper(object):
 
   @property
   def all_pids(self):
+    """Return a set of ids of all products occurring in orders up to but not
+    including the final one."""
     # This can get called a fair number of times, so cache it
     if self._all_pids is None:
       pids = set()

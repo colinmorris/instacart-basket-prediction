@@ -9,6 +9,7 @@ from baskets import common, constants
 from baskets.hypers import Mode
 
 import fields
+import cache_embeddings
 
 # This seems surprisingly unhelpful, but leaving it on for now out of principle.
 FTYPES = 1
@@ -32,6 +33,7 @@ class Dataset(object):
 
   @classmethod
   def basic_feat_cols_for_hps(kls, hps):
+    """Simple scalar features (i.e. not one-hot encoded or embedded categoricals)"""
     onehot_vars = kls.onehot_vars_for_hps(hps)
     dropped = hps.dropped_cols[1:]
     return [col for col in kls.feat_cols if 
@@ -45,11 +47,16 @@ class Dataset(object):
   def feature_names_for_hps(kls, hps):
     onehot_vars = kls.onehot_vars_for_hps(hps)
     cols = kls.basic_feat_cols_for_hps(hps)
+    if hps.embedding_tag:
+      emb_cols = ['pid_emb_{}'.format(i) for i in range(hps.embedding_dimension)]
+      cols += emb_cols
     for onehot_var in onehot_vars:
       onehot_cols = ['{}_{}'.format(onehot_var, i+1) 
           for i in range(kls.FIELD_TO_NVALUES[onehot_var])
           ]
       cols += onehot_cols
+
+
     return cols
 
   @property
@@ -62,6 +69,9 @@ class Dataset(object):
     for fname in self.basic_feat_cols:
       t = 'float' if fname in fields.float_feats else 'int'
       types.append(t)
+    if self.hps.embedding_tag:
+      emb_types = ['float' for i in range(self.hps.embedding_dimension)]
+      types += emb_types
     for onehot_var in self.onehot_vars:
       # 'i' = indicator
       onehot_types = ['i' for _ in range(self.FIELD_TO_NVALUES[onehot_var])]
@@ -92,9 +102,12 @@ class Dataset(object):
 
   @property
   def dmatrix_key(self):
-    a = self.data_tag
-    b = ':'.join(self.onehot_vars)
-    return '{}_{}'.format(a, b)
+    k = self.data_tag
+    if self.hps.embedding_tag:
+      k += '_emb_{}'.format(self.hps.embedding_tag)
+    if self.onehot_vars:
+      k += '_' + ':'.join(self.onehot_vars)
+    return k
 
   @property
   def dmatrix_cache_path(self):
@@ -133,6 +146,22 @@ class Dataset(object):
 
     featdat = self.records[self.basic_feat_cols]
     featdat = featdat.view(fields.dtype).reshape(len(featdat), -1)
+
+    if self.hps.embedding_tag:
+      embs = cache_embeddings.load_embeddings(self.hps.embedding_tag)
+      npids, embsize = embs.shape
+      assert embsize == self.hps.embedding_dimension
+      logging.info('Loaded {}-d embeddings from rnn model {}'.format(
+        embsize, self.hps.embedding_tag))
+      pids = self.records['pid']
+      # NB: pids are 1-indexed
+      pidxs = (pids-1).astype(np.int32)
+      lookuped = embs[pidxs]
+      orig_shape = featdat.shape
+      featdat = np.hstack((featdat, lookuped))
+      logging.info('Shape went from {} to {} after adding pid embeddings'.format(
+        orig_shape, featdat.shape))
+    
     onehot_matrices = []
     for onehot_var in self.onehot_vars:
       onehot = label_binarize(self.records[onehot_var], 
@@ -150,6 +179,7 @@ class Dataset(object):
     if not kwargs['label'].flags.c_contiguous:
       logging.info('Contiguizing labels')
       kwargs['label'] = np.ascontiguousarray(kwargs['label'])
+      logging.info('Contiguized')
     if isinstance(featdat, np.ndarray) and not featdat.flags.c_contiguous:
       logging.info('Contiguizing feature data')
       featdat = np.ascontiguousarray(featdat)
