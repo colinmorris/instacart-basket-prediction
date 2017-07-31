@@ -87,7 +87,10 @@ def get_user_sequence_examples(user, product_lookup, testmode, max_prods):
       'uid': intfeat(user.uid),
       'weight': floatfeat(weight),
       }
-  pids = random.sample(user.all_pids, nprods)
+  if max_prods == float('inf'):
+    pids = sorted(user.all_pids)
+  else:
+    pids = random.sample(user.all_pids, nprods)
   genericfeats, prodfeats = _seq_data(user, pids)
   # Generic sequence features
   def to_seq_feat(tup):

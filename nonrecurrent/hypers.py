@@ -39,6 +39,7 @@ def get_default_hparams():
       # step size shrinkage aka learning_rate
       eta=0.1,
       # Min loss reduction required to make a furth partition on a leaf node.
+      # (xgb default=0. Regularization parameter.)
       gamma=0.70,
       # One of the below two params must be > 0
       # (Current best run uses max_depth=10)
@@ -46,14 +47,16 @@ def get_default_hparams():
       # Only relevant if grow_policy == 'lossguide'
       max_leaves=0,
       # Minimum sum of instance weight (hessian) needed in a child. Whatever that means.
+      # Regularization param. I wonder if this is sensitive to per-instance weighting?
       min_child_weight=10,
+      # Some kind of regularization param.
       max_delta_step=0,
       # Subsample ratio of training data
       subsample=0.76,
       # Sample this fraction of cols per tree
       colsample_bytree=0.65,
       colsample_bylevel = .5,
-      # L2 regularization (current best run uses 0.1)
+      # L2 regularization (current best run uses 0.1. xgb default is 1)
       reg_lambda=10,
       # L1 regularization
       alpha=2e-05,

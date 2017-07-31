@@ -32,11 +32,17 @@ FIELD_TO_RANGE = dict(
     label = (0, 1),
 )
 
+# TODO: Could easily run this test on lots more examples than just the test user's vectors.
 def test_field_values_fall_in_allowed_ranges(records):
   for field, (lower, upper) in FIELD_TO_RANGE.iteritems():
     vals = records[field]
     assert (lower <= vals).all()
     assert (vals <= upper).all()
+
+  # All fields should be non-negative
+  for field in fields.all_fields:
+    vals = records[field]
+    assert (vals >= 0).all() or np.isnan(vals).any(), 'Bad values for field {}'.format(field)
 
 # (I ommitted a few generic fields I was too lazy to calculate)
 TESTUSER_EXPECTED_GENERIC_FIELDVALUES = dict(
@@ -46,7 +52,12 @@ TESTUSER_EXPECTED_GENERIC_FIELDVALUES = dict(
     uid = TESTUSER_ID,
     orderid = 817343,
     prev_order_size = 5,
-    n_prev_orders = 6
+    n_prev_orders = 6,
+
+    n_distinct_prods = 14,
+    n_singleton_orders = 0,
+    order_history_days = 10,
+    n_30day_intervals = 0,
 )
 
 def test_testuser_generic_fields(records):
@@ -67,6 +78,10 @@ HALF_AND_HALF_EXPECTED_PRODUCT_FIELDVALUES = dict(
     n_prev_focals_this_hour = 0,
     avg_focal_order_size = (6 + 3 + 6)/3,
     label = 1,
+
+    n_singleton_focal_orders = 0,
+    n_30day_focal_intervals = 0,
+    n_30days_since_last_focal = 0,
 )
 
 def test_testuser_halfandhalf(records):
@@ -78,4 +93,8 @@ def test_testuser_halfandhalf(records):
       assert np.isnan(hah_record[field])
     else:
       assert hah_record[field] == expected_value, "Mismatch on field {}".format(field)
+
+  if 1:
+    for ff in fields.frecency_feats:
+      print '{} = {}'.format(ff, hah_record[ff])
 
