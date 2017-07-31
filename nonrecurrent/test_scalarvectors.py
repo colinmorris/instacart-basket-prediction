@@ -46,7 +46,12 @@ TESTUSER_EXPECTED_GENERIC_FIELDVALUES = dict(
     uid = TESTUSER_ID,
     orderid = 817343,
     prev_order_size = 5,
-    n_prev_orders = 6
+    n_prev_orders = 6,
+
+    n_distinct_prods = 14,
+    n_singleton_orders = 0,
+    order_history_days = 10,
+    n_30day_intervals = 0,
 )
 
 def test_testuser_generic_fields(records):
@@ -67,6 +72,10 @@ HALF_AND_HALF_EXPECTED_PRODUCT_FIELDVALUES = dict(
     n_prev_focals_this_hour = 0,
     avg_focal_order_size = (6 + 3 + 6)/3,
     label = 1,
+
+    n_singleton_focal_orders = 0,
+    n_30day_focal_intervals = 0,
+    n_30days_since_last_focal = 0,
 )
 
 def test_testuser_halfandhalf(records):

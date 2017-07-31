@@ -17,7 +17,7 @@ from baskets.time_me import time_me
 
 import fields
 
-DEBUG = False
+DEBUG = 1
 
 # (These are just sort of made up)
 # TODO: 30 days really means "30+ days" and so should be taken with a grain
@@ -120,8 +120,16 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     g['n_singleton_orders'] += singleton
     maxdays = prevo.days_since_prior == 30
     g['n_30day_intervals'] += maxdays
-    order_frecency_days = math.exp(-1 * FRECENCY_DAYS_LAMBDA * daycount)
-    order_frecency_orders = math.exp(-1 * FRECENCY_ORDERS_LAMBDA * ordercount)
+    frecencies = {}
+    for featname, dfh in fields.DAY_FRECENCIES.items():
+      lambda_ = math.log(2) / dfh 
+      val = math.exp(-1 * lambda_ * daycount)
+      frecencies[featname] = val
+    for featname, dfh in fields.ORDER_FRECENCIES.items():
+      lambda_ = math.log(2) / dfh 
+      val = math.exp(-1 * lambda_ * ordercount)
+      frecencies[featname] = val
+
     for cartorder, pid in enumerate(prevo.products):
       try:
         pi = pid_to_ix[pid]
@@ -134,8 +142,8 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
       pp['n_singleton_focal_orders'] += singleton
       pp['n_30day_focal_intervals'] += maxdays
 
-      pp['frecency_days'] += order_frecency_days
-      pp['frecency_orders'] += order_frecency_orders
+      for frecency_var, val in frecencies.iteritems():
+        pp[frecency_var] += val
       if pid in streakers:
         pp['n_consecutive_prev_focal_orders'] += 1
 
