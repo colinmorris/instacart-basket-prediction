@@ -38,6 +38,11 @@ def test_field_values_fall_in_allowed_ranges(records):
     assert (lower <= vals).all()
     assert (vals <= upper).all()
 
+  # All fields should be non-negative
+  for field in fields.all_fields:
+    vals = records[field]
+    assert (vals >= 0).all() or np.isnan(vals).any(), 'Bad values for field {}'.format(field)
+
 # (I ommitted a few generic fields I was too lazy to calculate)
 TESTUSER_EXPECTED_GENERIC_FIELDVALUES = dict(
     days_since_prior = 1,
@@ -87,4 +92,8 @@ def test_testuser_halfandhalf(records):
       assert np.isnan(hah_record[field])
     else:
       assert hah_record[field] == expected_value, "Mismatch on field {}".format(field)
+
+  if 1:
+    for ff in fields.frecency_feats:
+      print '{} = {}'.format(ff, hah_record[ff])
 

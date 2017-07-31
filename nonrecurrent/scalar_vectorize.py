@@ -91,9 +91,8 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     pp['aisleid'], pp['deptid'] = product_lookup[pid-1]
 
   zero_init_cols = ['n_prev_focals', 'n_prev_focals_this_dow', 'n_prev_focals_this_hour',
-      'frecency_days', 'frecency_orders', 
       'n_consecutive_prev_focal_orders', 'n_singleton_focal_orders', 'n_30day_focal_intervals',
-      ]
+      ] + fields.frecency_feats
   for col in zero_init_cols:
     p[col] = 0
   zero_init_gcols = ['n_singleton_orders', 'n_30day_intervals',

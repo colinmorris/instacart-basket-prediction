@@ -10,12 +10,12 @@ generic_raw_feats = ['days_since_prior', 'dow', 'hour',
       'n_prev_orders',
       'n_distinct_prods',
       'n_singleton_orders',
+      # Total number of days since first order
       'order_history_days',
       'n_30day_intervals',
       ]
 product_raw_feats = ['prev_cartorder',
     'last_focal_cartorder',
-    'frecency_days', 'frecency_orders',
     'n_consecutive_prev_focal_orders',
     'n_prev_focals', 
     'orders_since_focal', 'days_since_focal', 
