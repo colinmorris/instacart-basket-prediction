@@ -184,7 +184,10 @@ def get_user_vectors(user, max_prods, product_lookup, testmode):
   assert not testmode
   max_prods = max_prods or float('inf')
   nprods = min(max_prods, user.nprods)
-  pids = random.sample(user.all_pids, nprods)
+  if max_prods == float('inf'):
+    pids = sorted(user.all_pids)
+  else:
+    pids = random.sample(user.all_pids, nprods)
   generic_feats, prod_feats = _order_data(user, pids, product_lookup, order_idx=-1, test=testmode)
   assert prod_feats.shape[0] == nprods
   generic_feats = np.tile(generic_feats, [nprods])
