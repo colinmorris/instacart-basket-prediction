@@ -17,7 +17,7 @@ from baskets.time_me import time_me
 
 import fields
 
-DEBUG = 1
+DEBUG = 0
 
 # (These are just sort of made up)
 # TODO: 30 days really means "30+ days" and so should be taken with a grain

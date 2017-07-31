@@ -32,6 +32,7 @@ FIELD_TO_RANGE = dict(
     label = (0, 1),
 )
 
+# TODO: Could easily run this test on lots more examples than just the test user's vectors.
 def test_field_values_fall_in_allowed_ranges(records):
   for field, (lower, upper) in FIELD_TO_RANGE.iteritems():
     vals = records[field]
