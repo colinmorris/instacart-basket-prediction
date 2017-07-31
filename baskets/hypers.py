@@ -109,6 +109,8 @@ def get_default_hparams():
       cell='lstm', 
       # One of {Adam, LazyAdam}
       optimizer='LazyAdam',
+      # rejection resampling during training
+      resample=False,
 
       fully_specified=False, # Used for config file bookkeeping
   )

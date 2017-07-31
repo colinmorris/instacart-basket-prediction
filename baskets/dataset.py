@@ -1,3 +1,4 @@
+from __future__ import division
 import tensorflow as tf
 
 from baskets.hypers import Mode
@@ -125,14 +126,28 @@ class BasketDataset(DatasetWrapper):
     if hps.mode == Mode.training:
       # NB: VERY IMPORTANT to shufle before batching. Glad I caught that.
       self.dataset = self.dataset.shuffle(buffer_size=10000, seed=1337)
-      self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
+      # TODO: should resampling happen after repeat? I'm worried that if it
+      # happens before, that might somehow imply subsampling the full dataset
+      # once, then repeating that sample forever?
       self.dataset = self.dataset.repeat()
+      if hps.resample:
+        self.dataset = self.rejection_resample(self.dataset)
+      self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
       self.iterator = self.dataset.make_one_shot_iterator()
     else:
       self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
       self.dataset = self.dataset.repeat(1)
       self.iterator = self.dataset.make_initializable_iterator()
     self.next_element = self.iterator.get_next() 
+
+  def rejection_resample(self, ds):
+    nclasses = 1000
+    def _classfunc(*tensors):
+      as_dict = self.dictify(tensors)
+      uids = as_dict['uid']
+      return tf.mod(uids, nclasses)
+    target_dist = tf.constant(1/nclasses, shape=(nclasses,))
+    return tf.contrib.data.rejection_resample(ds, _classfunc, target_dist)
 
   def new_epoch_op(self):
     assert self.hps.mode != Mode.training
