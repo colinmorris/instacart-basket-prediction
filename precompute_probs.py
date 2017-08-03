@@ -29,10 +29,10 @@ def get_probmap(model, sess):
   tf.logging.info("Computed probabilities for {} users in {} batches".format(len(pmap), i))
   return pmap
 
-def precompute_probs_for_tag(tag, args):
+def precompute_probs_for_tag(tag, userfold):
   hps = hypers.hps_for_tag(tag, mode=hypers.Mode.inference)
   tf.logging.info('Creating model')
-  dat = BasketDataset(hps, args.recordfile)
+  dat = BasketDataset(hps, userfold)
   model = rnnmodel.RNNModel(hps, dat)
   sess = tf.InteractiveSession()
   # Load pretrained weights
@@ -41,9 +41,10 @@ def precompute_probs_for_tag(tag, args):
   # TODO: deal with 'test mode'
   tf.logging.info('Calculating probabilities')
   probmap = get_probmap(model, sess)
-  common.save_pdict_for_tag(tag, probmap, args.recordfile)
+  common.save_pdict_for_tag(tag, probmap, userfold)
   sess.close()
   tf.reset_default_graph()
+  return probmap
 
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -56,7 +57,7 @@ def main():
   for tag in args.tags:
     tf.logging.info('Computing probs for tag {}'.format(tag))
     with time_me('Computed probs for {}'.format(tag)):
-      precompute_probs_for_tag(tag, args)
+      precompute_probs_for_tag(tag, args.recordfile)
 
 if __name__ == '__main__':
   with time_me():

@@ -3,6 +3,7 @@
 to some model's predictions.
 """
 import argparse
+import logging
 
 from baskets import common
 from baskets import predictor as pred
@@ -10,6 +11,8 @@ from baskets import rnnmodel
 from baskets import evaluator
 from baskets.user_wrapper import iterate_wrapped_users
 from baskets.time_me import time_me
+
+import precompute_probs
 
 def main():
   parser = argparse.ArgumentParser()
@@ -39,7 +42,12 @@ def main():
     predictors['baseline'] = pred.PreviousOrderPredictor()
 
   for tag in args.tags:
-    pmap = common.pdict_for_tag(tag, args.recordfile)
+    try:
+      pmap = common.pdict_for_tag(tag, args.recordfile)
+    except common.NoPdictException as err:
+      logging.warning(err.message + "\nPrecomputing and saving probabilities")
+      with time_me('Precomputed probabilities', mode='stderr'):
+        pmap = precompute_probs.precompute_probs_for_tag(tag, args.recordfile)
     if args.tp:
       predictors['{}-tp'.format(tag)] = pred.ThresholdPredictor(pmap, args.thresh)
     if args.montecarlo:
