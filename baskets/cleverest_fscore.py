@@ -3,8 +3,6 @@
 @author: Faron
 """
 import numpy as np
-import pandas as pd
-import matplotlib.pylab as plt
 from datetime import datetime
 
 '''
@@ -107,54 +105,11 @@ def print_best_prediction(P, pNone=None):
     print("Prediction {} yields best E[F1] of {}\n".format(best_prediction, f1_max))
 
 
-def save_plot(P, filename='expected_f1.png'):
-    E_F1 = pd.DataFrame(F1Optimizer.get_expectations(P).T, columns=["/w None", "/wo None"])
-    best_k, _, max_f1 = F1Optimizer.maximize_expectation(P)
-
-    plt.style.use('ggplot')
-    plt.figure()
-    E_F1.plot()
-    plt.title('Expected F1-Score for \n {}'.format("P = [{}]".format(",".join(map(str, P)))), fontsize=12)
-    plt.xlabel('k')
-    plt.xticks(np.arange(0, len(P) + 1, 1.0))
-    plt.ylabel('E[F1(P,k)]')
-    plt.plot([best_k], [max_f1], 'o', color='#000000', markersize=4)
-    plt.annotate('max E[F1(P,k)] = E[F1(P,{})] = {:.5f}'.format(best_k, max_f1), xy=(best_k, max_f1),
-                 xytext=(best_k, max_f1 * 0.8), arrowprops=dict(facecolor='black', shrink=0.05, width=1, headwidth=7),
-                 horizontalalignment='center', verticalalignment='top')
-    plt.gcf().savefig(filename)
-
-
-
 def timeit(P):
     s = datetime.now()
     F1Optimizer.maximize_expectation(P)
     e = datetime.now()
     return (e-s).microseconds / 1E6
-
-
-def benchmark(n=100, filename='runtimes.png'):
-    results = pd.DataFrame(index=np.arange(1,n+1))
-    results['runtimes'] = 0
-
-    for i in range(1,n+1):
-        runtimes = []
-        for j in range(5):
-            runtimes.append(timeit(np.sort(np.random.rand(i))[::-1]))
-        results.iloc[i-1] = np.mean(runtimes)
-
-    x = results.index
-    y = results.runtimes
-    results['quadratic fit'] = np.poly1d(np.polyfit(x, y, deg=2))(x)
-
-    plt.style.use('ggplot')
-    plt.figure()
-    results.plot()
-    plt.title('Expectation Maximization Runtimes', fontsize=12)
-    plt.xlabel('n = |P|')
-    plt.ylabel('time in seconds')
-    plt.gcf().savefig(filename)
-
 
 if __name__ == '__main__':
     print_best_prediction([0.3, 0.2])
