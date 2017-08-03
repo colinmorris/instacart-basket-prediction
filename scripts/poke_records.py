@@ -1,8 +1,7 @@
 import sys, os.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import numpy as np
 import tensorflow as tf
-from insta_pb2 import User, Order
+from baskets.insta_pb2 import User, Order
 
 rfile = sys.argv[1]
 ri = tf.python_io.tf_record_iterator(rfile)
