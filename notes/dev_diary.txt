@@ -17,3 +17,12 @@ Maybe the solution is to start it off training on the full training set, then do
 on a sampled subset?
 
 Alternative: maybe you can implement a more performant alternative to rejection_resample for your use case?
+
+8/3
+
+Goal: get a sense of where different RNN models are in terms of f-score. See if we've actually improved since the models from a month ago (god I hope so).
+
+Validation/test sets are identical across machines, so should be a fair comparison. May have some issues getting older checkpoints off the ground (different features, etc.)
+May need to check out some earlier commits to do inference on some of these older  models? Bleh.
+
+Using threshold predictor rather than optimizer per-user thresholds is about 100x faster, and should at least be a fair basis of comparison.

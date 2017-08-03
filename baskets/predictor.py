@@ -1,13 +1,13 @@
 from __future__ import division
-import pandas as pd
+import logging
 import numpy as np
-import tensorflow as tf
 
 from scipy.special import expit
 
 from baskets.constants import NONE_PRODUCTID
 import baskets.fscore as fscore_helpers
 import baskets.clever_fscore as clever
+from baskets.cleverest_fscore import F1Optimizer
 
 class BasePredictor(object):
 
@@ -64,6 +64,28 @@ class MonteCarloThresholdPredictor(ProbabilisticPredictor):
     self.history = []
 
   def predict_order_from_probs(self, pid_to_prob):
+    if self.optimization_level == 0 and len(pid_to_prob) > 200:
+      logging.warning('Falling back to static threshold for user with {} products'.format(
+        len(pid_to_prob)))
+      thresh = .2
+      return self.predict_order_by_threshold(pid_to_prob, thresh)
+    probs = np.array(pid_to_prob.values())
+    probs = np.sort(probs)[::-1]
+    best_k, predict_none, _maxf1 = F1Optimizer.maximize_expectation(probs)
+    try:
+      thresh = probs[best_k]
+    except IndexError:
+      # 'Off the charts'. Probs are sorted in descending order. best_k = len(probs)
+      # means 'predict all the things'
+      thresh = -1
+    prods = [pid for pid,prob in pid_to_prob.iteritems() if prob > thresh]
+    if predict_none:
+      prods.append(NONE_PRODUCTID)
+    return prods
+
+  # XXX: deprecated. Based on an f-score optimization algorithm that got superseded
+  # by a faster one someone posted as a kernel on kaggle.
+  def _predict_order_from_probs(self, pid_to_prob):
     items = pid_to_prob.items()
     # Sort on probability
     items.sort(key = lambda i: i[1])
