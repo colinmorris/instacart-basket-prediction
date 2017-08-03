@@ -124,8 +124,8 @@ def hps_for_tag(tag, save_full=False, mode=None):
     hps.parse_json(f.read())
   mode = mode or hps.mode
   if mode != Mode.training:
-    # (For now assuming eval and inference are the same)
     hps = as_eval(hps)
+    hps.mode = mode
   if save_full:
     full_hps = copy_hps(hps)
     full_hps.fully_specified = True
