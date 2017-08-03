@@ -104,7 +104,10 @@ class BasketDataset(DatasetWrapper):
   FIELDS = TransformedDataset.FIELDS
   def __init__(self, hps, fname=None):
     self.hps = hps
+    # Parse SequenceExamples out of record file
     raw = RawDataset(hps, fname)
+    # Get transformed features and group them together in one tensor, with
+    # separate tensors for seqlen/labels
     transformed = TransformedDataset(hps, raw)
     # TODO: Feature transformations before or after batching? Does it matter?
     # TODO: normalize. Kinda hairy.
