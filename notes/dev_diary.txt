@@ -1,0 +1,19 @@
+7/31
+
+Hey, here's a thing I wish I had started earlier.
+
+Currently trying to recover state on latest rnn runs (which were a while ago).
+
+Based on a sketchy comparison of f-scores, it seems like the new models (trained for up to 24k iters)
+are worse than the ones trained earlier (pre data pipeline refactor).
+
+I'm guessing the reason for this is that the latest runs go through the full training set indiscriminately,
+whereas the previous (feed_dict) implementation sampled a vector per user.
+
+I've tried implementing something similar using tf.contrib.data.rejection_resample, but it is **slow**.
+So much slower. Like 10x. :(
+
+Maybe the solution is to start it off training on the full training set, then do a short 'fine-tuning' phase
+on a sampled subset?
+
+Alternative: maybe you can implement a more performant alternative to rejection_resample for your use case?
