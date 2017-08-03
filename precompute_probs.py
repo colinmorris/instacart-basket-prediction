@@ -10,13 +10,12 @@ from baskets import utils, common, hypers, rnnmodel
 from baskets.dataset import BasketDataset
 from baskets.time_me import time_me
 
-def get_probmap(model, sess, userlimit):
+def get_probmap(model, sess):
   """{uid -> {pid -> prob}}"""
   # Start a fresh pass through the validation data
   sess.run(model.dataset.new_epoch_op())
   pmap = defaultdict(dict)
   i = 0
-  uids_seen = set()
   to_fetch = [model.lastorder_logits, model.dataset['uid'], model.dataset['pid']]
   while 1:
     try:
@@ -26,29 +25,9 @@ def get_probmap(model, sess, userlimit):
     final_probs = expit(final_logits)
     for uid, pid, prob in zip(uids, pids, final_probs):
       pmap[uid][pid] = prob
-
     i += 1
-    if userlimit:
-      uids_seen.update(set(uids))
-      if len(uids_seen) >= userlimit:
-        break
   tf.logging.info("Computed probabilities for {} users in {} batches".format(len(pmap), i))
   return pmap
-
-def main():
-  tf.logging.set_verbosity(tf.logging.INFO)
-  parser = argparse.ArgumentParser()
-  parser.add_argument('tags', metavar='tag', nargs='+')
-  parser.add_argument('--recordfile', default='test.tfrecords', 
-      help='tfrecords file with the users to test on (default: test.tfrecords)')
-  parser.add_argument('-n', '--n-users', type=int, 
-      help='Limit number of users tested on (default: no limit)')
-  args = parser.parse_args()
-
-  for tag in args.tags:
-    tf.logging.info('Computing probs for tag {}'.format(tag))
-    with time_me('Computed probs for {}'.format(tag)):
-      precompute_probs_for_tag(tag, args)
 
 def precompute_probs_for_tag(tag, args):
   hps = hypers.hps_for_tag(tag, mode=hypers.Mode.inference)
@@ -61,10 +40,23 @@ def precompute_probs_for_tag(tag, args):
   utils.load_checkpoint_for_tag(tag, sess)
   # TODO: deal with 'test mode'
   tf.logging.info('Calculating probabilities')
-  probmap = get_probmap(model, sess, args.n_users)
+  probmap = get_probmap(model, sess)
   common.save_pdict_for_tag(tag, probmap, args.recordfile)
   sess.close()
   tf.reset_default_graph()
+
+def main():
+  tf.logging.set_verbosity(tf.logging.INFO)
+  parser = argparse.ArgumentParser()
+  parser.add_argument('tags', metavar='tag', nargs='+')
+  parser.add_argument('--recordfile', default='test.tfrecords', 
+      help='tfrecords file with the users to test on (default: test.tfrecords)')
+  args = parser.parse_args()
+
+  for tag in args.tags:
+    tf.logging.info('Computing probs for tag {}'.format(tag))
+    with time_me('Computed probs for {}'.format(tag)):
+      precompute_probs_for_tag(tag, args)
 
 if __name__ == '__main__':
   with time_me():
