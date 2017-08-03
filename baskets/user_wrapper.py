@@ -51,6 +51,13 @@ class UserWrapper(object):
       self._all_pids = pids
     return self._all_pids
 
+  def order_pairs(self):
+    """Return tuples of (prev_order, order)
+    """
+    a, b = itertools.tee(self.user.orders)
+    b.next()
+    return itertools.izip(a, b)
+
   # TODO: should filter new products from last orders in the pb generation
   # step. then this won't be necessary.
   def last_order_predictable_prods(self):
