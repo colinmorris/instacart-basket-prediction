@@ -22,6 +22,9 @@ class PreviousOrderPredictor(BasePredictor):
   def predict_last_order(self, user):
     return user.user.orders[-2].products
 
+class MissingProbsException(Exception):
+  pass
+
 class ProbabilisticPredictor(BasePredictor):
 
   def __init__(self, probmap):
@@ -29,7 +32,12 @@ class ProbabilisticPredictor(BasePredictor):
     self.probmap = probmap
 
   def predict_last_order(self, user):
-    pid_to_prob = self.probmap[user.uid]
+    try:
+      pid_to_prob = self.probmap[user.uid]
+    except KeyError:
+      msg = 'Missing probabilities for user {} in pdict of length {}'.format(
+          user.uid, len(self.probmap))
+      raise MissingProbsException(msg)
     reorders = self.predict_order_from_probs(pid_to_prob)
     return reorders
 
