@@ -3,6 +3,7 @@ from __future__ import division
 import argparse
 import pickle
 import random
+import math
 from collections import defaultdict
 
 from baskets import common, constants
@@ -11,6 +12,8 @@ from baskets.time_me import time_me
 
 generic_feats = ['hour', 'dow', 'days_since_prior', 'uid', ]
 
+# recency_days may be 0 if the product was in an order from earlier in the same
+# day. Otherwise, everything except label is always positive.
 pidfeats = ['pid', 'frequency', 'recency_days', 'recency_orders', 'label']
 
 # TODO: would be nice to be able to customize certain pid feats to be included
@@ -18,7 +21,7 @@ pidfeats = ['pid', 'frequency', 'recency_days', 'recency_orders', 'label']
 a_config = dict(
     generic_feats = generic_feats,
     focal_pid_feats = [pf for pf in pidfeats if pf != 'label'],
-    pid_feats = ['presence'],
+    pid_feats = [], #['presence'],
 )
 
 # Consistency is key here. Need to be able to vectorize multiple tfrecord files
@@ -50,8 +53,12 @@ class Vectorizer(object):
   def write_example(self, example):
     # Does libfm require features be sorted? idk. couldn't hurt I guess.
     featdict = self.featurizer.featurize(example)
+    def stringify_val(val):
+      if isinstance(val, float):
+        return '{:.4g}'.format(val)
+      return str(val)
     feat_str = ' '.join(
-        '{}:{}'.format(i, featdict[i])
+        '{}:{}'.format(i, stringify_val(featdict[i]))
         for i in sorted(featdict.keys())
         )
     line = '{} {}\n'.format(example.label, feat_str)
@@ -83,11 +90,18 @@ class Example(object):
   def __init__(self, pid, gfs, pfs, test):
     self.pid = pid
     # Feature name -> value
-    self.gfs = gfs
+    self.gfs = gfs.copy()
     # pid -> feature name -> value
     self.pfs = pfs
-    self.label = pfs[pid]['label']
+    self.label = self.pfs[pid]['label']
     self.test = test
+
+    # XXX: Feature transformation hacks
+    for pf in self.pfs.itervalues():
+      # ridiculous hacks
+      pf['frequency_'] = math.log(pf['frequency'])
+      pf['recency_days_'] = 4 / (4 + pf['recency_days'])
+      pf['recency_orders_'] = 2 / (2 + pf['recency_orders'])
 
 class Featurizer(object):
   GROUP_SIZES = dict(
@@ -100,16 +114,6 @@ class Featurizer(object):
   def __init__(self, config):
     self.config = config
     self.featmap = {gf: i for i, gf in enumerate(config['generic_feats'])}
-
-  def get_prodfeat_index(self, featname, focal, pid=None):
-    npf = len(self.config['pid_feats'])
-    start = self.get_offset(-1)
-    pf_index = self.config['pid_feats'].index(featname)
-    if focal:
-      return start + pf_index
-    else:
-      assert pid is not None
-      return start + npf + (constants.N_PRODUCTS)*pf_index + (pid-1) # one-indexed
 
   def get_offset(self, group):
     offset = 0
@@ -144,7 +148,11 @@ class Featurizer(object):
         f[i] = 1
         offset += constants.N_PRODUCTS
       else:
-        f[offset] = example.pfs[example.pid][fpf]
+        pfdict = example.pfs[example.pid]
+        try:
+          f[offset] = pfdict[fpf+'_'] # XXX: Haaaaaaaaaaack
+        except KeyError:
+          f[offset] = pfdict[fpf]
         offset += 1
 
     #offset += len(self.config['focal_pid_feats'])
@@ -185,6 +193,9 @@ def get_order_dat(user):
     yield gfs, pfs
 
 def make_examples(user):
+  # TODO: may want to experiment with taking less context. Or maybe not. Tradeoff
+  # between wanting fidelity to the test distribution and wanting to give the model
+  # as much information as possible.
   max_i = len(user.user.orders)-2
   for i, (gfs, pfs) in enumerate(get_order_dat(user)):
     for pid in pfs:
@@ -198,7 +209,7 @@ def main():
 
   victor = Vectorizer(args.user_fold)
   users = iterate_wrapped_users(args.user_fold)
-  victor.vectorize_users(users, limit=1000) # XXX
+  victor.vectorize_users(users) #, limit=1000) # XXX
 
 if __name__ == '__main__':
   with time_me(mode='print'):

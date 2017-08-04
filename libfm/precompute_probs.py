@@ -5,6 +5,7 @@ import pickle
 from collections import defaultdict
 
 from baskets import common
+from baskets.time_me import time_me
 
 def make_pdict(test_ids, probs):
   pdict = defaultdict(dict)
@@ -17,7 +18,9 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--predictions', default='predictions.out')
   parser.add_argument('--tag', default='libfm')
-  parser.add_argument('--fold', default='test')
+  parser.add_argument('--fold', default='test', help='User fold these examples' +\
+      ' came from. Should match whatever was used in vectorize.py (default: test)'
+      )
   args = parser.parse_args()
 
   with open('test_ids.pickle') as f:
