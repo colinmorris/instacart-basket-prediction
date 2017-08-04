@@ -2,38 +2,25 @@
 from __future__ import division
 import argparse
 import pickle
-import random
-import math
 from collections import defaultdict
 
-from baskets import common, constants
+from baskets import common
 from baskets.user_wrapper import iterate_wrapped_users
 from baskets.time_me import time_me
 
-generic_feats = ['hour', 'dow', 'days_since_prior', 'uid', ]
+from feature_spec import FeatureSpec
 
+# "raw" generic (applying to whole order) and product-specific features
+# (These variables aren't actually used anywhere. Just here for reference.)
+generic_feats = ['hour', 'dow', 'days_since_prior', 'uid', ]
 # recency_days may be 0 if the product was in an order from earlier in the same
 # day. Otherwise, everything except label is always positive.
 pidfeats = ['pid', 'frequency', 'recency_days', 'recency_orders', 'label']
 
-# TODO: would be nice to be able to customize certain pid feats to be included
-# for the focal product but not the others.
-a_config = dict(
-    generic_feats = generic_feats,
-    focal_pid_feats = [pf for pf in pidfeats if pf != 'label'],
-    pid_feats = [], #['presence'],
-)
-
-# Consistency is key here. Need to be able to vectorize multiple tfrecord files
-# and get the same feature<->id mapping. 
-# (also need to be able to manage multiple configurations of features)
-# But maybe we can worry about this later...
 class Vectorizer(object):
 
-  def __init__(self, fold):
-    self.fold = fold
-    self.config = a_config
-    self.featurizer = Featurizer(self.config)
+  def __init__(self, featspec):
+    self.featspec = featspec
     self._test_ids = []
 
   def vectorize_users(self, users, limit=None):
@@ -49,17 +36,23 @@ class Vectorizer(object):
       if limit and i >= limit:
         break
     self.finish()
+    return i
 
   def write_example(self, example):
-    # Does libfm require features be sorted? idk. couldn't hurt I guess.
-    featdict = self.featurizer.featurize(example)
+    # Not clear whether libfm actually requires feats to be sorted.
+    featdict = self.featspec.make_featdict(example)
     def stringify_val(val):
       if isinstance(val, float):
         return '{:.4g}'.format(val)
       return str(val)
+    # TODO: should see if sorting here is a bottleneck. If it is, pretty easy
+    # to have featspec return an OrderedDict. (Keys are already added in almost
+    # sorted order.)
+    # (After profiling, looks like this line is the biggest time sink, but 
+    # the cost of sorting is relatively small compared to the calls to str.format)
     feat_str = ' '.join(
-        '{}:{}'.format(i, stringify_val(featdict[i]))
-        for i in sorted(featdict.keys())
+        '{}:{}'.format(i, '{:.4g}'.format(featdict[i]))
+        for i in sorted(featdict)
         )
     line = '{} {}\n'.format(example.label, feat_str)
     out = self.test_out if example.test else self.train_out
@@ -72,106 +65,28 @@ class Vectorizer(object):
     self.save_examples()
     with open('test_ids.pickle', 'w') as f:
       pickle.dump(self._test_ids, f)
-    # save groups
+    group_fname = 'groups.txt'
+    with open(group_fname, 'w') as f:
+      self.featspec.write_group_file(f)
 
   def save_examples(self):
     self.train_out.close()
     self.test_out.close()
-
-  def save_groups(self):
-    """For grouping, libfm wants a text file with as many lines as features in the
-    dataset, where the ith line gets k, where feature_i \in group_k
-    """
-    pass
-
 
 class Example(object):
 
   def __init__(self, pid, gfs, pfs, test):
     self.pid = pid
     # Feature name -> value
-    self.gfs = gfs.copy()
+    self.gfs = gfs
     # pid -> feature name -> value
     self.pfs = pfs
     self.label = self.pfs[pid]['label']
     self.test = test
 
-    # XXX: Feature transformation hacks
-    for pf in self.pfs.itervalues():
-      # ridiculous hacks
-      pf['frequency_'] = math.log(pf['frequency'])
-      pf['recency_days_'] = 4 / (4 + pf['recency_days'])
-      pf['recency_orders_'] = 2 / (2 + pf['recency_orders'])
-
-class Featurizer(object):
-  GROUP_SIZES = dict(
-      uid = constants.N_USERS,
-      hour = 24,
-      dow = 7,
-      days_since_prior = 1
-  )
-  ONE_INDEXED_GROUPS = {'uid'}
-  def __init__(self, config):
-    self.config = config
-    self.featmap = {gf: i for i, gf in enumerate(config['generic_feats'])}
-
-  def get_offset(self, group):
-    offset = 0
-    for groupx in self.config['generic_feats']:
-      if groupx == group:
-        return offset
-      offset += self.GROUP_SIZES[groupx]
-    assert group == -1
-    return offset
-
-  def featurize(self, example):
-    # TODO: Maybe a lot of this logic should move to Example
-    f = {}
-    # Generic scalar feats
-    for gf in self.config['generic_feats']:
-      groupsize = self.GROUP_SIZES[gf]
-      if groupsize == 1:
-        i = self.get_offset(gf)
-        val = example.gfs[gf]
-      else:
-        i = self.get_offset(gf) + example.gfs[gf]
-        if gf in self.ONE_INDEXED_GROUPS:
-          i -= 1
-        val = 1
-      f[i] = val
-
-    offset = self.get_offset(-1)
-    for j, fpf in enumerate(self.config['focal_pid_feats']):
-      # haaacks
-      if fpf == 'pid':
-        i = offset + (example.pid - 1)
-        f[i] = 1
-        offset += constants.N_PRODUCTS
-      else:
-        pfdict = example.pfs[example.pid]
-        try:
-          f[offset] = pfdict[fpf+'_'] # XXX: Haaaaaaaaaaack
-        except KeyError:
-          f[offset] = pfdict[fpf]
-        offset += 1
-
-    #offset += len(self.config['focal_pid_feats'])
-    for pf in self.config['pid_feats']:
-      for pid in example.pfs:
-        if pid == example.pid:
-          continue
-        i = offset + (pid-1)
-        # hackesque
-        if pf == 'presence':
-          val = 1
-        else:
-          val = example.pfs[pid][pf]
-        f[i] = val
-      offset += constants.N_PRODUCTS
-
-    return f
-
 def get_order_dat(user):
+  """Yield features for each order in the user's history eligible to be a training
+  instance (i.e. all of them except the first, and testorder if present)"""
   # product feats
   pfs = defaultdict(lambda : defaultdict(int))
   for i, (prev_order, order) in enumerate(user.order_pairs()):
@@ -190,6 +105,13 @@ def get_order_dat(user):
       pf['recency_days'] += order.days_since_prior
       pf['recency_orders'] += 1
       pf['label'] = max(0, pf['label']-1)
+    # XXX: A tricky thing to be aware of here is that we mutate pfs
+    # after we yield it, so there's a risk that a receiver of these (e.g. 
+    # Example, which uses these as attribute values) may have them change under their
+    # feat. (Not a problem with current control flow, but something to be aware of.)
+    # Also, if, say, an Example mutates one of these dicts, it'll affect all the other
+    # Examples that share a pointer to it. Would be cool if there was a way to 
+    # yield immutable copies to not have to worry about this stuff.
     yield gfs, pfs
 
 def make_examples(user):
@@ -202,14 +124,21 @@ def make_examples(user):
       yield Example(pid, gfs, pfs, test=i==max_i)
 
 def main():
-  random.seed(1337)
+  # TODO: would be kind of nice to have an optional tag to be able to juggle
+  # between sets of vectors corresponding to different user folds or sets
+  # of features. (Though don't want too many lying around. Vectorizing just
+  # 1% of users can already produce files as big as a GB.)
   parser = argparse.ArgumentParser()
   parser.add_argument('user_fold')
+  parser.add_argument('--lim', type=int, help='Limit number of users vectorized')
   args = parser.parse_args()
-
-  victor = Vectorizer(args.user_fold)
+  
+  #featspec = FeatureSpec.all_features_spec()
+  featspec = FeatureSpec.basic_spec()
+  victor = Vectorizer(featspec)
   users = iterate_wrapped_users(args.user_fold)
-  victor.vectorize_users(users) #, limit=1000) # XXX
+  n = victor.vectorize_users(users, limit=args.lim)
+  print 'Vectorized {} users from fold {}'.format(n, args.user_fold)
 
 if __name__ == '__main__':
   with time_me(mode='print'):
