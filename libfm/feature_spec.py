@@ -27,12 +27,14 @@ class FeatureSpec(object):
 
   @classmethod
   def barebones_spec(kls):
-    feats = [f for f in features.all_features if f.size < 1000]
+    feats = [f for f in features.all_features if f.size < 1000 and f.default]
     return kls(feats)
 
   @classmethod
   def basic_spec(kls):
-    feats = [f for f in features.all_features if not issubclass(f, features.OtherProdFeature)]
+    feats = [f for f in features.all_features if not issubclass(f, features.OtherProdFeature)
+        and f.default
+        ]
     return kls(feats)
 
   def make_featdict(self, example):
@@ -95,5 +97,8 @@ class FeatureSpec(object):
     dataset, where the ith line gets k, where feature_i \in group_k
     """
     for group_idx, feat in enumerate(self.features):
+      # TODO: Not sure if it makes sense to have each scalar feature be its own
+      # 'group', or to just throw them together. It's possible all the scalar 
+      # features are just a bad idea, and should all be replaced with bucketized versions.
       groupstr = '\n'.join(str(group_idx) for _ in range(feat.size)) + '\n'
       f.write(groupstr)

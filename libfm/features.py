@@ -1,6 +1,7 @@
 from __future__ import division
 import math
 import logging
+import bisect
 
 from baskets import constants
 
@@ -24,6 +25,8 @@ class FeatureMeta(type):
     return super(FeatureMeta, meta).__new__(meta, name, parents, dct)
 
   def __init__(cls, name, parents, dct):
+    if not hasattr(cls, 'size') and issubclass(cls, BucketizedFeature):
+      setattr(cls, 'size', len(cls.boundaries)+1)
     if 'abstract' not in dct:
       assert hasattr(cls, 'size'), "Concrete feature {} has no defined size".format(name)
       all_features.add(cls)
@@ -37,6 +40,7 @@ class FeatureMeta(type):
 class Feature(object):
   abstract = True
   __metaclass__ = FeatureMeta
+  default = True
   def call(kls, example):
     msg = '{} must implement call() method'.format(kls.name)
     raise NotImplementedError(msg)
@@ -68,7 +72,26 @@ class OtherProdFeature(MultiFeature):
   abstract = True
   size = constants.N_PRODUCTS
 
+class BucketizedFeature(OneHotFeature):
+  abstract = True
+  # Concrete subclasses must have a boundaries attribute e.g.
+  # boundaries = [0, 1, 2]
+  # Buckets include left boundaries and exclude right boundaries. The above 
+  # example leads to buckets (-inf, 0), [0, 1), [1, 2), [2, inf)
+
+  # (size is set by metaclass after class instantiation, based on boundaries)
+  def get_orig_value(kls, example):
+    raise NotImplementedError
+
+  def get_relative_index(kls, example):
+    return bisect.bisect_right(kls.boundaries)
+
 ##### Concrete features
+
+class DaysSincePrior_Bucketized(BucketizedFeature):
+  boundaries = [1, 3, 7, 14, 30]
+  def get_orig_value(kls, example):
+    return example.gfs['days_since_prior']
 
 class Hour(OneHotFeature):
   size = 24
@@ -85,8 +108,8 @@ class Uid(OneHotFeature):
   def get_relative_index(kls, example):
     return example.gfs['uid']
 
-# TODO: do bucketized version
 class DaysSincePrior(ScalarFeature):
+  default = False
   def get_value(kls, example):
     days = example.gfs['days_since_prior']
     return days / 30
@@ -96,6 +119,8 @@ class FocalPid(OneHotFeature):
   def get_relative_index(kls, example):
     return example.pid - 1
 
+# TODO: transformations chosen here are pretty handwavey.
+# Might just want to bucketize instead?
 class FocalLogFrequency(ScalarFeature):
   def get_value(kls, example):
     freq = example.pfs[example.pid]['frequency']

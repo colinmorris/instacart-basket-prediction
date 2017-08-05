@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import division
 import argparse
+import copy
 import pickle
 from collections import defaultdict
 
@@ -99,7 +100,13 @@ def get_order_dat(user):
       pf['frequency'] += 1
       pf['recency_days'] = 0
       pf['recency_orders'] = 0
-      pf['label'] = 2 # ha ha hacks
+    # TODO: sort of doing extra work here
+    for (cart_index, pid) in enumerate(order.products):
+      # If this pid isn't in the dictionary, then this is the first time it was
+      # ordered. We shouldn't add it to the dict (and therefore make a training 
+      # example for it) at this point, because we're only trying to predict *re*orders
+      if pid in pfs:
+        pfs[pid]['label'] = 2 # ha ha hacks
     # tock
     for pf in pfs.itervalues():
       pf['recency_days'] += order.days_since_prior
@@ -114,12 +121,14 @@ def get_order_dat(user):
     # yield immutable copies to not have to worry about this stuff.
     yield gfs, pfs
 
-def make_examples(user):
+def make_examples(user, deepcopy=False):
   # TODO: may want to experiment with taking less context. Or maybe not. Tradeoff
   # between wanting fidelity to the test distribution and wanting to give the model
   # as much information as possible.
   max_i = len(user.user.orders)-2
   for i, (gfs, pfs) in enumerate(get_order_dat(user)):
+    if deepcopy:
+      pfs = copy.deepcopy(pfs)
     for pid in pfs:
       yield Example(pid, gfs, pfs, test=i==max_i)
 
