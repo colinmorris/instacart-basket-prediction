@@ -13,7 +13,7 @@ class FeatureMeta(type):
   returns the result of 'calling' the feature function, rather than trying to
   instantiate a feature object).
   """
-  wrapped_classmethods = ['call', 'get_relative_index', 'get_value']
+  wrapped_classmethods = ['call', 'get_relative_index', 'get_value', 'get_orig_value']
   def __new__(meta, name, parents, dct):
     dct.setdefault('name', name)
     for methodname in meta.wrapped_classmethods:
@@ -25,7 +25,7 @@ class FeatureMeta(type):
     return super(FeatureMeta, meta).__new__(meta, name, parents, dct)
 
   def __init__(cls, name, parents, dct):
-    if not hasattr(cls, 'size') and issubclass(cls, BucketizedFeature):
+    if not hasattr(cls, 'size') and hasattr(cls, 'boundaries'):
       setattr(cls, 'size', len(cls.boundaries)+1)
     if 'abstract' not in dct:
       assert hasattr(cls, 'size'), "Concrete feature {} has no defined size".format(name)
@@ -84,7 +84,8 @@ class BucketizedFeature(OneHotFeature):
     raise NotImplementedError
 
   def get_relative_index(kls, example):
-    return bisect.bisect_right(kls.boundaries)
+    x = kls.get_orig_value(example)
+    return bisect.bisect_right(kls.boundaries, x)
 
 ##### Concrete features
 
@@ -127,16 +128,28 @@ class FocalLogFrequency(ScalarFeature):
     return math.log(freq)
 
 class FocalRecencyDays(ScalarFeature):
+  default = False
   def get_value(kls, example):
     rec = example.pfs[example.pid]['recency_days']
     return 4 / (4+rec)
 
 class FocalRecencyOrders(ScalarFeature):
+  default = False
   def get_value(kls, example):
     rec = example.pfs[example.pid]['recency_orders']
     return 2 / (2+rec)
 
+class FocalRecencyDays_Bucketized(BucketizedFeature):
+  boundaries = [1, 3, 7, 14, 30, 60]
+  def get_orig_value(kls, example):
+    return example.pfs[example.pid]['recency_days']
+class FocalRecencyOrders_Bucketized(BucketizedFeature):
+  boundaries = [2, 4, 8, 16]
+  def get_orig_value(kls, example):
+    return example.pfs[example.pid]['recency_orders']
+
 class OtherProdLogFrequency(OtherProdFeature):
+  default = False
   def call(kls, example):
     # TODO: could maybe refactor out some common logic here
     for pid in example.pfs:
@@ -148,6 +161,7 @@ class OtherProdLogFrequency(OtherProdFeature):
       yield i, val
 
 class OtherProdPid(OtherProdFeature):
+  default = False
   def call(kls, example):
     for pid in example.pfs:
       if not INCLUDE_FOCAL_PID_IN_OTHERPROD_FEATS and pid == example.pid:
@@ -155,4 +169,13 @@ class OtherProdPid(OtherProdFeature):
       i = pid-1
       val = 1
       yield i, val
+
+class PrevOrderPids(OtherProdFeature):
+  def call(kls, example):
+    for pid in example.pfs:
+      if not INCLUDE_FOCAL_PID_IN_OTHERPROD_FEATS and pid == example.pid:
+        continue
+      if example.pfs[pid]['recency_orders'] != 1:
+        continue
+      yield pid-1, 1
 

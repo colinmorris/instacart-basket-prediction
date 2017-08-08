@@ -9,6 +9,7 @@ from baskets import common
 from baskets.user_wrapper import iterate_wrapped_users
 from baskets.time_me import time_me
 
+import features
 from feature_spec import FeatureSpec
 
 # "raw" generic (applying to whole order) and product-specific features
@@ -144,6 +145,7 @@ def main():
   
   #featspec = FeatureSpec.all_features_spec()
   featspec = FeatureSpec.basic_spec()
+  #featspec.add_feature(features.PrevOrderPids)
   victor = Vectorizer(featspec)
   users = iterate_wrapped_users(args.user_fold)
   n = victor.vectorize_users(users, limit=args.lim)

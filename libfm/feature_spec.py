@@ -5,6 +5,10 @@ class FeatureSpec(object):
   def __init__(self, feats):
     self.features = self.sort_features(feats)
 
+  def add_feature(self, feat):
+    self.features.append(feat)
+    self.features = self.sort_features(self.features)
+
   @classmethod
   def sort_features(kls, feats):
     scalars = [feat for feat in feats if issubclass(feat, features.ScalarFeature)]
