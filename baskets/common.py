@@ -23,6 +23,9 @@ XGBOOST_DIR = os.path.join(ROOT, 'nonrecurrent')
 XGBOOST_MODEL_DIR = os.path.join(XGBOOST_DIR, 'models')
 XGBOOST_CONFIG_DIR = os.path.join(XGBOOST_DIR, 'configs')
 
+LIBFM_DIR = os.path.join(ROOT, 'libfm')
+LIBFM_VECTOR_DIR = os.path.join(LIBFM_DIR, 'vectors')
+
 # Other options are ZLIB and NONE (though in the latter case, the name should be '', cause tf.contrib.data is quirky like that)
 VECTOR_COMPRESSION_NAME = 'GZIP'
 VECTOR_COMPRESSION_TYPE = getattr(tf.python_io.TFRecordCompressionType, 
@@ -44,6 +47,9 @@ def resolve_vector_recordpath(recordpath):
 
 def resolve_scalarvector_path(identifier):
   return _resolve(identifier, '.npy', SCALARVECTOR_DIR)
+
+def resolve_libfm_vector_path(identifier):
+  return _resolve(identifier, '.libfm', LIBFM_VECTOR_DIR)
 
 def resolve_xgboostmodel_path(identifier):
   return _resolve(identifier, '.model', XGBOOST_MODEL_DIR)

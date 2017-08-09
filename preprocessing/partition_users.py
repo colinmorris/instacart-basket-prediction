@@ -48,13 +48,33 @@ def save_testusers(records):
   print "Wrote {} records to ktest.tfrecords".format(n)
   out.close()
 
+# (If you wanna be fancy, could rewrite the above fns in terms of this one)
+def generic_partition(records, split_fn):
+  out_dir = common.USER_PB_DIR
+  writers = {}
+  per_fold = defaultdict(int)
+  for record in records:
+    dest = split_fn(record)
+    if dest is None:
+      continue
+    if dest not in writers:
+      writers[dest] = tf.python_io.TFRecordWriter('{}/{}.tfrecords'.format(out_dir, dest))
+    writers[dest].write(record)
+    per_fold[dest] += 1
+  print "Wrote records with dist: {}".format(per_fold)
+  for writer in writers.values():
+    writer.close()
 
+def mini_split(*args):
+  if random.random() < .002:
+    return 'mini'
 
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('-r', '--record-file', default='users.tfrecords')
   parser.add_argument('--traintest', action='store_true')
   parser.add_argument('--ktest', action='store_true')
+  parser.add_argument('--mini', action='store_true')
   args = parser.parse_args()
   random.seed(1337)
 
@@ -65,6 +85,8 @@ def main():
     random_traintest_split(record_iterator)
   elif args.ktest:
     save_testusers(record_iterator)
+  elif args.mini:
+    generic_partition(record_iterator, mini_split)
   else:
     assert False, "nothing to do here"
 

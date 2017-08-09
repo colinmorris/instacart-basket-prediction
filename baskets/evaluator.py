@@ -6,7 +6,7 @@ import pickle
 
 from baskets import constants
 from baskets.results import OrderResults, Results
-from baskets.predictor import BasePredictor
+from baskets.predictor import BasePredictor, MissingProbsException
 
 class Evaluator(object):
 
@@ -25,7 +25,11 @@ class Evaluator(object):
       uids.append(user.uid)
       actual = user.last_order_predictable_prods()
       for pname, predictor in predictors.iteritems():
-        predicted = predictor.predict_last_order(user)
+        try:
+          predicted = predictor.predict_last_order(user)
+        except MissingProbsException as exc:
+          logging.error('Pdict miss for predictor {}'.format(pname))
+          raise exc
         if not predicted:
           # spammy warning
           if 0:

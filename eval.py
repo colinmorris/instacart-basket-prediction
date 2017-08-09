@@ -46,6 +46,8 @@ def main():
       pmap = common.pdict_for_tag(tag, args.recordfile)
     except common.NoPdictException as err:
       logging.warning(err.message + "\nPrecomputing and saving probabilities")
+      # Not clear whether this 'recovery' mode should be on by default. Might cause more problems than it solves.
+      # Not every tag belongs to an rnn model.
       with time_me('Precomputed probabilities', mode='stderr'):
         pmap = precompute_probs.precompute_probs_for_tag(tag, args.recordfile)
     if args.tp:

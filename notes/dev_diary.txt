@@ -21,8 +21,21 @@ Alternative: maybe you can implement a more performant alternative to rejection_
 8/3
 
 Goal: get a sense of where different RNN models are in terms of f-score. See if we've actually improved since the models from a month ago (god I hope so).
+Using threshold predictor rather than optimizer per-user thresholds is about 100x faster, and should at least be a fair basis of comparison.
 
 Validation/test sets are identical across machines, so should be a fair comparison. May have some issues getting older checkpoints off the ground (different features, etc.)
 May need to check out some earlier commits to do inference on some of these older  models? Bleh.
 
-Using threshold predictor rather than optimizer per-user thresholds is about 100x faster, and should at least be a fair basis of comparison.
+Super bleh:
+- Older (Sally) models were trained on some completely different train/test split which is lost to the sands of time. So results on current 'validation' set should be taken with huge grain of salt.
+- Also, for future reference, the vectors/ don't line up with the new user splits (based on the timestamps, I'm not even sure how this is possible, but it seems to be the case)
+
+If it's ambiguous whether old models are better than new, could maybe do some necromancy on the stale vector files to figure out the uid split they operated on, and create the corresponding user pb files. But oof that sounds teeedious.
+
+Some notes on some of the runs being compared:
+- nyov: pretty sure this was just an exact copy of the _nyov_blahblah config, to see if the original validation loss was replicable (it wasn't)
+- nyov_filtered: nyov with resampling (I can't remember if it was using hard or soft weights)
+- jul_31_* : some configs based on my intuition re what ought to work. All of them used resampling. I believe with filtering (not 
+  rejection resample+hashing), and maybe soft weights? But don't really remember. But probably.
+- _nyov, _bsxy, _yzyx: some goodish runs from hp exploration
+- _urie: a pretty bad run (according to validation loss), just as a sanity check
