@@ -53,6 +53,9 @@ def evaluate_model(sess, model):
       )
 
 def train(sess, model, runlabel, eval_model, logdir):
+  # XXX
+  if model.hps.resample:
+    sess.run(model.dataset.new_epoch_op())
   # Setup summary writer.
   summary_writer = tf.summary.FileWriter('{}/{}'.format(logdir, runlabel))
   step = None

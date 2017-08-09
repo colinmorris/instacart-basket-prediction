@@ -24,6 +24,9 @@ sequence_fields = ['lossmask', 'labels', ] + raw_feats
 # XXX: Structure of this code is a real mess. Waiting for the temperature to
 # fall before commiting to architecture.
 
+FILTER_RESAMPLE = 1
+SOFTWEIGHTS = 1
+
 class DatasetWrapper(object):
   FIELDS = []
   @classmethod
@@ -125,21 +128,40 @@ class BasketDataset(DatasetWrapper):
     # TODO: does the order of calls to batch/repeat matter? in docs they do repeat first
     if hps.mode == Mode.training:
       # NB: VERY IMPORTANT to shufle before batching. Glad I caught that.
-      self.dataset = self.dataset.shuffle(buffer_size=10000, seed=1337)
       # TODO: should resampling happen after repeat? I'm worried that if it
       # happens before, that might somehow imply subsampling the full dataset
       # once, then repeating that sample forever?
       self.dataset = self.dataset.repeat()
       if hps.resample:
-        self.dataset = self.rejection_resample(self.dataset)
+        if FILTER_RESAMPLE:
+          self.dataset = self.dataset.filter(self._resample_filter())
+        else:
+          self.dataset = self.rejection_resample(self.dataset)
+          # XXX: wish rejection_resample documented the need for this kind of thing
+          padded_shapes = ([], padded_shapes) 
+      self.dataset = self.dataset.shuffle(buffer_size=10000, seed=1337)
       self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
-      self.iterator = self.dataset.make_one_shot_iterator()
+      if hps.resample:
+        self.iterator = self.dataset.make_initializable_iterator()
+      else:
+        self.iterator = self.dataset.make_one_shot_iterator()
     else:
       self.dataset = self.dataset.padded_batch(hps.batch_size, padded_shapes)
       self.dataset = self.dataset.repeat(1)
       self.iterator = self.dataset.make_initializable_iterator()
     self.next_element = self.iterator.get_next() 
 
+  def _resample_filter(self):
+    i = self.FIELDS.index('weight')
+    def _filter(*tensors):
+      #as_dict = self.dictify(tensors)
+      #w = as_dict['weight']
+      w = tensors[i]
+      if self.hps.soft_weights:
+        w = 1 / (-1 * tf.log(w) + 1) 
+      return tf.random_uniform([]) < w
+    return _filter
+    
   def rejection_resample(self, ds):
     nclasses = 1000
     def _classfunc(*tensors):
@@ -150,7 +172,7 @@ class BasketDataset(DatasetWrapper):
     return tf.contrib.data.rejection_resample(ds, _classfunc, target_dist)
 
   def new_epoch_op(self):
-    assert self.hps.mode != Mode.training
+    #assert self.hps.mode != Mode.training
     return self.iterator.initializer
 
   @classmethod
@@ -161,7 +183,10 @@ class BasketDataset(DatasetWrapper):
     return set(all_keys)
 
   def model_input_dict(self):
-    return self.dictify(self.next_element)
+    if self.hps.resample and self.hps.mode == Mode.training and not FILTER_RESAMPLE:
+      return self.dictify(self.next_element[1])
+    else:
+      return self.dictify(self.next_element)
 
   def __getitem__(self, varname):
     return self.model_input_dict()[varname]
