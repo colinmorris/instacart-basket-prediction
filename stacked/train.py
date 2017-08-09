@@ -40,6 +40,8 @@ def vectorize_fold(fold, scoreses, meta_df, use_metafeats=True):
     # Special f_0 dummy meta feature for learning vanilla weight term per predictor
     metafeats = np.hstack([np.ones( (len(df), 1) ), meta])
     # Oh fuck this, I've spent too long trying to understand np.einsum...
+    # (Worth noting that sklearn.preprocessing has a 'PolynomialFeatures' utility
+    # that might have been useful here. But this is fine.)
     n_metafeats = metafeats.shape[1]
     logging.info('{} predictors x {} metafeatures -> {} coefs'.format(
       n_predictors, n_metafeats, n_predictors*n_metafeats))

@@ -3,8 +3,16 @@ import sys
 from contextlib import contextmanager
 import tensorflow as tf
 
+DEFAULT_MODE = 'tflog'
+
+def set_default_mode(mode):
+  global DEFAULT_MODE
+  DEFAULT_MODE = mode
+
 @contextmanager
-def time_me(what_i_did='Finished', mode='tflog'):
+def time_me(what_i_did='Finished', mode=None):
+  if mode is None:
+    mode = DEFAULT_MODE
   t0 = time.time()
   yield
   t1 = time.time()
