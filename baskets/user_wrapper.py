@@ -24,6 +24,10 @@ class UserWrapper(object):
     return self.user.uid
 
   @property
+  def orders(self):
+    return self.user.orders
+
+  @property
   def norders(self):
     return len(self.user.orders)
 
@@ -50,6 +54,10 @@ class UserWrapper(object):
         pids.update( set(order.products) )
       self._all_pids = pids
     return self._all_pids
+
+  @property
+  def sorted_pids(self):
+    return sorted(self.all_pids)
 
   def order_pairs(self):
     """Return tuples of (prev_order, order)

@@ -21,13 +21,14 @@ pidfeats = ['pid', 'frequency', 'recency_days', 'recency_orders', 'label']
 
 class Vectorizer(object):
 
-  def __init__(self, featspec):
+  def __init__(self, featspec, affix=''):
     self.featspec = featspec
+    self.affix = affix
     self._test_ids = []
 
   def vectorize_users(self, users, limit=None):
-    train_path = common.resolve_libfm_vector_path('train')
-    test_path = common.resolve_libfm_vector_path('test')
+    train_path = common.resolve_libfm_vector_path('train' + self.affix)
+    test_path = common.resolve_libfm_vector_path('test' + self.affix)
     self.train_out = open(train_path, 'w')
     self.test_out = open(test_path, 'w')
     i = 0
@@ -140,14 +141,19 @@ def main():
   # 1% of users can already produce files as big as a GB.)
   parser = argparse.ArgumentParser()
   parser.add_argument('user_fold')
+  parser.add_argument('--tag', action='store_true')
   parser.add_argument('--lim', type=int, help='Limit number of users vectorized')
   args = parser.parse_args()
   
   #featspec = FeatureSpec.all_features_spec()
   featspec = FeatureSpec.basic_spec()
   #featspec.add_feature(features.PrevOrderPids)
-  victor = Vectorizer(featspec)
   users = iterate_wrapped_users(args.user_fold)
+  if args.tag:
+    affix = '_' + args.user_fold
+  else:
+    affix = ''
+  victor = Vectorizer(featspec, affix)
   n = victor.vectorize_users(users, limit=args.lim)
   print 'Vectorized {} users from fold {}'.format(n, args.user_fold)
 
