@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import sklearn
 from sklearn.linear_model import LogisticRegression
+from sklearn.externals import joblib
 from scipy.special import logit
 
 from baskets import common
@@ -25,7 +26,8 @@ def munge_scoreses(scoreses, df):
     
   return scores
 
-def vectorize_fold(fold, scoreses, meta_df, use_metafeats=True):
+def vectorize_fold(fold, tags, meta_df, use_metafeats=True):
+  scoreses = [common.pdict_for_tag(tag, args.train_fold) for tag in tags]
   df = meta_df[meta_df['fold']==fold]
   assert len(df)
   y = df['label']
@@ -72,8 +74,10 @@ def main():
   model = LogisticRegression(verbose=1)
   with time_me('Trained model', mode='print'):
     model.fit(X, y)
+
+  model_fname = 'model.pkl'
+  joblib.dump(model, model_fname)
   return model
-  # TODO: serialize model
   # TODO: report acc on validation set
 
 if __name__ == '__main__':

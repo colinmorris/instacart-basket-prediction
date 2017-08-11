@@ -10,9 +10,21 @@ from baskets.time_me import time_me
 import baskets.time_me
 
 import count_pairs
-from user_helpers import pids_preceding
+from user_helpers import paired_pids
 
+def save_fold(fold, X, y):
+  xpath = 'x_{}.npz'.format(fold)
+  ypath = 'y_{}.npy'.format(fold)
+  scipy.sparse.save_npz(xpath, X)
+  np.save(ypath, y)
 
+def load_fold(fold):
+  xpath = 'x_{}.npz'.format(fold)
+  ypath = 'y_{}.npy'.format(fold)
+  X = scipy.sparse.load_npz(xpath)
+  y = np.load(ypath)
+  return X, y
+  
 def vectorize(users, pair_lookup):
   indptrs = [0]
   indices = []
@@ -23,8 +35,8 @@ def vectorize(users, pair_lookup):
     for pid in user.sorted_pids:
       label = pid in orderpids
       labels.append(label)
-      # Oops, this is misnamed...
-      prevs = pids_preceding(user, pid)
+      # (now-silly variable name)
+      prevs = paired_pids(user, pid)
 
       # TODO: May want to normalize prevs to sum to 1? 
       # Or maybe not actually.
@@ -50,25 +62,22 @@ def main():
   baskets.time_me.set_default_mode('print')
   logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser()
-  parser.add_argument('fold')
+  parser.add_argument('folds', nargs='+')
   args = parser.parse_args()
 
   with time_me('Loaded pair lookup'):
-    lookup = count_pairs.load_pair_lookup(fold='mini') # XXX
-  users = iterate_wrapped_users(args.fold)
-  with time_me('Vectorized'):
-    X, y = vectorize(users, lookup)
-  logging.info('Loaded X with shape {} and y with shape {}'.format(
-    X.shape, y.shape))
-  logging.info('Mean # of non-zero features per instance = {:.1f}'.format(
-    X.sum(axis=1).mean()
-    ))
-  # TODO: paths should be parameterized
-  scipy.sparse.save_npz('vectors.npz', X)
-  np.save('labels.npy', y)
-
-  return X, y
+    lookup = count_pairs.load_pair_lookup()
+  for fold in args.folds:
+    users = iterate_wrapped_users(fold)
+    with time_me('Vectorized'):
+      X, y = vectorize(users, lookup)
+    logging.info('Loaded X with shape {} and y with shape {}'.format(
+      X.shape, y.shape))
+    logging.info('Mean # of non-zero features per instance = {:.1f}'.format(
+      X.sum(axis=1).mean()
+      ))
+    save_fold(fold, X, y)
 
 if __name__ == '__main__':
   with time_me(mode='print'):
-    X, y = main()
+    main()

@@ -33,6 +33,7 @@ def vectorize(userfolds):
     for user in users:
       rows += rows_for_user(user, fold)
   df = pd.DataFrame(rows, columns=cols)
+  # TODO: could make 'fold' categorical to save a fair bit of space
   # Scale
   for col in metafeature_columns:
     df[col] = sklearn.preprocessing.scale(
