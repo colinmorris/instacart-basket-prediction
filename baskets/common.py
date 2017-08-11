@@ -1,8 +1,10 @@
 """A bunch of helpers, so far all having to do with finding the paths for things.
 """
 import os
-import pickle
+import cPickle as pickle
 import tensorflow as tf
+
+_PICKLE_PROTOCOL = -1
 
 _thisdir = os.path.dirname(__file__)
 ROOT = os.path.realpath(os.path.join(_thisdir, '..'))
@@ -73,7 +75,7 @@ class NoPdictException(Exception):
 def pdict_for_tag(tag, recordfile):
   path = _path_for_pdict(tag, recordfile)
   try:
-    with open(path) as f:
+    with open(path, 'rb') as f:
       return pickle.load(f)
   except IOError:
     raise NoPdictException('No pdict exists for tag {} and user fold {}'.format(
@@ -81,8 +83,8 @@ def pdict_for_tag(tag, recordfile):
 
 def save_pdict_for_tag(tag, pdict, recordfile):
   path = _path_for_pdict(tag, recordfile)
-  with open(path, 'w') as f:
-    pickle.dump(dict(pdict), f)
+  with open(path, 'wb') as f:
+    pickle.dump(dict(pdict), f, _PICKLE_PROTOCOL)
 
 def _path_for_pdict(tag, recordfile):
   ext = '.tfrecords'
