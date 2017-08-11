@@ -16,8 +16,9 @@ def make_pdict(test_ids, probs):
 
 def main():
   parser = argparse.ArgumentParser()
-  parser.add_argument('--predictions', default='predictions.out')
-  parser.add_argument('--tag', default='libfm')
+  parser.add_argument('--predictions', default='predictions.out',
+      help='File with predicted classes. Default: predictions.out')
+  parser.add_argument('--tag', default='libfm', help='Tag to use when naming pdict (default: "libfm")')
   parser.add_argument('--fold', default='test', help='User fold these examples' +\
       ' came from. Should match whatever was used in vectorize.py (default: test)'
       )

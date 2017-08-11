@@ -141,7 +141,8 @@ def main():
   # 1% of users can already produce files as big as a GB.)
   parser = argparse.ArgumentParser()
   parser.add_argument('user_fold')
-  parser.add_argument('--tag', action='store_true')
+  parser.add_argument('--tag', action='store_true', 
+      help='Whether to tag the generated vectors by the user fold used')
   parser.add_argument('--lim', type=int, help='Limit number of users vectorized')
   args = parser.parse_args()
   
