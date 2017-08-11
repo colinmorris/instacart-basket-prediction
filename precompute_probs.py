@@ -54,7 +54,7 @@ def precompute_probs_for_tag(tag, userfold):
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
   parser = argparse.ArgumentParser()
-  parser.add_argument('tags', metavar='tag', nargs='+')
+  parser.add_argument('tags', nargs='+')
   parser.add_argument('--recordfile', default='test.tfrecords', 
       help='tfrecords file with the users to test on (default: test.tfrecords)')
   args = parser.parse_args()

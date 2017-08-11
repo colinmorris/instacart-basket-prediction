@@ -10,6 +10,7 @@ from scipy.special import logit
 
 from baskets import common
 from baskets.time_me import time_me
+import baskets.time_me
 
 from metavectorize import METAVECTORS_PICKLEPATH
 import metavectorize
@@ -27,12 +28,13 @@ def munge_scoreses(scoreses, df):
   return scores
 
 def vectorize_fold(fold, tags, meta_df, use_metafeats=True):
-  scoreses = [common.pdict_for_tag(tag, args.train_fold) for tag in tags]
+  with time_me('Loaded pdicts'):
+    scoreses = [common.pdict_for_tag(tag, fold) for tag in tags]
   df = meta_df[meta_df['fold']==fold]
   assert len(df)
   y = df['label']
   n_predictors = len(scoreses)
-  with time_me('Loaded scores for {} predictors'.format(n_predictors), mode='print'):
+  with time_me('Munged scores for {} predictors'.format(n_predictors), mode='print'):
     scores = munge_scoreses(scoreses, df)
   if not use_metafeats:
     X = scores
@@ -55,20 +57,20 @@ def vectorize_fold(fold, tags, meta_df, use_metafeats=True):
 
 
 def main():
+  baskets.time_me.set_default_mode('print')
   logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('tags', nargs='+')
   parser.add_argument('-f', '--train-fold', default='train')
-  parser.add_argument('--validation-fold')
+  parser.add_argument('--validation-fold', help='Fold for validation (default: None)')
   parser.add_argument('--no-metafeats', action='store_true')
   args = parser.parse_args()
 
-  # load pdicts
-  scores = [common.pdict_for_tag(tag, args.train_fold) for tag in args.tags]
+  with time_me("Loaded metavectors"):
+    meta_df = pd.read_pickle(METAVECTORS_PICKLEPATH)
 
-  meta_df = pd.read_pickle(METAVECTORS_PICKLEPATH)
-
-  X, y = vectorize_fold(args.train_fold, scores, meta_df, use_metafeats=not args.no_metafeats)
+  with time_me("Made training vectors"):
+    X, y = vectorize_fold(args.train_fold, args.tags, meta_df, use_metafeats=not args.no_metafeats)
   
   # TODO: C, max_iter
   model = LogisticRegression(verbose=1)

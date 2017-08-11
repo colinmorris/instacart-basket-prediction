@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+
+"""
+Generates a dataframe, with a row for each classification instance, having...
+- metadata: uid, pid, label, fold
+- meta-features: characteristics of the instance that might account for different 
+    success rates for different predictors. Used for 'FWLS'.
+
+This df is used by train.py, along with the logits of some number of specified models.
+"""
+
 import argparse
 import pandas as pd
 import numpy as np
