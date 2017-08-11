@@ -28,14 +28,14 @@ def main():
   logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('tags', metavar='tag', nargs='+')
-  parser.add_argument('--recordfile', default='test', 
+  parser.add_argument('--fold', default='test', 
       help='identifier for file with the users to test on (default: test)')
   args = parser.parse_args()
 
 
   for model_tag in args.tags:
     hps = hypers.hps_for_tag(model_tag)
-    dataset = Dataset(args.recordfile, hps, mode=Mode.inference)
+    dataset = Dataset(args.fold, hps, mode=Mode.inference)
     path = common.resolve_xgboostmodel_path(model_tag)
     logging.info('Loading model with tag {}'.format(model_tag))
     model = xgb.Booster(model_file=path)
@@ -45,7 +45,7 @@ def main():
       logging.info('Got probs for {} users'.format(len(pdict)))
       # TODO: might want to enforce some namespace separation between 
       # rnn-generated pdicts and ones coming from xgboost models?
-      common.save_pdict_for_tag(model_tag, pdict, args.recordfile) 
+      common.save_pdict_for_tag(model_tag, pdict, args.fold) 
 
 if __name__ == '__main__':
   main()

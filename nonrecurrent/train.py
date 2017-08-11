@@ -98,8 +98,9 @@ def main():
   parser.add_argument('--train-recordfile', default='train', 
       help='identifier for file with the users to train on (default: train)')
   parser.add_argument('-n', '--n-rounds', type=int, default=50,
-      help='Number of rounds of boosting')
-  parser.add_argument('--weight', action='store_true')
+      help='Number of rounds of boosting. Deprecated: specify this in hp config file')
+  parser.add_argument('--weight', action='store_true',
+      help='Whether to do per-instance weighting. Deprecated: specify in hps')
   args = parser.parse_args()
 
   try:
