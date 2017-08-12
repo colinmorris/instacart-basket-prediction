@@ -4,7 +4,7 @@ import logging
 import scipy.sparse
 import numpy as np
 
-from baskets import common, constants
+from baskets import common, constants, user_wrapper
 from baskets.user_wrapper import iterate_wrapped_users
 from baskets.time_me import time_me
 import baskets.time_me
@@ -25,7 +25,7 @@ def load_fold(fold):
   y = np.load(ypath)
   return X, y
   
-def vectorize(users, pair_lookup):
+def vectorize(users, pair_lookup, logits=None):
   indptrs = [0]
   indices = []
   labels = []
@@ -46,6 +46,9 @@ def vectorize(users, pair_lookup):
       focal_ix = pid-1
       row_indices = [focal_ix] + prev_indices
 
+      # extra index for boost logit
+      row_indices = [0] + [i+1 for i in row_indices]
+
       indices += row_indices
       indptrs.append( len(indices) )
 
@@ -53,7 +56,12 @@ def vectorize(users, pair_lookup):
   nprods = constants.N_PRODUCTS
   nfeats = nprods + len(pair_lookup)
   X_shape = (nrows, nfeats)
-  dat = np.ones( len(indices) )
+  dat = np.ones( len(indices), dtype=np.float32)
+  logit_indices = indptrs[:-1]
+  if logits:
+    dat[logit_indices] = logits
+  else:
+    dat[logit_indices] = 0
   X = scipy.sparse.csr_matrix( (dat, indices, indptrs), shape=X_shape )
   return X, np.array(labels, dtype=int)
 
@@ -63,14 +71,19 @@ def main():
   logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser()
   parser.add_argument('folds', nargs='+')
+  parser.add_argument('-b', '--boost', help='Tag of model to boost from')
   args = parser.parse_args()
 
   with time_me('Loaded pair lookup'):
     lookup = count_pairs.load_pair_lookup()
   for fold in args.folds:
     users = iterate_wrapped_users(fold)
+    if args.boost:
+      logits = user_wrapper.logits_for_tag(args.boost, fold)
+    else:
+      logits = None
     with time_me('Vectorized'):
-      X, y = vectorize(users, lookup)
+      X, y = vectorize(users, lookup, logits)
     logging.info('Loaded X with shape {} and y with shape {}'.format(
       X.shape, y.shape))
     logging.info('Mean # of non-zero features per instance = {:.1f}'.format(

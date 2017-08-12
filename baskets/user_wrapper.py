@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import itertools
 import tensorflow as tf
+import scipy.special
 
 from baskets.insta_pb2 import User
 from baskets import common, constants
@@ -204,3 +205,18 @@ def iterate_wrapped_users(recordpath):
     user = User()
     user.ParseFromString(record)
     yield UserWrapper(user)
+
+def canonical_ordered_uid_pids(fold):
+  users = iterate_wrapped_users(fold)
+  for user in users:
+    for pid in user.sorted_pids:
+      yield user.uid, pid
+
+# TODO: nice to be able to pass multiple tags
+def logits_for_tag(tag, fold):
+  pdict = common.pdict_for_tag(tag, fold)
+  logits = []
+  for (uid, pid) in canonical_ordered_uid_pids(fold):
+    prob = pdict[uid][pid]
+    logit = scipy.special.logit(prob)
+    logits.append(logit)

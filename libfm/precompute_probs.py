@@ -6,15 +6,18 @@ from collections import defaultdict
 
 from baskets import common
 from baskets.time_me import time_me
+import baskets.time_me
 
 def make_pdict(test_ids, probs):
   pdict = defaultdict(dict)
+  assert len(test_ids) == len(probs)
   for (uid, pid), probline in zip(test_ids, probs):
     prob = float(probline.strip())
     pdict[uid][pid] = prob
   return pdict
 
 def main():
+  baskets.time_me.set_default_mode('print')
   parser = argparse.ArgumentParser()
   parser.add_argument('--predictions', default='predictions.out',
       help='File with predicted classes. Default: predictions.out')
