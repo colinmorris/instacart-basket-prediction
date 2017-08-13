@@ -53,6 +53,10 @@ def evaluate_model(sess, model):
       )
 
 def train(sess, model, runlabel, eval_model, logdir):
+  # XXX: the way we're doing resampling means we need to use an initializable
+  # iterator rather than a oneshot one
+  if model.hps.resample:
+    sess.run(model.dataset.new_epoch_op())
   # Setup summary writer.
   summary_writer = tf.summary.FileWriter('{}/{}'.format(logdir, runlabel))
   step = None
