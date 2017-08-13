@@ -37,19 +37,18 @@ def random_traintest_split(records):
 
 def save_testusers(records):
   """Save the kaggle-defined test set users to their own tfrecords file."""
-  out = tf.python_io.TFRecordWriter('ktest.tfrecords')
-  n = 0
-  for record in records:
+  def testuser_split(record):
     user = User()
     user.ParseFromString(record)
     if user.test:
-      out.write(record)
-      n += 1
-  print "Wrote {} records to ktest.tfrecords".format(n)
-  out.close()
+      return 'ktest'
+  generic_partition(records, testuser_split)
 
 # (If you wanna be fancy, could rewrite the above fns in terms of this one)
 def generic_partition(records, split_fn):
+  """split_fn should take a serialized record and return a string (identifying which
+  fold the record should be written to), or None (don't write this record)
+  """
   out_dir = common.USER_PB_DIR
   writers = {}
   per_fold = defaultdict(int)
@@ -71,7 +70,8 @@ def mini_split(*args):
 
 def main():
   parser = argparse.ArgumentParser()
-  parser.add_argument('-r', '--record-file', default='users.tfrecords')
+  parser.add_argument('-r', '--record-file', default='users.tfrecords',
+      help='Identifier of user records file to start from (default: users.tfrecords i.e. all users)')
   parser.add_argument('--traintest', action='store_true')
   parser.add_argument('--ktest', action='store_true')
   parser.add_argument('--mini', action='store_true')

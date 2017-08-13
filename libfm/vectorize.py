@@ -127,7 +127,7 @@ def make_examples(user, deepcopy=False):
   # TODO: may want to experiment with taking less context. Or maybe not. Tradeoff
   # between wanting fidelity to the test distribution and wanting to give the model
   # as much information as possible.
-  max_i = len(user.user.orders)-2
+  max_i = len(user.orders)-2
   for i, (gfs, pfs) in enumerate(get_order_dat(user)):
     if deepcopy:
       pfs = copy.deepcopy(pfs)

@@ -15,9 +15,13 @@ class UserWrapper(object):
   # (day, hour, days_since) + (prev_ordered, prev_nprods, prev_nreorders)
   NFEATS = 3 + 3 
 
-  def __init__(self, user):
+  def __init__(self, user, ktest=False):
+    # (Really this should be self._user. Clients discouraged from using this attr directly.)
     self.user = user
     self._all_pids = None
+    self.ktest = ktest
+    if ktest:
+      assert self.user.test
 
   @property
   def uid(self):
@@ -25,7 +29,12 @@ class UserWrapper(object):
 
   @property
   def orders(self):
-    return self.user.orders
+    orders = self.user.orders
+    if self.ktest:
+      # Maybe cache this property if it's being accessed a lot?
+      orders = list(orders)
+      orders.append(self.user.testorder)
+    return orders
 
   @property
   def norders(self):
@@ -37,7 +46,8 @@ class UserWrapper(object):
 
   @property
   def seqlen(self):
-    return len(self.user.orders) - 1
+    # Minus the first order, which is never a training example
+    return len(self.orders) - 1
 
   @property
   def istest(self):
@@ -50,7 +60,7 @@ class UserWrapper(object):
     # This can get called a fair number of times, so cache it
     if self._all_pids is None:
       pids = set()
-      for order in self.user.orders[:-1]:
+      for order in self.orders[:-1]:
         pids.update( set(order.products) )
       self._all_pids = pids
     return self._all_pids
@@ -59,10 +69,11 @@ class UserWrapper(object):
   def sorted_pids(self):
     return sorted(self.all_pids)
 
+  # (used by libfm)
   def order_pairs(self):
     """Return tuples of (prev_order, order)
     """
-    a, b = itertools.tee(self.user.orders)
+    a, b = itertools.tee(self.orders)
     b.next()
     return itertools.izip(a, b)
 
@@ -115,13 +126,13 @@ def vectorize(df, user, maxlen, features=None, nfeats=None):
     i += feat.arity
   return res
 
-def iterate_wrapped_users(recordpath):
+def iterate_wrapped_users(recordpath, ktest=False):
   recordpath = common.resolve_recordpath(recordpath)
   records = tf.python_io.tf_record_iterator(recordpath)
   for record in records:
     user = User()
     user.ParseFromString(record)
-    yield UserWrapper(user)
+    yield UserWrapper(user, ktest)
 
 def canonical_ordered_uid_pids(fold):
   users = iterate_wrapped_users(fold)

@@ -38,7 +38,7 @@ def _seq_data(user, pids):
   prev_ordered = np.zeros(pidfeat_shape)
   pids_seen = set([]) # unique pids seen up to but not including the ith order
   prev_pidset = None
-  for i, order in enumerate(user.user.orders):
+  for i, order in enumerate(user.orders):
     # The order with index i corresponds to the i-1th element of the sequence
     # (we always skip the first order, because by definition it can have no
     # reorders)
@@ -78,7 +78,8 @@ def _seq_data(user, pids):
   return gfs, pidfeats
 
 def get_user_sequence_examples(user, product_lookup, testmode, max_prods):
-  assert not testmode
+  # NB: don't actually need to use the 'testmode' flag anywhere, since the necessary
+  # rearranging is done transparently for us at the user_wrapper level.
   max_prods = max_prods or float('inf')
   nprods = min(max_prods, user.nprods)
   weight = 1 / nprods
@@ -163,10 +164,11 @@ def main():
   parser.add_argument('--max-prods', type=int, default=None,
       help='Max number of products to take per user (default: no limit)')
   args = parser.parse_args()
+  # (For reproducibility when sampling pids)
   random.seed(1337)
 
   if args.test_mode:
-    raise NotImplemented("Sorry, come back later.")
+    assert not args.max_prods
 
   outpath = common.resolve_vector_recordpath(args.out or args.user_records_file)
   tf.logging.info("Writing vectors to {}".format(outpath))
@@ -176,7 +178,7 @@ def main():
   prod_lookup = load_product_lookup()
   i = 0
   nseqs = 0
-  for user in iterate_wrapped_users(args.user_records_file):
+  for user in iterate_wrapped_users(args.user_records_file, ktest=args.test_mode):
     nseqs += write_user_vectors(user, writer, prod_lookup, args.test_mode, args.max_prods)
     i += 1
     if args.n_users and i >= args.n_users:

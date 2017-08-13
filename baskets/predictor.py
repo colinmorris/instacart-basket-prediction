@@ -20,7 +20,7 @@ class BasePredictor(object):
 
 class PreviousOrderPredictor(BasePredictor):
   def predict_last_order(self, user):
-    return user.user.orders[-2].products
+    return user.orders[-2].products
 
 class MissingProbsException(Exception):
   pass

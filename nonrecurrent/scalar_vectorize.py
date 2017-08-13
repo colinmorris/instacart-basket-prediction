@@ -54,15 +54,15 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
 
   g['uid'] = user.uid
   g['user_prods'] = len(pids)
-  g['n_prev_orders'] = len(user.user.orders[:order_idx])
+  g['n_prev_orders'] = len(user.orders[:order_idx])
   assert order_idx == -1, "n_distinct prods will not be right!"
   g['n_distinct_prods'] = user.nprods
 
   # focal order
-  order = user.user.orders[order_idx]
+  order = user.orders[order_idx]
   ops = order.products
   opset = set(ops)
-  prev = user.user.orders[order_idx-1]
+  prev = user.orders[order_idx-1]
   prev_ops = prev.products
   prev_opset = set(prev_ops)
   for passthrough_feat in ['orderid', 'dow', 'hour', 'days_since_prior']:
@@ -71,7 +71,7 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   
   # prevprev feats
   try:
-    prevprev = user.user.orders[order_idx-2]
+    prevprev = user.orders[order_idx-2]
   except IndexError:
     prevprev = None
   if prevprev is None:
@@ -113,7 +113,7 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
     frozen_fields[pid].add(field)
 
   # Walk backwards starting from the previous order
-  for prevo in user.user.orders[order_idx-1::-1]:
+  for prevo in user.orders[order_idx-1::-1]:
     osize = len(prevo.products)
     singleton = osize == 1
     g['n_singleton_orders'] += singleton

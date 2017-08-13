@@ -212,7 +212,7 @@ def main():
 
   if args.resume:
     tf.logging.info('Loading saved weights')
-    utils.load_checkpoint_for_tag(args.tag, sess)
+    utils.load_checkpoint_for_tag(args.resume, sess)
   else:
     sess.run(tf.global_variables_initializer())
 
