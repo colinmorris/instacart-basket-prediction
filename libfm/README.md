@@ -16,4 +16,4 @@ Okay, so the default vectorize behaviour is to save the vectors for each user's 
 
 This doesn't really match the workflow for the other predictors (vectorize train + test sets, train on the training set, make predictions on the test set). Because one of the features we're trying to learn about with libfm is user id, it doesn't make sense to train and test on disjoint sets of users.
 
-But so yeah, if you wanna train on the training set and make predictions for the test set, it involves a bit of hackery. Using libfm's `save_model` flag might help here (though it doesn't work for sgda, and maybe for other optimizers idk).
+But so yeah, if you wanna train on the training set and make predictions for the test set, it involves a bit of hackery. Using libfm's `save_model` flag might help here (though it only works for sgd and als optimizers :/).

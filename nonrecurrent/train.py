@@ -96,7 +96,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('tag')
   parser.add_argument('--train-recordfile', default='train', 
-      help='identifier for file with the users to train on (default: train)')
+      help='identifier for file with the users to train on (default: train). deprecated: specify in hps...')
   parser.add_argument('-n', '--n-rounds', type=int, default=50,
       help='Number of rounds of boosting. Deprecated: specify this in hp config file')
   parser.add_argument('--weight', action='store_true',

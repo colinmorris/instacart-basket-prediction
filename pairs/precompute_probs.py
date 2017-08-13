@@ -5,17 +5,19 @@ import pandas as pd
 from scipy.special import expit
 from collections import defaultdict
 
-from baskets import common
+from baskets import common, user_wrapper
 from baskets.time_me import time_me
 
 import train
 import vectorize
 
-def pdictify(probs, metavec):
+def pdictify(probs, fold):
   pdict = defaultdict(dict)
-  for (i, uid, pid) in metavec[ ['uid', 'pid'] ].itertuples():
+  i = 0
+  for uid, pid in user_wrapper.canonical_ordered_uid_pids(fold):
     p = probs[i]
     pdict[uid][pid] = p
+    i += 1
   return pdict
 
 def load_metavectors(fold):
@@ -29,7 +31,7 @@ def main():
   parser.add_argument('--fold', default='test')
   args = parser.parse_args()
 
-  metavec = load_metavectors(args.fold)
+  #metavec = load_metavectors(args.fold)
 
   clf = train.load_model()
   X, y = vectorize.load_fold(args.fold)
@@ -43,7 +45,7 @@ def main():
     scores = clf.decision_function(X)
     probs = expit(scores)
 
-  pdict = pdictify(probs, metavec)
+  pdict = pdictify(probs, args.fold)
   common.save_pdict_for_tag(args.tag, pdict, args.fold)
 
 if __name__ == '__main__':

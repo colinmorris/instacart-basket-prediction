@@ -12,6 +12,8 @@ from baskets.time_me import time_me
 import count_pairs
 import train
 
+BOOST = 1
+
 def poke_uniprods(coefs, df, n=10):
   idxs = np.argsort(coefs)
   for sign in (-1, 1):
@@ -57,8 +59,14 @@ print "Loaded coefs with shape {}. {} non-zero entries".format(
 coef = coef[0]
 
 nprods = constants.N_PRODUCTS
-uniprod_coefs = coef[:nprods]
-biprod_coefs = coef[nprods:]
+if BOOST:
+  boost_coef = coef[0]
+  print "Coef on boosted score: {:.3f}".format(boost_coef)
+  offset = 1
+else:
+  offset = 0
+uniprod_coefs = coef[offset:nprods+offset]
+biprod_coefs = coef[nprods+offset:]
 
 print "{:,} uni prod feats, {:,} bi prod feats".format(nprods, len(biprod_coefs))
 

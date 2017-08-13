@@ -171,7 +171,7 @@ class Dataset(object):
     if onehot_matrices:
       # TODO: There are some perf issues with this. Look into this workaround:
       # https://stackoverflow.com/questions/6844998/is-there-an-efficient-way-of-concatenating-scipy-sparse-matrices/33259578#33259578
-      featdat = scipy.sparse.hstack([featdat,]+onehot_matrices)
+      featdat = scipy.sparse.hstack([featdat,]+onehot_matrices, format='csr')
     
     logging.info('Made dmatrix with feature data having shape {}'.format(featdat.shape))
 

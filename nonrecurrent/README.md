@@ -28,6 +28,6 @@ Less important ephembera:
 Precondition: Generate scalar vectors once (via Makefile, or by calling `scalar_vectorize.py` manually)
 
 0. Make a json hps config file (or choose one from `configs/`). Let's assume it's called `mytag`.
-1. `./train.py (--train-recordfile fold) mytag`
+1. `./train.py mytag` (trains on whatever user fold is specified in config file, probably train)
 2. `./precompute_probs.py (--fold fold) mytag`
 3. `../eval.py mytag`

@@ -19,7 +19,7 @@ def main():
   parser.add_argument('tags', metavar='tag', nargs='+')
   parser.add_argument('-t', '--thresh', default=.2, help='Probability threshold '+
       'for taking a product when using threshold predictor (default=.2)', type=float)
-  parser.add_argument('--recordfile', default='test.tfrecords', 
+  parser.add_argument('--fold', default='test.tfrecords', 
       help='tfrecords file with the users to test on (default: test.tfrecords)')
   parser.add_argument('--mc-trials', type=int, default=50,
       help='Number of rounds of monte carlo sim to perform per product/threshold (default:50)')
@@ -43,13 +43,13 @@ def main():
 
   for tag in args.tags:
     try:
-      pmap = common.pdict_for_tag(tag, args.recordfile)
+      pmap = common.pdict_for_tag(tag, args.fold)
     except common.NoPdictException as err:
       logging.warning(err.message + "\nPrecomputing and saving probabilities")
       # Not clear whether this 'recovery' mode should be on by default. Might cause more problems than it solves.
       # Not every tag belongs to an rnn model.
       with time_me('Precomputed probabilities', mode='stderr'):
-        pmap = precompute_probs.precompute_probs_for_tag(tag, args.recordfile)
+        pmap = precompute_probs.precompute_probs_for_tag(tag, args.fold)
     if args.tp:
       predictors['{}-tp'.format(tag)] = pred.ThresholdPredictor(pmap, args.thresh)
     if args.montecarlo:
@@ -62,7 +62,7 @@ def main():
 
   assert predictors
 
-  user_iterator = iterate_wrapped_users(args.recordfile)
+  user_iterator = iterate_wrapped_users(args.fold)
   judge = evaluator.Evaluator(user_iterator)
   # TODO: would be real nice to use tensorboard to look at dist. of
   # probabilities/logits/fscores/precisions stuff like that

@@ -220,3 +220,5 @@ def logits_for_tag(tag, fold):
     prob = pdict[uid][pid]
     logit = scipy.special.logit(prob)
     logits.append(logit)
+
+  return logits
