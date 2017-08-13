@@ -20,10 +20,12 @@ def munge_scoreses(scoreses, df):
   score_shape = (len(df), npredictors)
   scores = np.empty(score_shape, dtype=np.float32)
   # Yay, nested loops :/
-  for (i, uid, pid) in df[ ['uid', 'pid'] ].itertuples(index=True):
+  i = 0
+  for (uid, pid) in df[ ['uid', 'pid'] ].itertuples(index=False):
     for predictor_ix, pdict in enumerate(scoreses):
       prob = pdict[uid][pid]
       scores[i, predictor_ix] = logit(prob)
+    i += 1
     
   return scores
 
@@ -35,6 +37,7 @@ def vectorize_fold(fold, tags, meta_df, use_metafeats=True):
   y = df['label']
   n_predictors = len(scoreses)
   with time_me('Munged scores for {} predictors'.format(n_predictors), mode='print'):
+    # TODO: could use the logit loading fn added to user_wrapper module
     scores = munge_scoreses(scoreses, df)
   if not use_metafeats:
     X = scores

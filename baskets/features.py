@@ -47,6 +47,7 @@ def define_passthrough_feature(key):
   def _inner(val):
     return val
 
+# TODO: probably should apply a log transform to most of these counts or something
 _passthrough_keys = ['days_since_prior', 'n_prev_products',
     'n_prev_reorders', 'n_prev_repeats',
     ]

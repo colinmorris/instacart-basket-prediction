@@ -1,11 +1,22 @@
 Stacking workflow:
 - (precond: run metavectorize.py)
 - train models x, y, z (on training data)
-- generate pdicts for x, y and z on test + validation folds
+- generate pdicts for x, y and z on test & validation folds
 - run train.py -f validation x y z
 - run precompute_probs.py --fold test x y z
 - (Alternatively, could train on test and test on validation)
 - run ../eval.py stacked
+
+(Not clear on what fold to train on. 
+
+Training on train scores/labels runs the risk of inheriting/compounding any overfitting of the models we're blending.
+
+For the pairs 'stacking' experiment it seems necessary to take that risk because the model really needs to observe a lot of data to find significant product pairs. Here, our model is quite 'overdetermined' (is that the right word?) - we're just learning like 4-10 weights for mixing the output of a small number of predictors, possibly conditioned on a small number of meta-features. So 'only' having a few hundred thousand examples doesn't seem like a big hardship?
+
+Also, if stacked model is used downstream for boosting pairs model, need to be careful. Should treat w some suspicion results on validation set for a pairs model boosted with a stacked model trained on validation - and same for test/test.
+)
+
+# you are here...
 
 Where we're at in terms of different types of models, their current best parameterization, and how to make them do things. Well, particularly, how to generate pdicts, which are needed to train the stacked model.
 

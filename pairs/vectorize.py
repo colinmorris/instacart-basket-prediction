@@ -72,12 +72,13 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('folds', nargs='+')
   parser.add_argument('-b', '--boost', help='Tag of model to boost from')
+  parser.add_argument('--testmode', action='store_true')
   args = parser.parse_args()
 
   with time_me('Loaded pair lookup'):
     lookup = count_pairs.load_pair_lookup()
   for fold in args.folds:
-    users = iterate_wrapped_users(fold)
+    users = iterate_wrapped_users(fold, ktest=args.testmode)
     if args.boost:
       logits = user_wrapper.logits_for_tag(args.boost, fold)
     else:

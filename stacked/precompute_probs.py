@@ -16,9 +16,11 @@ import train
 
 def pdictify(probs, metavec):
   pdict = defaultdict(dict)
-  for (i, uid, pid) in metavec[ ['uid', 'pid'] ].itertuples():
+  i = 0
+  for (uid, pid) in metavec[ ['uid', 'pid'] ].itertuples(index=False):
     p = probs[i]
     pdict[uid][pid] = p
+    i += 1
   return pdict
 
 def load_metavectors(fold):

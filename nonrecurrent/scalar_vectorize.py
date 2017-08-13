@@ -39,8 +39,7 @@ _product_dtypes = [(featname, fields.dtype) for featname in fields.product_raw_f
 def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   """Return a tuple of (generic, prod-specific) recarrays.
   """
-  assert not test
-  assert order_idx != 0
+  assert order_idx == -1, "Vectorizing non-final orders not supported yet"
   pid_to_ix = {pid: i for (i, pid) in enumerate(pids)}
   # XXX: Using the setattr syntax on recarrays is a little dangerous, because 
   # you'll get no indication of the attribute you're setting isn't a named field.
@@ -85,7 +84,7 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   for pi, pid in enumerate(pids):
     pp = p[pi]
     # (numpy will implictly convert, so that's nice)
-    pp['label'] = pid in opset
+    pp['label'] = -1 if test else (pid in opset)
     pp['prev_cartorder'] = np.nan if pid not in prev_opset else list(prev_ops).index(pid) 
     pp['pid'] = pid
     pp['aisleid'], pp['deptid'] = product_lookup[pid-1]
@@ -181,7 +180,6 @@ def _order_data(user, pids, product_lookup, order_idx=-1, test=False):
   return g, p
 
 def get_user_vectors(user, max_prods, product_lookup, testmode):
-  assert not testmode
   max_prods = max_prods or float('inf')
   nprods = min(max_prods, user.nprods)
   if max_prods == float('inf'):
@@ -231,10 +229,10 @@ def main():
   random.seed(1337)
 
   if args.testmode:
-    raise NotImplemented("Sorry, come back later.")
+    assert args.max_prods is None
 
   prod_lookup = load_product_lookup()
-  user_iter = iterate_wrapped_users(args.user_records_file)
+  user_iter = iterate_wrapped_users(args.user_records_file, ktest=args.testmode)
   vecs = accumulate_user_vectors(user_iter, args.max_prods, prod_lookup, 
       args.n_users, args.testmode)
   output_tag = args.outname or args.user_records_file

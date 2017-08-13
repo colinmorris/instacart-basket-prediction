@@ -76,7 +76,9 @@ def main():
         )
   elif 1:
     clf = sklearn.linear_model.SGDClassifier(
+        # Other options: {hinge, modified_huber, squared_hinge}
         loss='log',
+        # elasticnet seems to give more reasonable results than l1.
         #penalty='l1',
         penalty='elasticnet',
         l1_ratio=0.5,
