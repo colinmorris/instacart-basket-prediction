@@ -82,6 +82,10 @@ def pdict_for_tag(tag, recordfile):
       tag, recordfile))
 
 def save_pdict_for_tag(tag, pdict, recordfile):
+  if type(pdict) != dict:
+    # Convert defaultdicts etc. to regular dicts so that if a user/pid is missing,
+    # we complain loudly
+    pdict = dict(pdict)
   path = _path_for_pdict(tag, recordfile)
   with open(path, 'wb') as f:
     pickle.dump(dict(pdict), f, _PICKLE_PROTOCOL)
