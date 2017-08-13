@@ -56,7 +56,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('tags', nargs='+')
   parser.add_argument('--fold', default='test.tfrecords', 
-      help='tfrecords file with the users to test on (default: test.tfrecords)')
+      help='fold of users to compute probs for (should correspond to name of a vector file)')
   args = parser.parse_args()
 
   for tag in args.tags:

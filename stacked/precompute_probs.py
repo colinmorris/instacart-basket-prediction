@@ -11,7 +11,8 @@ from baskets.time_me import time_me
 import baskets.time_me
 baskets.time_me.set_default_mode('print')
 
-import metavectorize
+#import metavectorize
+import train
 
 def pdictify(probs, metavec):
   pdict = defaultdict(dict)
@@ -39,7 +40,8 @@ def main():
   clf = joblib.load('model.pkl')
 
   with time_me('Vectorized fold {}'.format(args.fold)):
-    X, y = metavectorize.vectorize_fold(args.fold, args.tags, metavec)
+    # TODO: this fn is not a thing?
+    X, y = train.vectorize_fold(args.fold, args.tags, metavec)
 
   if hasattr(clf, 'predict_proba'):
     probs = clf.predict_proba(X)
