@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import sklearn
 from sklearn.linear_model import LogisticRegression
+import sklearn.svm
+import sklearn.linear_model
 from sklearn.externals import joblib
 from scipy.special import logit
 
@@ -67,6 +69,7 @@ def main():
   parser.add_argument('-f', '--train-fold', default='train')
   parser.add_argument('--validation-fold', help='Fold for validation (default: None)')
   parser.add_argument('--no-metafeats', action='store_true')
+  parser.add_argument('--svm', action='store_true')
   args = parser.parse_args()
 
   with time_me("Loaded metavectors"):
@@ -75,8 +78,14 @@ def main():
   with time_me("Made training vectors"):
     X, y = vectorize_fold(args.train_fold, args.tags, meta_df, use_metafeats=not args.no_metafeats)
   
-  # TODO: C, max_iter
-  model = LogisticRegression(verbose=1)
+  # This sucks.
+  if args.svm:
+    # slooow :( (sklearn docs say hard to scale to dataset w more than like 20k examples)
+    #model = sklearn.svm.SVC(verbose=True, probability=True, C=1.0)
+    model = sklearn.svm.LinearSVC( penalty='l2', loss='hinge', C=.001, verbose=1,)
+  else:
+    # TODO: C
+    model = LogisticRegression(verbose=1)
   with time_me('Trained model', mode='print'):
     model.fit(X, y)
 

@@ -13,11 +13,15 @@ from baskets.time_me import time_me
 
 import vectorize
 
-model_fname = 'model.pkl'
-def save_model(model, tag=None):
+def model_fname_for_tag(tag):
+  return 'model_{}.pkl'.format(tag)
+
+def save_model(model, tag='pairs'):
+  model_fname = model_fname_for_tag(tag)
   joblib.dump(model, model_fname)
 
-def load_model(tag=None):
+def load_model(tag='pairs'):
+  model_fname = model_fname_for_tag(tag)
   return joblib.load(model_fname)
 
 
@@ -26,9 +30,10 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('--train-fold', default='train')
   parser.add_argument('--validation-fold', default='validation')
+  parser.add_argument('--tag', default='pairs')
   args = parser.parse_args()
 
-  X, y = vectorize.load_fold(args.train_fold)
+  X, y = vectorize.load_fold(args.train_fold, args.tag)
 
   # Solvers to try:
   # svm.LinearSVC (nb: doesn't do probability estimates. but I guess can use decision function as proxy)
@@ -82,7 +87,7 @@ def main():
         #penalty='l1',
         penalty='elasticnet',
         l1_ratio=0.5,
-        alpha=1e-6, # default = 1e-4
+        alpha=1e-5, # default = 1e-4
         n_iter=82, # epochs
         shuffle=True, # shuffling between epochs
         verbose=1,
@@ -92,10 +97,10 @@ def main():
 
   clf.fit(X, y)
 
-  save_model(clf)
+  save_model(clf, args.tag)
 
   if args.validation_fold:
-    Xval, yval = vectorize.load_fold(args.validation_fold)
+    Xval, yval = vectorize.load_fold(args.validation_fold, args.tag)
     score = clf.score(Xval, yval)
     train_score = clf.score(X, y)
     print "Score on validation data = {:.2%} (train acc = {:.2%})".format(score, train_score)

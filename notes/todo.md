@@ -37,9 +37,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - may want to redist some more users into the test set? Might make fscore estimates less noisy.
   - a simple way of padding n test users would be to include predictions for penultimate orders (or even further back)
   - could also use validation set. I don't think there's much risk I've overfitted to that at this point. Main problem is just that generating predictions is pretty darn slow right now.
-- it's possible probability predictions are not calibrated/have some bias. Just for fun, worth
-  trying predictions with some fixed bias on the calculated 'optimal' threshold.
-- compare train vs. validation loss (how have you not thought to look at this yet?)
   
 # Architecture
 - lots of technical fiddly parameters to play with
@@ -79,13 +76,6 @@ so we could even just zero out the loss for those first n timesteps.)
 # Bugfixes
 
 # Features
-- more investigation into feature transformations
-   - try one-hot encoding for dow, hour
-   - normalization. subtract mean, divide by std.
-    - subtle/interesting question: calculate the mean over all (user, pid) sequences, or 
-      reweight so each user contributes equally?
-    - also, like, to what degree does this really help if you have adam learning 
-      different learning rates per variable? and if you're doing batch norm too?
 - feature selection experiments
 - more features that are theoretically computable from the existing inputs, but
   seem useful nudging the model toward/making it easier for the model to use it
@@ -95,20 +85,6 @@ so we could even just zero out the loss for those first n timesteps.)
   about having a feat like that for when number of orders is maxed? i.e.
   a feature that just says whether this is order 100. Is that dumb?
 - number of aisles/depts ordered from in last order
-
-# T.F. bugs/prs
-- clarify input_fn shape 
-- actual MetricSpec e2e example
-- documentation of default metrics
-  - also metrics={} doesn't do what it says in estimator.py
-- docs on these args just plain wrong: https://www.tensorflow.org/api_docs/python/tf/contrib/learn/DNNLinearCombinedClassifier#predict_proba
-- calling DNNLinearCombinedClassifier.fit with steps='100' causes a weird error msg:
-  ufunc 'add' did not contain a loop with
-- stuff like trainable_weights not implemented for DropoutWrapper
-- tf.contrib.Dataset map docs: "A function mapping a nested structure of tensors (having shapes and types defined by self.output_shapes and self.output_types) to another nested structure of tensors.". Not clear what a nested structure is. (Was surprised a dictionary isn't one.)
-- dataset docs should maybe mention when order matters in terms of chaining 
-  calls on a dataset. doing .batch() before .shuffle() seems like a big gotcha.
-- linkify huber loss url
 
 # Misc
 - review TODOs in code
@@ -155,21 +131,12 @@ so we could even just zero out the loss for those first n timesteps.)
   - train at a constant lr for a while until validation loss stops going down, then
     drop lr and repeat.
 - Add extra L2 penalty to product weights? Or add an L1 term?
-- at some point you should collate list of lessons learned from this project. 'Cause you're
-  sure as shit not getting that prize money.
-  - but, no, really, definitely tons of things I would have done differently if 
-    I were starting this again e.g. 
-      - clear separation between model config and run config
-      - importance of getting the input pipeline right, not using feed_dict
-        for big inputs, or doing a lot of work in python land to generate each batch
-      - I kind of understand variable_scope/name_scope now
 - try other optimizers?
   - in particular, not sure how well Adam plays with the sparse embedding
   stuff. Seems like RMSProp/Adagrad might work better?
   - I guess one thing to try would be separate optimizers for embedding 
   weights vs. the others? Which sounds hella complicated, but this guy
   apparently does it: https://github.com/tensorflow/tensorflow/issues/464#issuecomment-165171770
-  - LazyAdamOptimizer
   - could also experiment with optimizer params (like Adam's epsilon)
 - log adam momenta/velocities in tb:
     `optimizer.get_slot(my_var, 'm'/'v')`
@@ -183,12 +150,7 @@ so we could even just zero out the loss for those first n timesteps.)
 - auto-encoder learning multi-hot representation of baskets
 - contrived fake orders/user for testing
 - compressing vector tfrecords worked out nicely. Maybe should do the same thing for user pbs.
-- look into rejection_resample
 - Dynamic Bayesian Networks? Ooh, ahh
-- consider open-sourcing code for exact E[f]
-- on the discussion boards, someone mentioned the "profound importance of add to cart order". Is that a real thing?
-- ensembles, model stacking/blending. FWLS.
-- examples of products that get discontinued/renamed?
 - when exploring hps, esp. interested in effect of having no product embs (on speed + on loss)
 - Sameh's post on this Kaggle thread is very interesting: https://www.kaggle.com/c/instacart-market-basket-analysis/discussion/36859
   - makes the point that driving the probability of a product actually in the groundtruth from, say, .5 to .9999 
@@ -203,7 +165,6 @@ so we could even just zero out the loss for those first n timesteps.)
 - dynamic/reactive lr schedule based on validation loss. early stopping.
 - little thing: git add empty (data) dirs that cod expects to exist 
   (or programatically mkdir them when required)
-- libFFM?
 - Would be nice to figure out how to better profile tf execution during training/inference.
   In particular, would be nice to ensure that there are no silly bottlenecks on, like, 
   disk I/O, preprocessing, populating input queue, or whatever.

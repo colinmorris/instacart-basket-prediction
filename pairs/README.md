@@ -20,13 +20,19 @@ One-time thing:
 Then...
 
   # generate npy files for train vectors and labels
-  ./vectorize.py -b <boost-model> train test validation
+  ./vectorize.py (--uniprods) -b <boost-model> train test validation
+  # ^ (takes around 15 min for train, 20 min for everything)
   # train
   ./train.py
 
 To get some feel for the learned weights (how many of each type are non-zero, which pids and pid pairs have the highest and lowest weights, the weight on the upstream booster score) run...
 
  ./poke_weights.py 
+
+For generating pdict for submission
+
+  vectorize.py (--uniprods) -b <boost> --testmode ktest
+  precompute_probs.py --fold ktest
 
 # Varying hps etc.
 

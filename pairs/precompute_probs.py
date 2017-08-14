@@ -33,8 +33,8 @@ def main():
 
   #metavec = load_metavectors(args.fold)
 
-  clf = train.load_model()
-  X, y = vectorize.load_fold(args.fold)
+  clf = train.load_model(args.tag)
+  X, y = vectorize.load_fold(args.fold, args.tag)
 
   if hasattr(clf, 'predict_proba'):
     probs = clf.predict_proba(X)

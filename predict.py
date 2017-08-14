@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 
-# TODO XXX: post-refactor rewrite
-
 import time
 import csv
 import argparse
 import numpy as np
 
-import common
-import batch_helpers
-import predictor as pred
+from baskets import common, user_wrapper
+from baskets import predictor as pred
 
 def main():
   parser = argparse.ArgumentParser(description="Generate a Kaggle submission file")
@@ -20,11 +17,12 @@ def main():
       help='Number of rounds of monte carlo sim to perform per product/threshold (default:50)')
   parser.add_argument('-n', '--n-users', type=int, 
       help='Limit number of users tested on (default: no limit)')
+  parser.add_argument('--quick', action='store_true') # TODO: hook me up
   args = parser.parse_args()
   
   t0 = time.time()
 
-  user_iterator = batch_helpers.iterate_wrapped_users(args.recordfile)
+  user_iterator = user_wrapper.iterate_wrapped_users(args.recordfile, ktest=True)
   outname = 'submission.csv'
   f = open(outname, 'w')
   writer = csv.DictWriter(f, fieldnames=['order_id', 'products'])

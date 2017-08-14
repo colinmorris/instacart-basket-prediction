@@ -46,6 +46,9 @@ def precompute_probs_for_tag(tag, userfold):
   # TODO: deal with 'test mode'
   tf.logging.info('Calculating probabilities')
   probmap = get_probmap(model, sess)
+  # Hack because of silly reasons.
+  if userfold == 'validation_full':
+    userfold = 'validation'
   common.save_pdict_for_tag(tag, probmap, userfold)
   sess.close()
   tf.reset_default_graph()

@@ -25,7 +25,7 @@ def rows_for_user(user, fold):
   orderpids = set(order.products)
   for pid in user.sorted_pids:
     label = pid in orderpids
-    row = [user.uid, pid, label, fold, user.norders]
+    row = [user.uid, pid, label, fold, user.norders, user.nprods]
     rows.append(row)
   return rows
 
@@ -35,7 +35,7 @@ def rows_for_user(user, fold):
 # - Some measure of 'consistency' from order-to-order?
 # - Commonness of pid (i.e. n occurrences in the dataset/training set)
 # - number of 30 day intervals in user history
-metafeature_columns = ['norders']
+metafeature_columns = ['norders', 'nprods']
 def vectorize(userfolds):
   cols = ['uid', 'pid', 'label', 'fold'] + metafeature_columns
   rows = []
@@ -44,6 +44,7 @@ def vectorize(userfolds):
       rows += rows_for_user(user, fold)
   df = pd.DataFrame(rows, columns=cols)
   # TODO: could make 'fold' categorical to save a fair bit of space
+  df['fold'] = df['fold'].astype('category')
   # Scale
   for col in metafeature_columns:
     df[col] = sklearn.preprocessing.scale(

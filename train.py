@@ -197,13 +197,11 @@ def main():
     hps.log_every = 50
     logdir = 'toylogs'
   tf.logging.info('Building model')
-  with tf.device('/cpu:0'):
-    train_dat = BasketDataset(hps, args.recordfile)
+  train_dat = BasketDataset(hps, args.recordfile)
   model = RNNModel(hps, train_dat)
 
   eval_hps = hypers.as_eval(hps)
-  with tf.device('/cpu:0'):
-    eval_dat = BasketDataset(eval_hps)
+  eval_dat = BasketDataset(eval_hps)
   eval_model = RNNModel(eval_hps, eval_dat, reuse=True)
   # TODO: I think there's something fancy I could do to use a single Dataset
   # for both train and validation (reinitializable iterator?). But probably fine this way.
