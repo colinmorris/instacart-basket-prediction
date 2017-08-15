@@ -59,7 +59,7 @@ def vectorize(users, pair_lookup, logits=None, uniprods=True):
 
   nrows = len(indptrs) - 1
   nprods = constants.N_PRODUCTS
-  nfeats = nprods + len(pair_lookup)
+  nfeats = 1 + nprods + len(pair_lookup)
   X_shape = (nrows, nfeats)
   dat = np.ones( len(indices), dtype=np.float32)
   logit_indices = indptrs[:-1]
@@ -81,6 +81,7 @@ def main():
   parser.add_argument('--uniprods', action='store_true')
   parser.add_argument('--tag', default='pairs')
   args = parser.parse_args()
+  assert args.uniprods
 
   with time_me('Loaded pair lookup'):
     lookup = count_pairs.load_pair_lookup()

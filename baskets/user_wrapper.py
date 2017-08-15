@@ -135,7 +135,7 @@ def iterate_wrapped_users(recordpath, ktest=False):
     yield UserWrapper(user, ktest)
 
 def canonical_ordered_uid_pids(fold):
-  users = iterate_wrapped_users(fold)
+  users = iterate_wrapped_users(fold, ktest=fold=='ktest')
   for user in users:
     for pid in user.sorted_pids:
       yield user.uid, pid

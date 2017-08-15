@@ -7,6 +7,7 @@ import numpy as np
 
 from baskets import common, user_wrapper
 from baskets import predictor as pred
+from baskets.time_me import time_me
 
 def main():
   parser = argparse.ArgumentParser(description="Generate a Kaggle submission file")
@@ -18,12 +19,13 @@ def main():
   parser.add_argument('-n', '--n-users', type=int, 
       help='Limit number of users tested on (default: no limit)')
   parser.add_argument('--quick', action='store_true') # TODO: hook me up
+  parser.add_argument('--save-tag', default='')
   args = parser.parse_args()
   
   t0 = time.time()
 
   user_iterator = user_wrapper.iterate_wrapped_users(args.recordfile, ktest=True)
-  outname = 'submission.csv'
+  outname = 'submission_{}.csv'.format(args.save_tag)
   f = open(outname, 'w')
   writer = csv.DictWriter(f, fieldnames=['order_id', 'products'])
   writer.writeheader()
@@ -43,4 +45,5 @@ def main():
   print "Finished predictions in {:.1f}s".format(t1-t0)
   
 if __name__ == '__main__':
-  main()
+  with time_me(mode="print"):
+    main()

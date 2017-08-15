@@ -40,3 +40,14 @@ The pipeline begins with the data files provided by Kaggle (orders.csv, order_pr
 ## Generating test set predictions
 
 `predict.py` (it's slow!)
+
+# Models used
+
+The workhorse model here is an RNN implemented in Tensorflow. Most of the top-level scripts and much of the code in the "baskets" package are specific to the RNN model.
+
+There are a few other learning methods I experimented with, which live in the following subdirectories:
+
+- `nonrecurrent`: Gradient boosted decision trees via xgboost. (This was originally the only non-recurrent model I was using, hence the name, but all the below models are also non-recurrent).
+- `libfm`: Factorization machines. Particular focus on learning interactions between user ids, product ids, and other features (day of week, frecency) via latent representations. Results were promising, but ended up abandoning work on it out of frustration with limits of libfm API. Training can take a long time, but most models can't be saved to disk to make predictions later!
+- `pairs`: Learning weights on pairs of products, where the feature for product pair `(a, b)` has the semantics "`a` is the 'focal' product (the one we're trying to predict the probability of being in the next order) and `b` was in one of the last 4 orders". Trained via logistic regression with L1 regularization for sparsity. Motivation: I suspected there might be cases where a product was renamed in the system. Also wanted to capture cases where a user changes their loyalty (e.g. from Minute Maid orange juice to Tropicana).
+- `stacked`: Pretty basic code for stacking multiple models. Learns weights on each predictor's logits via logistic regression. Also weights per model conditioned on a couple of 'meta-features' (length of user order history, and number of products in order history) - i.e. [FWLS](https://arxiv.org/abs/0911.0460)
