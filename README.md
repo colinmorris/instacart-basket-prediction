@@ -10,11 +10,6 @@ I train a model which, given information about user `j`'s first `i` orders, pred
 
 Once I have that model, I predict all the items in the `i+1`th order by calculating the probability of each eligible product (ones previously ordered by user `j`), and applying a threshold. The threshold is determined dynamically per instance. I select the threshold that maximizes expected F-score, according to my probability model.
 
-## Predicting probabilities
-
-blah blah
-
-
 # Pipeline
 
 The pipeline begins with the data files provided by Kaggle (orders.csv, order_products__prior.csv, etc.)
